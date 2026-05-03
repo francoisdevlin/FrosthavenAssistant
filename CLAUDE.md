@@ -98,3 +98,19 @@ upstream  = https://github.com/Tarmslitaren/FrosthavenAssistant.git (Tarmslitare
 ### Working with the maintainer
 
 Tarmslitaren reviews PRs personally. Build trust progressively (see strategy doc). Tier 1 = trivial/obvious fixes. Don't open structural-refactor PRs cold — propose them via issue first.
+
+### AI-assistance disclosure (standing rule)
+
+Disclose Claude assistance on:
+- The first comment in any new upstream issue thread we open or join
+- The body of every upstream PR we submit
+
+The form: a short, neutral footer (under a horizontal rule) noting that the comment/PR was drafted with Claude assistance and reviewed by the human contributor. Avoid both extremes — don't downplay the workflow, don't overstate it. Be specific about what was AI-assisted (analysis, drafting) and that a human reviewed before posting.
+
+The maintainer maintains a `claude_refactor` branch, so AI-assisted contributions are within his comfort zone. Disclosure matches transparency for transparency. If a future maintainer is hostile to AI assistance, the disclosure surfaces that cheaply, before we sink work into a PR that won't merge.
+
+Sample footer (adapt as needed):
+
+> ---
+>
+> *Disclosure: I work with Claude as a coding assistant — this was drafted with its help and reviewed by me before posting. Will flag the same on any potential PRs going forward.*

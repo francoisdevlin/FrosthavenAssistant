@@ -110,11 +110,42 @@ Based on this data, the ideal Tier-1 PR looks like:
 6. **One commit is fine, multiple is fine**, just don't include unrelated changes.
 7. **Cut from `main`** (which mirrors `upstream/main`), not `fork-main`.
 
+## Lessons from rejected PRs
+
+Three informative closed-but-unmerged PRs:
+
+### #292 — "Data: correct Boneshaper perk rolling card target" (rejected)
+
+Tiny PR (+2/-2) referencing an open issue. Tarmslitaren replied:
+
+> 'self' is wrong, it should be target Boneshaper (remember, that Boneshaper's summons will also use her deck)
+
+**Lesson:** Tarmslitaren knows the rules deeply. Data fixes need to be **rule-correct**, not just "looks plausible." When fixing scenario/card/monster data, **cite the rulebook source** in the PR body so the maintainer can verify quickly without doing the lookup himself. A wrong fix to a real bug burns trust as much as any other kind of mistake.
+
+### #238 — "Fix gloomhaven hazardous terrain calculation" (rejected, friendly)
+
+Bug fix referencing issue #99. Tarmslitaren replied:
+
+> fixed with alternate solution. Thanks for contributing!
+
+**Lesson:** Even correct PRs can get superseded by the maintainer's own implementation. This is a *soft* rejection — relationship intact, code redone. Don't take it personally; it's a sign he was already thinking about the bug. **Mitigation:** if it's a non-obvious approach, mention the alternatives you considered in the PR body. Lets him see your reasoning and choose, rather than discarding and rewriting.
+
+### #124 — "Scenario 27 and specials conditions" (silently closed)
+
+Large PR (+716/-20). **No body. No comments. No interaction. Just closed.**
+
+**Lesson:** Large PRs without context die in silence. The maintainer doesn't have the bandwidth to reverse-engineer intent from a 700-line diff. **Never open a large PR cold** — propose via issue first, or open small focused PRs that build up to the larger goal. This is direct evidence for the strategy doc's Tier-4 rule.
+
+### Synthesis
+
+- **Tier 1-2 rule:** if it's a data/rule fix, cite the source. Don't make the maintainer do the lookup.
+- **Tier 3 rule:** if your approach has alternatives, name them in the PR body so he can pick.
+- **Tier 4 rule:** never cold-open. The empty-body, no-comment closure of #124 is what happens.
+
 ## What we still don't know
 
 - His response time. (Sample shows merges happening but not how long they sat.)
-- His behavior on rejected/closed PRs — would need to look at *closed-but-unmerged* PRs to see what gets pushed back on.
-- His comment tone. (One sample with `comments: 1` per PR isn't enough; we'd need to read the threads.)
 - Whether he prefers PRs targeted at a specific milestone/release.
+- His tone in active conflict — the rejections we've seen are short and polite, but we haven't seen what happens when a contributor pushes back.
 
-These are good follow-ups for future Tier-0 deepening, especially before our first Tier-3+ PR.
+These are good follow-ups for future Tier-0 deepening.

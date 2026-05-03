@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>X-Haven Assistant — User Manual (Draft)</title>
+<meta name="description" content="User manual for the X-Haven Assistant Flutter app. Section-numbered for stable reference from tests and bug reports.">
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #555;
+    --accent: #2c5282;
+    --rule: #ddd;
+    --code-bg: #f4f4f4;
+    --note-bg: #fff8e1;
+    --note-border: #f0c75e;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--fg);
+    max-width: 760px;
+    margin: 2em auto;
+    padding: 0 1.2em;
+    line-height: 1.55;
+  }
+  h1 { font-size: 1.9em; border-bottom: 2px solid var(--rule); padding-bottom: 0.3em; }
+  h2 { font-size: 1.4em; color: var(--accent); margin-top: 2em; border-bottom: 1px solid var(--rule); padding-bottom: 0.2em; }
+  h3 { font-size: 1.15em; margin-top: 1.6em; }
+  h4 { font-size: 1.0em; margin-top: 1.2em; color: var(--muted); }
+  .secnum { color: var(--muted); font-weight: normal; margin-right: 0.4em; font-variant-numeric: tabular-nums; }
+  .stub { color: var(--muted); font-style: italic; }
+  code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.92em; }
+  .note {
+    background: var(--note-bg);
+    border-left: 3px solid var(--note-border);
+    padding: 0.6em 1em;
+    margin: 1em 0;
+    font-size: 0.95em;
+  }
+  .note strong { display: inline-block; margin-right: 0.4em; }
+  ol.toc { list-style: none; padding-left: 0; }
+  ol.toc li { margin: 0.25em 0; }
+  ol.toc a { text-decoration: none; color: var(--accent); }
+  ol.toc a:hover { text-decoration: underline; }
+  .toc-num { color: var(--muted); display: inline-block; width: 2.2em; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2em 0; }
+  .meta { color: var(--muted); font-size: 0.9em; }
+  figure { margin: 1.2em 0; padding: 0; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  figure img { display: block; max-width: 100%; height: auto; }
+  figcaption { padding: 0.5em 0.8em; background: #fafafa; color: var(--muted); font-size: 0.9em; border-top: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.95em; }
+  th, td { text-align: left; padding: 0.4em 0.6em; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: #fafafa; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>X-Haven Assistant — User Manual</h1>
+<p class="meta"><strong>Status:</strong> draft. Anchored to <code>upstream/main</code>. Section numbers are stable identifiers — tests, bug reports, and forum threads can cite them as <code>§X.Y</code>. Goldens for §3 and §4 are generated from <code>frosthaven_assistant/test/widget/manual_goldens_test.dart</code>; regenerate with <code>flutter test --update-goldens</code>. The same goldens render byte-identically on the <code>claude_refactor</code> branch — they can serve as a regression check that the refactor preserves visible UI.</p>
+
+<nav>
+<h2 id="toc"><span class="secnum">§0</span>Contents</h2>
+<ol class="toc">
+  <li><span class="toc-num">§1</span><a href="#s1">Welcome</a></li>
+  <li><span class="toc-num">§2</span><a href="#s2">Quick Start: Your First Scenario (Black Barrow)</a></li>
+  <li><span class="toc-num">§3</span><a href="#s3">The Main Screen</a></li>
+  <li><span class="toc-num">§4</span><a href="#s4">Setting Up</a></li>
+  <li><span class="toc-num">§5</span><a href="#s5">A Round, Step by Step</a></li>
+  <li><span class="toc-num">§6</span><a href="#s6">Special Scenario Mechanics</a></li>
+  <li><span class="toc-num">§7</span><a href="#s7">Frosthaven Specifics</a></li>
+  <li><span class="toc-num">§8</span><a href="#s8">Edition Differences</a></li>
+  <li><span class="toc-num">§9</span><a href="#s9">Multiplayer</a></li>
+  <li><span class="toc-num">§10</span><a href="#s10">Mistakes, Undo, and Customization</a></li>
+  <li><span class="toc-num">§11</span><a href="#s11">Settings Reference</a></li>
+  <li><span class="toc-num">§12</span><a href="#s12">Walkthrough: Black Barrow Round-by-Round</a></li>
+  <li><span class="toc-num">§13</span><a href="#s13">Reference Appendix</a></li>
+</ol>
+</nav>
+
+<hr>
+
+<section id="s1">
+<h2><span class="secnum">§1</span>Welcome</h2>
+
+<h3 id="s1-1"><span class="secnum">§1.1</span>What this app is</h3>
+<p>X-Haven Assistant is a companion app for Cephalofair's <em>Gloomhaven</em>, <em>Frosthaven</em>, and related games. It tracks the moving parts the rules ask you to track: monster initiative, hit points, conditions, attack modifier decks, elements, and round structure. It does not replace the rulebook, the cards, or the table — it removes bookkeeping so you can play.</p>
+
+<h3 id="s1-2"><span class="secnum">§1.2</span>What this manual is, and isn't</h3>
+<p><strong>It is</strong> a guide to the <em>app</em> — what each screen shows, what each button does, how multiplayer works, how to recover from mistakes.</p>
+<p><strong>It is not</strong> a rulebook. Where game concepts come up (initiative, conditions, elements, etc.) we cite or briefly recap; we never replicate. The rulebook is the source of truth for <em>what is true in the game</em>; this manual is the source of truth for <em>what is true in the app</em>.</p>
+
+<h3 id="s1-3"><span class="secnum">§1.3</span>Supported editions</h3>
+<p>Gloomhaven 1E, Gloomhaven 2E, Frosthaven, Jaws of the Lion, Forgotten Circles, Crimson Scales, Trail of Ashes, and Seeker of Xorn. Differences between editions are summarized in <a href="#s8">§8</a>.</p>
+
+<h3 id="s1-4"><span class="secnum">§1.4</span>Out of scope</h3>
+<p>The app does not track campaign progression (unlocked classes, prosperity, town records), character sheets (items, perks the character has bought), or battle goals. Those still live on paper or in a separate tracker.</p>
+
+<h3 id="s1-5"><span class="secnum">§1.5</span>How to read this manual</h3>
+<p>If you have never opened the app: start with <a href="#s2">§2 Quick Start</a>. If you are partway through a session and stuck on something specific: jump to <a href="#s5">§5 A Round, Step by Step</a> or <a href="#s13">§13 Reference Appendix</a>. If you played Gloomhaven Helper before and want to know what changed: <a href="#s8">§8 Edition Differences</a> and the per-section notes are where the deltas live.</p>
+
+<p>Section numbers (e.g. <code>§2.4</code>) are stable references. Test reports, bug filings, and forum threads can cite them directly.</p>
+</section>
+
+<hr>
+
+<section id="s2">
+<h2><span class="secnum">§2</span>Quick Start: Your First Scenario (Black Barrow)</h2>
+
+<p>This chapter walks from "I just installed the app" to "we just finished round 1 of Gloomhaven Scenario 1." The example is <strong>Black Barrow</strong> with a single character: a level 1 <strong>Brute</strong>. Two starting rooms, two monster types, no special rules — small enough to walk end-to-end.</p>
+
+<div class="note"><strong>Why Black Barrow?</strong> Gloomhaven's rulebook also uses Scenario 1 to teach the game. Mirroring it here lets you read the manual and the rulebook side by side and see the same scenario from both angles — game rules from the rulebook, app behavior from this manual.</div>
+
+<h3 id="s2-1"><span class="secnum">§2.1</span>Install and launch</h3>
+<p>Install from the platform store (or build from source — see the project README). On first launch the app opens to an empty <em>Main Screen</em>: a top bar (elements), a near-empty body (the main list), and a bottom bar with round controls. The hamburger menu (<code>≡</code>) in the corner opens the sidebar drawer; that's where every menu lives.</p>
+
+<h3 id="s2-2"><span class="secnum">§2.2</span>Add your character</h3>
+<p>Open the sidebar (<code>≡</code>) → <strong>Add Character</strong>. Pick <strong>Brute</strong>. Set the level to <strong>1</strong>. Confirm. The Brute now appears in the main list with a banner showing name, level, max HP, and an empty initiative slot.</p>
+
+<h3 id="s2-3"><span class="secnum">§2.3</span>Set the scenario</h3>
+<p>Open the sidebar → <strong>Set Scenario</strong> → <strong>Gloomhaven</strong> → <strong>1: Black Barrow</strong>. The app auto-populates:</p>
+<ul>
+  <li><strong>Bandit Guard</strong> — normal and elite ability decks</li>
+  <li><strong>Bandit Archer</strong> — normal and elite ability decks</li>
+  <li>Scenario stat line in the bottom bar (level, trap damage, hazardous terrain damage, XP bonus, coin multiplier)</li>
+</ul>
+<p>It does <em>not</em> place individual standees — those go on the table physically. The app tracks each standee once you tap to add it during play (see <a href="#s2-6">§2.6</a>).</p>
+
+<h3 id="s2-4"><span class="secnum">§2.4</span>Round 1: draw monster abilities</h3>
+<p>Each player picks two cards from their hand (physical, on the table). When the group is ready, tap the <strong>Draw</strong> button in the bottom bar. The app reveals the top ability card for each active monster type — so you'll see the Bandit Guard's drawn card and the Bandit Archer's drawn card.</p>
+
+<div class="note"><strong>Test ref.</strong> The Draw button's behavior is implemented by <code>DrawButton</code> in <code>lib/Layout/draw_button.dart</code>. The same button morphs into "Next Round" when the round is over (see <a href="#s2-7">§2.7</a>) — see also <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">upstream issue #135</a> on the morphing-button race.</div>
+
+<h3 id="s2-5"><span class="secnum">§2.5</span>Round 1: set initiative</h3>
+<p>Each character's initiative is the lower of their two chosen cards. Tap the empty initiative slot under the Brute's banner. A numpad menu opens; enter the value. The main list reorders by initiative as soon as you confirm.</p>
+<p>Each monster type's initiative is shown on its currently-drawn ability card and is set automatically — you do not enter monster initiative yourself.</p>
+
+<h3 id="s2-6"><span class="secnum">§2.6</span>Round 1: first combat exchange</h3>
+<p>Play in initiative order. When it is the Brute's turn:</p>
+<ol>
+  <li>Move the physical Brute mini on the map.</li>
+  <li>Resolve the attack physically (declare target, roll modifier deck, etc.).</li>
+  <li>In the app, tap the <strong>Bandit Guard</strong> standee menu — pick the standee number you attacked. The standee menu opens.</li>
+  <li>Tap the <strong>HP</strong> control to subtract damage.</li>
+  <li>If the modifier card you drew applies a condition (Wound, Poison, etc.), tap the condition icon in the same menu.</li>
+</ol>
+<p>For the monster's turn: the ability card is already revealed (<a href="#s2-4">§2.4</a>); resolve it physically against the targeted character; tap the character widget's HP control to apply damage.</p>
+
+<h3 id="s2-7"><span class="secnum">§2.7</span>Round end: Next Round</h3>
+<p>When all figures have acted and the round is over, the <strong>Draw</strong> button's label changes to <strong>Next Round</strong>. Tap it. The round counter advances; monster ability decks reshuffle if any drew a "shuffle" card; conditions decrement per the rules (Poison, Wound, etc., behave per the app's auto-expire setting — see <a href="#s11">§11</a>).</p>
+
+<div class="note"><strong>Caveat — morphing button race.</strong> Because the same button serves Draw and Next Round, a stray double-tap at the moment the round ends can resolve as Draw → Next Round in quick succession. <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">Issue #135</a> tracks this. If you see initiative reset unexpectedly, that's the cause; <em>Undo</em> (<a href="#s10">§10</a>) reverses it.</div>
+
+<h3 id="s2-8"><span class="secnum">§2.8</span>What stays physical, what the app tracks</h3>
+<p>The app tracks: monster HP, character HP, conditions, initiative, round number, modifier deck state, elements, scenario stats. The table tracks: positions, line of sight, range, terrain, characters' chosen cards, items, loot in hand. Treat the app as a smart scoreboard, not a substitute for the map.</p>
+
+<h3 id="s2-9"><span class="secnum">§2.9</span>When to use Undo</h3>
+<p>Sidebar → <strong>Undo</strong>. Reverses the last app action: damage, condition, initiative entry, draws, round advance. Up to 250 levels deep. Use it freely — Undo is a recovery mechanism, not a confession.</p>
+
+<p>That's enough to play round 1. <a href="#s12">§12</a> walks the rest of the scenario; <a href="#s5">§5</a> goes deeper on each round-step interaction.</p>
+</section>
+
+<hr>
+
+<section id="s3">
+<h2><span class="secnum">§3</span>The Main Screen</h2>
+
+<h3 id="s3-1"><span class="secnum">§3.1</span>Anatomy</h3>
+<p>The main screen is a single Scaffold with four named regions, implemented by <code>MainScaffold</code> (<code>lib/Layout/main_scaffold.dart</code>):</p>
+<ol>
+  <li><strong>Top bar</strong> — six element icons across the right; the menu icon (<code>≡</code>) on the far left; the title "X-haven Assistant" beside it. See <a href="#s3-2">§3.2</a>.</li>
+  <li><strong>Main list</strong> — the body. Characters and monster types stack vertically in initiative order. Empty until you add characters and set a scenario. See <a href="#s3-3">§3.3</a>.</li>
+  <li><strong>Bottom bar</strong> — the Draw / Next Round button, scenario stat icons (level / trap / hazardous / XP / coin), the level widget, network UI, and the attack modifier deck card. See <a href="#s3-4">§3.4</a>.</li>
+  <li><strong>Sidebar drawer</strong> — opened by tapping <code>≡</code>. Catalog of every menu the app exposes (Set Scenario, Add Character, Settings, etc.). See <a href="#s3-5">§3.5</a>.</li>
+</ol>
+<p>Two transient overlays float over the body and don't have a fixed region:</p>
+<ul>
+  <li><strong>Toasts</strong> — short status notifications that fade in and out (e.g., "Round end").</li>
+  <li><strong>Modal menus</strong> — every "tap to open a menu" interaction (Add Character, Set Scenario, etc.) opens a dismissable dialog over the main screen rather than navigating.</li>
+</ul>
+<div class="note"><strong>Diagram pending.</strong> A full-screen annotated diagram of all four regions (with arrows pointing to each) belongs here. That requires a real-app integration screenshot rather than a widget-test golden — captured with <code>flutter run -d macos</code> + screencapture. Forthcoming once the integration_test harness is in place.</div>
+
+<h3 id="s3-2"><span class="secnum">§3.2</span>Top bar — elements</h3>
+<p>The top bar (<code>TopBar</code>, <code>lib/Layout/top_bar.dart</code>) houses the six element icons that the rules call out: fire, ice, air, earth, light, dark. Each element has three visual states:</p>
+<ul>
+  <li><strong>Inert</strong> — element is not in play.</li>
+  <li><strong>Full / strong</strong> — element is fully infused this round.</li>
+  <li><strong>Waning / half</strong> — element is fading at the end of next round.</li>
+</ul>
+<p><strong>Tap</strong> an element to infuse it to full. <strong>Long-press</strong> to set it directly to waning (useful for the start-of-scenario element conditions some scenarios specify, and for Elementalist play). Tapping a full element again uses it (returns to inert). At round end, full elements decay to waning, and waning to inert (subject to the Elementalist's perk in Gloomhaven 2E).</p>
+<figure>
+  <img src="screenshots/manual/s3-2-top-bar-inert.png" alt="Top bar with all elements inert">
+  <figcaption>All six elements inert — the default state at scenario start. From left: fire, ice, air, earth, light, dark.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/manual/s3-2-top-bar-fire-full.png" alt="Top bar with fire infused to full">
+  <figcaption>Fire infused to <em>full</em> after a single tap.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/manual/s3-2-top-bar-fire-half.png" alt="Top bar with fire set to waning">
+  <figcaption>Fire set to <em>waning</em> via long-press — note the half-filled circle.</figcaption>
+</figure>
+<div class="note"><strong>Test ref.</strong> Goldens are produced by the <code>Manual screenshots</code> group in <code>test/widget/manual_goldens_test.dart</code>. Regenerate after UI changes: <code>flutter test --update-goldens test/widget/manual_goldens_test.dart</code>. Verify against goldens (no rewrite): omit <code>--update-goldens</code>.</div>
+
+<h3 id="s3-3"><span class="secnum">§3.3</span>Main list — initiative and figures</h3>
+<p>The body of the screen (<code>MainList</code>, <code>lib/Layout/main_list.dart</code>) is a vertically-scrolling list. Each entry is one figure or figure group:</p>
+<ul>
+  <li><strong>Character banner</strong> — full-width horizontal banner per character. Shows the class icon, character name, level, current/max HP, XP, conditions, summons (if any), and an initiative slot. Color-coded per class.</li>
+  <li><strong>Monster type widget</strong> — one per active monster type (e.g., "Bandit Guard"). Shows the type's portrait, the currently-drawn ability card, the stat card for current level, and one standee block per spawned standee, each with HP/conditions and a normal/elite indicator.</li>
+  <li><strong>Objective / escort entries</strong> — represented as characters with a special class. See <a href="#s6-1">§6.1</a>.</li>
+</ul>
+<p><strong>Reordering.</strong> When initiative is entered for all figures, the list re-sorts automatically. To reorder manually (e.g., for ties or scenario-specific overrides), <strong>long-press</strong> any entry and drag.</p>
+<figure>
+  <img src="screenshots/manual/s3-3-main-list-populated.png" alt="Main list with two characters and a monster type with standees">
+  <figcaption>Main list with two characters (Banner Spear, Blinkblade — both level 3) and one monster type (Zealot, level 2) with three standees (two normal, one elite). Each character banner shows class color, name, level, current/max HP, and an initiative slot. The monster widget shows the type's portrait, ability-card area, stat card, and a row of standee blocks.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/manual/s3-3-main-list-empty.png" alt="Main list — empty state">
+  <figcaption>Same widget on first launch — no characters, no scenario, just the textured background. Tapping <a href="#s4-1">§4.1 Add Character</a> and <a href="#s4-2">§4.2 Set Scenario</a> populates it.</figcaption>
+</figure>
+
+<h3 id="s3-4"><span class="secnum">§3.4</span>Bottom bar — round, scenario, draw, AMD</h3>
+<p>The bottom bar (<code>BottomBar</code>, <code>lib/Layout/bottom_bar.dart</code>) holds the round-level controls. From left to right:</p>
+<ul>
+  <li><strong>Draw / Next Round button</strong> — the morphing button described in <a href="#s5-2">§5.2</a> and <a href="#s5-8">§5.8</a>. Reveals monster ability cards mid-round; advances the round when tapped at end of round. Cross-references the morphing-button caveat (<a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">issue #135</a>).</li>
+  <li><strong>Scenario stat line</strong> — five compact icons showing scenario-level (top-of-bar number), trap damage, hazardous terrain damage, XP bonus per kill, and coin multiplier. Auto-populated when a scenario is set; goes blank when none is set.</li>
+  <li><strong>Level widget</strong> — the small numeric box showing scenario level. Tap it to adjust scenario level mid-game (custom difficulty); see <a href="#s4-5">§4.5</a>.</li>
+  <li><strong>Network UI</strong> — invisible 0×0 widget that owns network toast notifications. No visual footprint; only surfaces toasts when network state changes.</li>
+  <li><strong>Modifier deck card</strong> — the right-edge card showing the top-of-deck for the monster attack modifier deck (or the current draw if a card is showing). Tappable for AMD interactions; see <a href="#s5-6">§5.6</a>.</li>
+</ul>
+<figure>
+  <img src="screenshots/manual/s3-4-bottom-bar-default.png" alt="Bottom bar default state">
+  <figcaption>Bottom bar at scenario start. "Draw" button on the left, scenario stats in the middle (level <code>1</code>, trap <code>3</code>, hazardous <code>2</code>, XP <code>+6</code>, coin <code>x2</code>), level widget showing <code>20</code>, modifier deck card on the right.</figcaption>
+</figure>
+
+<h3 id="s3-5"><span class="secnum">§3.5</span>Sidebar drawer</h3>
+<p>The sidebar drawer (<code>MainMenu</code>, <code>lib/Layout/menus/main_menu.dart</code>) is the catalog of everything you can do that isn't a tap on a banner or button. Open it by tapping <code>≡</code> in the top bar; close it by tapping outside or swiping it away.</p>
+<figure>
+  <img src="screenshots/manual/s3-5-main-menu.png" alt="Main menu drawer open">
+  <figcaption>Drawer in its default state. The "Redo: Imbue element fire" entry shows that Undo/Redo carry a description of the action they'd reverse.</figcaption>
+</figure>
+<p>From top to bottom, the drawer contains:</p>
+<ul>
+  <li><strong>Header</strong> — "X-Haven Assistant" logo + version string.</li>
+  <li><strong>Undo / Redo</strong> — labelled with the action they would reverse. Up to 250 levels deep. See <a href="#s10-1">§10.1</a>.</li>
+  <li><strong>Set Scenario</strong> — opens scenario picker. See <a href="#s4-2">§4.2</a>.</li>
+  <li><strong>Add Section</strong> — opens section picker for the current scenario (if any sections are still revealable).</li>
+  <li><strong>Add / Remove Character / Set Level</strong> — character roster management. See <a href="#s4-1">§4.1</a>.</li>
+  <li><strong>Loot Deck Menu</strong> (Frosthaven only) — loot deck composition + draws. See <a href="#s7-1">§7.1</a>.</li>
+  <li><strong>Add / Remove Monsters</strong> — manual monster management for custom scenarios or unusual mid-scenario reinforcements. See <a href="#s4-3">§4.3</a>.</li>
+  <li><strong>Show / Hide Ally Attack Modifier Deck</strong> — toggles the allies AMD when allied figures are present.</li>
+  <li><strong>Settings</strong> — opens the settings dialog. See <a href="#s11">§11</a>.</li>
+  <li><strong>Connect to Server / Start Host Server</strong> — network controls (with the local IPv6 address shown for the host case). See <a href="#s9">§9</a>.</li>
+  <li><strong>Documentation</strong> — opens the project README on GitHub in the system browser.</li>
+  <li><strong>Donate</strong> (non-iOS only) — opens a Ko-fi link.</li>
+  <li><strong>Exit</strong> (desktop only) — saves state and closes the window.</li>
+</ul>
+<p>Items are visible/hidden based on game state and platform; for example, <em>Loot Deck Menu</em> only appears when a Frosthaven scenario is active, and <em>Donate</em> is suppressed on iOS to comply with App Store policy.</p>
+
+<h3 id="s3-6"><span class="secnum">§3.6</span>Common gestures</h3>
+<p>The app makes consistent use of a small set of gestures. Knowing these is enough to drive most of the UI:</p>
+<table>
+  <thead><tr><th>Gesture</th><th>Where</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Tap</strong></td><td>Anywhere</td><td>The primary action — open a menu, increment a counter, infuse an element.</td></tr>
+    <tr><td><strong>Long-press</strong></td><td>Element icons</td><td>Sets the element to <em>waning</em> directly (skipping <em>full</em>).</td></tr>
+    <tr><td><strong>Long-press</strong></td><td>Main list entries</td><td>Picks up the entry to drag-reorder it manually.</td></tr>
+    <tr><td><strong>Long-press</strong></td><td>HP / counter buttons</td><td>Opens a numpad for direct numeric entry instead of single-step.</td></tr>
+    <tr><td><strong>Double-tap</strong></td><td>Ability cards, modifier cards, stat cards</td><td>Zooms the card to full-screen for inspection. Tap again to dismiss.</td></tr>
+    <tr><td><strong>Drag</strong></td><td>Initiative banners</td><td>Alternative initiative entry — drag to set an initiative without opening the numpad. (Setting controlled in <a href="#s11">§11</a>.)</td></tr>
+    <tr><td><strong>Tap outside</strong></td><td>Open menu / drawer</td><td>Dismisses the menu without committing anything.</td></tr>
+  </tbody>
+</table>
+<p>Gestures are intentionally minimal — there are no swipes-to-delete or pinch zooms. If a gesture isn't listed here, the app probably doesn't recognize it.</p>
+
+<h3 id="s3-7"><span class="secnum">§3.7</span>Icons and symbols</h3>
+<p>The app inherits its icon vocabulary from the rulebook. The full glossary is in <a href="#s13-3">§13.3</a>; a brief tour of the high-frequency icons:</p>
+<ul>
+  <li><strong>Elements</strong> — fire (flame), ice (snowflake), air (swirl), earth (leaf), light (radiating star), dark (crescent moon). Used in the top bar (<a href="#s3-2">§3.2</a>) and on monster ability cards.</li>
+  <li><strong>Conditions</strong> — small round tokens displayed under HP. Most common: Wound (drop with thorns), Poison (drop with skull), Stun (lightning), Disarm (broken sword), Immobilize (chains), Muddle (X), Strengthen (up arrow), Bless / Curse (modifier-deck symbols), Invisible (eye).</li>
+  <li><strong>Scenario stats</strong> — five icons on the bottom bar (<a href="#s3-4">§3.4</a>): scenario level, trap damage, hazardous terrain damage, XP bonus, coin multiplier.</li>
+  <li><strong>Class icons</strong> — colored class glyphs on character banners and condition tokens. Each class has a unique color used as the banner background.</li>
+  <li><strong>Standee colors</strong> — normal monsters use the muted stat-card color; elites use a yellow-bordered variant. Bosses and named monsters have unique frames.</li>
+</ul>
+<p>Icons are rendered from PNGs in <code>assets/images/</code>; theme-specific variants (Gloomhaven vs Frosthaven) are picked at render time based on the active scenario edition.</p>
+</section>
+
+<hr>
+
+<section id="s4">
+<h2><span class="secnum">§4</span>Setting Up</h2>
+
+<h3 id="s4-1"><span class="secnum">§4.1</span>Adding characters</h3>
+<p>Open the sidebar (<a href="#s3-5">§3.5</a>) and tap <strong>Add Character</strong>. The menu (<code>AddCharacterMenu</code>, <code>lib/Layout/menus/add_character_menu.dart</code>) lists every character class the app knows about, sorted with the current campaign's classes first.</p>
+<figure>
+  <img src="screenshots/manual/s4-1-add-character-menu.png" alt="Add Character menu">
+  <figcaption>The Add Character menu. Each row is one class: colored class icon, class name, edition tag in parentheses. Top-of-list <em>Escort</em> and <em>Objective</em> are scenario-construct "characters" rather than playable classes (see <a href="#s6-1">§6.1</a>). The <code>???</code> entry is a placeholder for a hidden/locked Frosthaven class — typing its name in the search field reveals it.</figcaption>
+</figure>
+<p>Tap a class to add it at level 1 with the default name. To pick a different starting level, the workflow is two steps: add the class, then use <strong>Set Level</strong> from the sidebar to change it (or tap the level on the character banner). Renaming a character is done by tapping the name on its banner; changes are local to the app and don't affect game state.</p>
+<p>The <strong>Load or Save Characters</strong> header opens a separate menu for persisting characters across sessions — useful for ongoing campaigns where you want to keep the same Brute across scenarios without re-entering perks every time.</p>
+<div class="note"><strong>Starting HP edge cases.</strong> Some perks and items grant <em>+max HP</em>. The app starts characters at the class's stock max HP for the chosen level — if your character has perks bumping max HP, adjust on the banner via long-press on the HP control. Tracked at upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/213">#213</a>.</div>
+
+<h3 id="s4-2"><span class="secnum">§4.2</span>Setting a scenario</h3>
+<p>Sidebar → <strong>Set Scenario</strong>. The menu (<code>SelectScenarioMenu</code>, <code>lib/Layout/menus/select_scenario_menu.dart</code>) has two parts:</p>
+<ol>
+  <li><strong>Campaign picker</strong> at the top — switches between editions (Gloomhaven, Frosthaven, Jaws of the Lion, etc.). Switching campaign changes which scenarios appear in the list below; characters from other editions remain in the main list.</li>
+  <li><strong>Scenario list</strong> — every scenario the picked campaign knows about, sorted by scenario number. The <code>custom</code> entry at the top is a blank scenario for ad-hoc setups.</li>
+</ol>
+<figure>
+  <img src="screenshots/manual/s4-2-select-scenario-menu.png" alt="Set Scenario menu">
+  <figcaption>Set Scenario menu, with the Jaws of the Lion campaign active. Each row is a scenario — tap to set it. The "Set Scenario" line just under the campaign picker is a numeric quick-jump (type a number to jump to that scenario).</figcaption>
+</figure>
+<p><strong>What setting a scenario does.</strong> Auto-populates monster types in the main list (<a href="#s3-3">§3.3</a>), the scenario stat line in the bottom bar (<a href="#s3-4">§3.4</a>), and any scenario-specific reminders (<a href="#s6-3">§6.3</a>). It does <em>not</em> place individual standees — those are added by tapping the monster widget's <code>+</code> control during play. Battle goals are also not tracked (kept on physical cards by design); <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers Buttons &amp; Bugs single-character-mode considerations.</p>
+
+<h3 id="s4-3"><span class="secnum">§4.3</span>Adding monsters manually</h3>
+<p>Sidebar → <strong>Add Monsters</strong>. Distinct from <a href="#s4-2">§4.2 Set Scenario</a>: <em>Set Scenario</em> auto-populates a fixed roster, while <strong>Add Monsters</strong> (<code>AddMonsterMenu</code>) adds an arbitrary monster type to the current main list.</p>
+<figure>
+  <img src="screenshots/manual/s4-3-add-monster-menu.png" alt="Add Monsters menu">
+  <figcaption>Add Monsters menu. Filter checkboxes (top): <em>Show Bosses</em>, <em>Show Scenario Special Monsters</em>, <em>Add as Ally</em>. The "Add Monster" search field accepts a name fragment. The list below is filtered by the active edition shown in <em>Show monsters from</em>.</figcaption>
+</figure>
+<p>Use cases:</p>
+<ul>
+  <li><strong>Custom scenarios.</strong> Building a one-off encounter outside any published scenario.</li>
+  <li><strong>Mid-scenario reinforcements not from a section.</strong> Some scenario texts say "spawn an X" without an associated section card — add it manually here.</li>
+  <li><strong>Allies.</strong> Toggle <em>Add as Ally</em> to add the monster on the character side (uses the allies AMD). Useful for special scenario figures controlled by the players.</li>
+</ul>
+<p>Tapping a monster type adds it at the current scenario level. Standees for the new type are then added through the monster widget's <code>+</code> control.</p>
+
+<h3 id="s4-4"><span class="secnum">§4.4</span>Adding sections</h3>
+<p>Sidebar → <strong>Add Section</strong>. The menu (<code>AddSectionMenu</code>) lists the sections defined for the currently-set scenario that haven't yet been added. Use it when the scenario book reveals a section card mid-play — typically when a door is opened, a tile is unlocked, or a trigger fires.</p>
+<p>Adding a section auto-spawns the section's monsters into the main list, applies any scenario rules listed for that section, and surfaces the section's reminders. Sections that introduce monsters of types already present add additional standees of that type rather than duplicating the monster widget.</p>
+<div class="note"><strong>Initiative timing.</strong> Per upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/121">#121</a>, monsters added mid-round should be inserted into the existing initiative order using the section's drawn ability card, not skipped to next round. The app handles this when a section is added mid-round.</div>
+
+<h3 id="s4-5"><span class="secnum">§4.5</span>Custom difficulty</h3>
+<p>Difficulty adjustments come in three flavors, each at a different scope:</p>
+<ul>
+  <li><strong>Scenario level (global)</strong> — tap the level widget on the bottom bar (<a href="#s3-4">§3.4</a>). The <em>Set Level</em> menu (<code>SetLevelMenu</code>) lets you pick a level 0–7 and apply a difficulty offset (Easy −1, Normal 0, Hard +1, etc.). Affects every monster's stats simultaneously. The legend at the bottom of the menu shows the resulting numeric monster level for the chosen scenario level + difficulty.</li>
+  <li><strong>Per-monster level</strong> — long-press a monster type's stat card to override its level. Useful for elite-only re-leveling, or for scenarios where the rules call out a single monster at a different level.</li>
+  <li><strong>Per-monster max HP</strong> — same menu offers a max-HP override for one specific standee. House-rule territory; most groups never touch this.</li>
+</ul>
+<p>The bottom-bar level widget is also where you'd set <em>auto-level adjust</em> (the app re-computes scenario level based on character levels) and <em>solo mode</em> (single-character scaling). These persist across scenarios and are stored in settings, not game state — they survive a fresh "Set Scenario."</p>
+</section>
+
+<hr>
+
+<section id="s5">
+<h2><span class="secnum">§5</span>A Round, Step by Step</h2>
+
+<p>The round structure mirrors the rulebook's: card selection (physical), drawing monster abilities, setting initiative, sorting and acting, ending the round. The app participates in steps 2–5; step 1 stays on the table.</p>
+
+<h3 id="s5-1"><span class="secnum">§5.1</span>Card selection (player phase)</h3>
+<p>Each player chooses two ability cards from their hand and places them face-down. The app does not enforce, track, or even know about the player's hand — card management is purely physical. The app's role begins once the group is ready to draw.</p>
+<p>What this means in practice: there is no "submit cards" or "ready" interaction in the app. Just play physically and tap <strong>Draw</strong> when everyone is ready.</p>
+
+<h3 id="s5-2"><span class="secnum">§5.2</span>Drawing monster abilities</h3>
+<p>Tap the <strong>Draw</strong> button on the bottom bar (<a href="#s3-4">§3.4</a>). The button is implemented by <code>DrawButton</code> in <code>lib/Layout/draw_button.dart</code>.</p>
+<p>What happens on Draw:</p>
+<ol>
+  <li>Every active monster type's ability deck reveals its top card. The card appears in the monster widget on the main list.</li>
+  <li>The round state moves from <code>chooseInitiative</code> to <code>playTurns</code> (visible internally; affects the button's label, see below).</li>
+  <li>The button's label morphs from <strong>Draw</strong> to <strong>Next Round</strong>.</li>
+  <li>The round counter on the button face shows the current round number; in scenarios with a fixed round count, it reads as <code>3(8)</code> meaning round 3 of 8.</li>
+</ol>
+<p>If you tap Draw when the round state isn't ready (e.g., already in <code>playTurns</code>), the button's <code>runAction</code> returns a "blocked" message that surfaces as a toast — no state change.</p>
+
+<h3 id="s5-3"><span class="secnum">§5.3</span>Setting initiative</h3>
+<p>Each character's initiative is the lower of their two chosen cards (rules-side). To enter it in the app: tap the empty initiative slot under the character's banner. A numpad menu opens.</p>
+<figure>
+  <img src="screenshots/manual/s5-3-numpad-menu.png" alt="Numpad menu for initiative entry">
+  <figcaption>Initiative numpad. Two-digit max — entering a second digit auto-confirms and dismisses. Useful for typing 7 + 4 to mean "74" without a confirm tap. The vertical red line is the menu's modal-dismiss affordance.</figcaption>
+</figure>
+<p><strong>Alternative entry: drag-on-banner.</strong> If <em>Soft numpad</em> is disabled in settings (<a href="#s11">§11</a>), tapping the initiative slot enters drag-mode on the banner — drag horizontally to scrub through values. Power users with a lot of characters often prefer this.</p>
+<p>Monster initiatives are <em>not</em> entered manually — they're set automatically from the drawn ability card's printed initiative.</p>
+<p><strong>Secret initiative (network play).</strong> When connected to a server (<a href="#s9">§9</a>), client characters' initiatives can be hidden from other clients until the round resolves. The rule has an edge case: <em>modifying</em> an already-entered initiative reveals it to other clients (otherwise mid-round adjustments would leak the value).</p>
+
+<h3 id="s5-4"><span class="secnum">§5.4</span>Sorting and acting</h3>
+<p>Once <em>all</em> figures have an initiative (characters from the numpad, monsters from their drawn cards), the main list reorders by initiative ascending — lowest first. Ties break by figure type per the rulebook; the app respects this automatically.</p>
+<p>Reading the list: the topmost figure with no <em>acted</em> indicator is who acts next. As each figure resolves their turn, tap their banner's banner-icon corner — the icon shifts to <em>acted</em> state, and the next figure is highlighted as up next.</p>
+<p><strong>Manual reorder.</strong> For ties or scenario-specific overrides, long-press a banner and drag to a new position. This bypasses initiative ordering and is local to the current round only — the next round's draw resets the order.</p>
+
+<h3 id="s5-5"><span class="secnum">§5.5</span>During a turn</h3>
+<p>The app's job during a turn is to track HP, conditions, XP, and summons. Everything else (movement, attacks, line-of-sight, range) stays on the table.</p>
+<h4>Character widget</h4>
+<p>The character banner (<code>CharacterWidget</code>, <code>lib/Layout/CharacterWidget/</code>) exposes:</p>
+<ul>
+  <li><strong>HP control</strong> — tap to subtract one (most common), long-press to open a numpad for direct entry. Healing: add via the same control.</li>
+  <li><strong>Conditions row</strong> — tap a condition icon to toggle. Conditions render as small round tokens under HP; the icon set is the rulebook's. See <a href="#s3-7">§3.7</a> for the glyph vocabulary.</li>
+  <li><strong>XP counter</strong> — small star widget. Tap to increment.</li>
+  <li><strong>Summons (<code>+</code>)</strong> — adds a summon figure tracked under the character. Summons get their own HP / conditions / initiative.</li>
+  <li><strong>Acted indicator</strong> — small banner-icon in the corner; tap when the character finishes acting.</li>
+</ul>
+<h4>Monster standee menu</h4>
+<p>Each monster standee on the monster widget is its own tappable target. Tapping a standee opens its <em>status menu</em> with HP control, conditions, and a level pip. Promotion (e.g., from normal to elite mid-scenario) happens here — though the rules rarely call for it.</p>
+<p>If a monster's HP reaches 0, the standee is automatically removed from the list. The character equivalent (HP 0) leaves the banner in the list as <em>exhausted</em> — physically you remove the character from the table, but the banner stays so the app retains the position for end-of-scenario XP/coin computation.</p>
+
+<h3 id="s5-6"><span class="secnum">§5.6</span>Modifier decks (AMD)</h3>
+<p>Each monster faction has its own attack modifier deck. Each character also has their own. The app tracks all of them.</p>
+<ul>
+  <li><strong>Monster AMD</strong> — single deck shared by all monsters and bosses (per rulebook). Visible on the bottom bar (<a href="#s3-4">§3.4</a>) and inline above the bottom bar.</li>
+  <li><strong>Character AMDs</strong> — one per character, with their personally-purchased perks applied. Visible above each character's banner area on screens wide enough to fit, or accessible via the character widget.</li>
+  <li><strong>Allies AMD</strong> — appears when at least one allied figure is present (see <a href="#s4-3">§4.3</a> Add as Ally). Its visibility is also toggleable from the sidebar drawer.</li>
+</ul>
+<p><strong>Drawing.</strong> Tap the deck to draw the next card. The drawn card persists until the figure's turn ends; tap the deck again to advance. Special cards (Curse, Bless, +2/Stun, etc.) have their effects applied automatically when drawn — Bless/Curse are removed from the deck after one use; +2/anything resolves as the modifier plus the named condition. Rolling cards (the rolling-modifier symbol) chain visually as a small stack.</p>
+<p><strong>Discard / shuffle.</strong> Cards drawn during a round stay in the discard pile. At the end of the round the deck doesn't shuffle automatically — only specific cards (the shuffle-trigger card, or special abilities) cause a shuffle. The app handles all of this automatically.</p>
+<p><strong>Advantage / disadvantage.</strong> Long-press the deck to draw two cards instead of one; the rules-relevant one (per advantage/disadvantage) is highlighted. Single-tap dismisses both.</p>
+<p><strong>Perks.</strong> Configured in the perks menu off the character widget. Each perk you check applies its modification to the AMD: removing −1s, replacing −2s with rolling cards, adding +2 Wound, etc. Perks persist with the character via the character save/load system (<a href="#s4-1">§4.1</a>).</p>
+
+<h3 id="s5-7"><span class="secnum">§5.7</span>Elements</h3>
+<p>See <a href="#s3-2">§3.2</a> for the visual states. During a round, elements move through their lifecycle automatically:</p>
+<ul>
+  <li>Tap an inert element → <strong>full</strong>.</li>
+  <li>Tap a full element → <strong>inert</strong> (a "use" — typically when an ability consumes the element).</li>
+  <li>Long-press an inert element → <strong>waning</strong> (rare; for scenario-start element conditions).</li>
+  <li>At round end (when <em>Next Round</em> is tapped, see <a href="#s5-8">§5.8</a>), the cycle decays: <strong>full → waning → inert</strong>.</li>
+</ul>
+<p>The Elementalist class (Gloomhaven 2E) has perks that change the decay behavior — the app handles this automatically when an Elementalist is in the party with the relevant perk checked.</p>
+
+<h3 id="s5-8"><span class="secnum">§5.8</span>Ending a turn / round</h3>
+<p>A turn ends when the figure has resolved their action and you've tapped the <em>acted</em> indicator on their banner. The round ends when every figure has acted.</p>
+<p>To advance to the next round, tap the (now-relabelled) <strong>Next Round</strong> button on the bottom bar. What happens:</p>
+<ol>
+  <li>Round counter increments.</li>
+  <li>Element states decay one step.</li>
+  <li>Auto-expire conditions decrement (Wound deals damage; Poison stays through draws but expires per rules; Stun/Disarm/Immobilize/Muddle expire at round end if <em>Auto-expire conditions</em> is enabled in settings).</li>
+  <li>Acted indicators reset; banners go back to "ready to act."</li>
+  <li>Draws are <em>not</em> automatic — you tap <strong>Draw</strong> again to start the next round (so the button morphs back to <strong>Draw</strong>).</li>
+</ol>
+<div class="note"><strong>Caveat — morphing button race (<a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">#135</a>).</strong> Because the same button serves Draw and Next Round, a stray double-tap at the boundary can resolve as Next Round → Draw in quick succession, advancing the round and immediately drawing for the next. The visible symptom is initiative resetting unexpectedly. Recovery: <em>Undo</em> twice (<a href="#s10-1">§10.1</a>). Local UI debounce is the appropriate fix; the multi-client manifestation is already handled by the protocol's <code>commandIndex</code> dedup at <code>server.dart:65–92</code>.</div>
+</section>
+
+<hr>
+
+<section id="s6">
+<h2><span class="secnum">§6</span>Special Scenario Mechanics</h2>
+
+<p>Beyond the core round loop, scenarios introduce mechanics the app handles in special ways. This section catalogs them.</p>
+
+<h3 id="s6-1"><span class="secnum">§6.1</span>Objectives and escorts</h3>
+<p>Objectives ("destroy the artifact," "protect the prisoner," "open the gate") and escorts ("the alchemist follows the party") are represented as <em>characters</em> in the main list rather than monsters. They use the <code>Objective</code> and <code>Escort</code> classes from the <code>na</code> (not-applicable) edition (<a href="#s4-1">§4.1</a>).</p>
+<p>Why characters and not monsters? Because they need an initiative slot, an HP bar, and conditions — exactly the character widget's affordances — but they don't draw modifier cards from the player AMDs and they don't earn XP. The <code>na</code> edition's classes provide that "character minus AMD/XP" shape.</p>
+<p>HP and initiative for objectives/escorts are typically dictated by the scenario book — set them via the character widget on add, or via <strong>Set Level</strong>. <code>GameMethods.isObjectiveOrEscort</code> is the predicate the app uses to special-case their behavior throughout the codebase.</p>
+
+<h3 id="s6-2"><span class="secnum">§6.2</span>Allies</h3>
+<p>Allies are NPC figures controlled by the players that act on their initiative. Mechanically they're monsters (with monster ability cards), but they fight on the players' side and use a separate <em>allies attack modifier deck</em> (a copy of the basic monster AMD without curses).</p>
+<p>Add an ally either by toggling <em>Add as Ally</em> in the Add Monsters menu (<a href="#s4-3">§4.3</a>) when adding the figure, or by promoting an existing monster type via the sidebar drawer's <em>Show Ally Attack Modifier Deck</em> toggle (<a href="#s3-5">§3.5</a>) when the scenario brings allies into play mid-game.</p>
+<p>Allies turn the second AMD card on the bottom bar visible. When no allies are active, the deck is hidden to keep the bar uncluttered.</p>
+
+<h3 id="s6-3"><span class="secnum">§6.3</span>Timers and reminders</h3>
+<p>Some scenarios specify start-of-round, mid-round, or end-of-round reminders ("at the start of round 3, spawn an Earth Demon"; "at the end of any round in which the artifact has been destroyed, the scenario ends"). The app surfaces these as toast notifications at the relevant moment, sourced from the scenario's data file.</p>
+<p>Reminder visibility is controlled by the <em>Show Reminders</em> setting (<a href="#s11">§11</a>). Default on. They auto-dismiss after a few seconds; tap to dismiss early.</p>
+
+<h3 id="s6-4"><span class="secnum">§6.4</span>Spawns</h3>
+<p>Spawns come in two flavors:</p>
+<ul>
+  <li><strong>Section-driven spawns.</strong> When you reveal a section via <strong>Add Section</strong> (<a href="#s4-4">§4.4</a>), the section's monster list is added to the main list automatically. This is the common case.</li>
+  <li><strong>Auto-spawn (room reveal).</strong> When <em>Auto-add spawns</em> is enabled in settings (<a href="#s11">§11</a>), the app prompts to add the next section's monsters when triggers fire. The trigger surfaces as a dialog (<code>AutoAddStandeeMenu</code>) over the main screen — confirm to add, or dismiss to skip.</li>
+</ul>
+<p>For one-off spawns not covered by sections (e.g., a scenario rule that says "spawn a Bandit Guard adjacent to the leader"), use <strong>Add Monsters</strong> for a new type or just tap <code>+</code> on an existing monster widget for an additional standee.</p>
+
+<h3 id="s6-5"><span class="secnum">§6.5</span>Named and boss monsters</h3>
+<p>Bosses (<code>MonsterType.boss</code>) differ from normal/elite monsters in three ways:</p>
+<ol>
+  <li><strong>Custom ability deck.</strong> Bosses have their own ability cards rather than drawing from the type-shared deck.</li>
+  <li><strong>Higher HP scaling.</strong> Boss HP scales differently with scenario level (per the rulebook); the app's stat tables encode this.</li>
+  <li><strong>Single standee.</strong> Bosses are typically unique — one standee, no normal/elite variants.</li>
+</ol>
+<p>Named monsters (e.g., specific characters that aren't bosses but aren't generic enemies either) follow the boss code path with a unique frame style. The Add Monsters menu's <em>Show Bosses</em> filter (<a href="#s4-3">§4.3</a>) toggles their visibility in the picker.</p>
+
+<h3 id="s6-6"><span class="secnum">§6.6</span>Standee limits</h3>
+<p>Each monster type has a hard cap on simultaneously-active standees (typically 6 normal + 4 elite, varying by edition). The app enforces this: tapping <code>+</code> on a fully-spawned monster type refuses the add and surfaces a toast naming the limit.</p>
+<p>If the rules ever call for exceeding the limit (rare; usually only via specific scenario rules), the workaround is to remove an existing standee first. The app does not yet provide a "force-add over limit" affordance — file a feature request if your scenario needs one.</p>
+</section>
+
+<hr>
+
+<section id="s7">
+<h2><span class="secnum">§7</span>Frosthaven Specifics</h2>
+
+<p>Frosthaven adds mechanics that don't exist in Gloomhaven. The app handles them only when a Frosthaven scenario is active.</p>
+
+<h3 id="s7-1"><span class="secnum">§7.1</span>Loot deck</h3>
+<p>Frosthaven's loot deck replaces Gloomhaven's coin tokens with a deck of cards covering money, materials (lumber, hide, metal), and herbs (arrowvine, axenut, corpsecap, flamefruit, rockroot, snowthistle).</p>
+<p>The app composes the loot deck automatically from character count: each player adds a fixed contribution of money cards, plus material and herb cards based on the scenario's loot pool. The full composition is visible via <strong>Loot Deck Menu</strong> on the sidebar (<a href="#s3-5">§3.5</a>) — only present when a Frosthaven scenario is active.</p>
+<p><strong>Drawing.</strong> When a character looses (per the rulebook's looting rules), tap their character widget's loot affordance to draw the top card. The card is attributed to that character — at scenario end the app totals each character's hauls. Looting from a hex with a specific resource type (e.g., "loot 1 lumber") draws from the deck filtered to that resource.</p>
+<p><strong>Enhancement.</strong> Loot enhancements (cards that add +1 to a resource type, etc.) are configured in the loot deck menu via <code>LootCardEnhancementMenu</code>. Enhancements persist with the character's saved data — load a character into a future scenario and their enhancements come along.</p>
+<p><strong>Persistence.</strong> Money cards in particular: the app retains running totals so you don't have to re-enter wallet contents between scenarios. This is the loot deck's most quality-of-life-positive feature in Frosthaven play.</p>
+
+<h3 id="s7-2"><span class="secnum">§7.2</span>Sanctuary deck</h3>
+<p>The sanctuary deck (Crimson Scales / Trail of Ashes territory; Frosthaven uses a related mechanic) tracks favors and donations made to the Sanctuary of the Great Oak. The app exposes it as a separate deck reachable from the modifier deck menu when a relevant scenario is active.</p>
+<p>The most common interaction is the <em>donate</em> command (<code>DonateCsSanctuaryCommand</code>) — a player donates 10 gold during a town visit, drawing a card from the sanctuary deck. The card's effect (typically a permanent buff or modifier-deck change for the next scenario) is recorded against the donating character.</p>
+<p>This deck is not present in vanilla Gloomhaven or Jaws of the Lion campaigns; switching to those campaigns hides the deck entirely.</p>
+
+<h3 id="s7-3"><span class="secnum">§7.3</span>Buttons &amp; Bugs differences</h3>
+<p>Buttons &amp; Bugs (a Frosthaven solo expansion) plays as a single-character variant. The app detects Buttons &amp; Bugs scenarios via an <code>isButtonsAndBugs</code> check in <code>lib/Layout/main_scaffold.dart</code> and adjusts the layout:</p>
+<ul>
+  <li><strong>Modifier deck position.</strong> The on-bar attack modifier deck is suppressed when in Buttons &amp; Bugs mode; the deck appears inline with the single character instead.</li>
+  <li><strong>Battle goals hidden by default.</strong> Buttons &amp; Bugs scenarios hide the battle-goal interaction the app surfaces in other modes — <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers the scope.</li>
+  <li><strong>Single-character scaling.</strong> Solo mode (<a href="#s4-5">§4.5</a>) re-scales monster HP/damage for the one-character party size automatically.</li>
+</ul>
+<p>If you're running a multi-character Frosthaven campaign and accidentally pick a Buttons &amp; Bugs scenario, the layout shift is the most obvious tell — switch back via <strong>Set Scenario</strong> (<a href="#s4-2">§4.2</a>).</p>
+</section>
+
+<hr>
+
+<section id="s8">
+<h2><span class="secnum">§8</span>Edition Differences</h2>
+
+<p>The app supports many editions, each with its own scenario set, monsters, and quirks. Edition data lives in <code>assets/data/editions/&lt;Edition&gt;.json</code>; switching editions via the campaign picker (<a href="#s4-2">§4.2</a>) loads its data into the active model.</p>
+
+<h3 id="s8-1"><span class="secnum">§8.1</span>Supported editions</h3>
+<table>
+  <thead><tr><th>Edition</th><th>Type</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Gloomhaven</strong></td><td>Base game (1E)</td><td>The original. All scenarios, monsters, classes from the 1E box.</td></tr>
+    <tr><td><strong>Gloomhaven 2nd Edition</strong></td><td>Base game (2E)</td><td>Reprint with rebalanced stats and revised monster ability decks. Elementalist's element-decay perk behaves differently here (see <a href="#s5-7">§5.7</a>).</td></tr>
+    <tr><td><strong>Forgotten Circles</strong></td><td>Gloomhaven expansion</td><td>Adds the Diviner class, new scenarios, and a few new monster types.</td></tr>
+    <tr><td><strong>Jaws of the Lion</strong></td><td>Standalone</td><td>Smaller, simpler ruleset; classes Hatchet, Voidwarden, Demolitionist, Red Guard. Simplified monster ability decks.</td></tr>
+    <tr><td><strong>Frosthaven</strong></td><td>Base game</td><td>The big one. Loot deck (<a href="#s7-1">§7.1</a>), sanctuary mechanic, character classes that don't appear in Gloomhaven. Theme switches to the Frosthaven background and stats apply Frosthaven-specific condition variants where they differ.</td></tr>
+    <tr><td><strong>Crimson Scales</strong></td><td>Fan-made (officially endorsed)</td><td>Adds new classes and scenarios in a Gloomhaven-compatible shell. Sanctuary deck originates here.</td></tr>
+    <tr><td><strong>Trail of Ashes</strong></td><td>Crimson Scales follow-up</td><td>Continuation of Crimson Scales' campaign + classes.</td></tr>
+    <tr><td><strong>Seeker of Xorn</strong></td><td>Fan-made</td><td>Mini-campaign with bespoke classes and scenarios.</td></tr>
+    <tr><td><strong>Buttons and Bugs</strong></td><td>Frosthaven solo expansion</td><td>Single-character variant. UI layout shifts (<a href="#s7-3">§7.3</a>).</td></tr>
+    <tr><td><strong>Mercenary Packs</strong></td><td>Class packs</td><td>Standalone class additions across editions.</td></tr>
+    <tr><td><strong>CCUG</strong></td><td>Community-created content</td><td>Catch-all for community campaigns and assets registered under the umbrella.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s8-2"><span class="secnum">§8.2</span>What every edition shares</h3>
+<p>The core round flow (<a href="#s5">§5</a>), elements (<a href="#s5-7">§5.7</a>), AMDs (<a href="#s5-6">§5.6</a>), and condition mechanics work identically across editions. The Save/Load Characters facility (<a href="#s4-1">§4.1</a>) is also edition-agnostic — load a Brute (Gloomhaven) into a Crimson Scales scenario and the app will accept it.</p>
+
+<h3 id="s8-3"><span class="secnum">§8.3</span>Edition-specific behaviors</h3>
+<ul>
+  <li><strong>Loot deck</strong> — Frosthaven only (<a href="#s7-1">§7.1</a>). Other editions don't surface the Loot Deck Menu.</li>
+  <li><strong>Sanctuary deck</strong> — Crimson Scales / Trail of Ashes / Frosthaven (<a href="#s7-2">§7.2</a>). Hidden in others.</li>
+  <li><strong>Theme switching</strong> — Gloomhaven uses the Pirata-styled marble theme; Frosthaven uses the GermaniaOne-styled icy theme. Switching campaigns swaps the active <code>ThemeData</code> via <code>ThemeSwitcher</code> (<code>lib/Resource/theme_switcher.dart</code>). Manual override available in settings (<a href="#s11">§11</a>).</li>
+  <li><strong>Condition glyph variants</strong> — some conditions use slightly different art in Frosthaven vs. Gloomhaven (the <code>_fh</code> suffix on icon paths in <code>condition_icon.dart</code>). The app picks the correct variant based on the active scenario edition.</li>
+  <li><strong>Battle goals</strong> — not tracked by the app in any edition; kept on physical cards. <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers Buttons &amp; Bugs's hidden-by-default behavior.</li>
+</ul>
+
+<h3 id="s8-4"><span class="secnum">§8.4</span>Mixing editions in one party</h3>
+<p>The app permits a Banner Spear (Frosthaven), a Hatchet (Jaws of the Lion), and a Diviner (Forgotten Circles) in the same scenario. The <strong>Add Character</strong> menu (<a href="#s4-1">§4.1</a>) sorts the active campaign's classes first but doesn't restrict by edition. Whether mixing makes <em>game sense</em> is a house-rule decision; the app stays out of it.</p>
+</section>
+
+<hr>
+
+<section id="s9">
+<h2><span class="secnum">§9</span>Multiplayer</h2>
+
+<p>The app supports a host/client model for sharing game state across multiple devices around the table. One device hosts; others connect as clients. The host's state is authoritative.</p>
+
+<h3 id="s9-1"><span class="secnum">§9.1</span>Hosting</h3>
+<p>Sidebar drawer → <strong>Start Host Server</strong>. The menu entry shows the local IPv6 address in parentheses (e.g., <em>Start Host Server (fe80::abc:1234)</em>) so clients on the same LAN know what address to type.</p>
+<p>Once started, the entry's label changes to <em>Stop Server</em>. The server listens on a fixed port; the address shown is the one to share. Server lifecycle is implemented in <code>lib/services/network/server.dart</code>; the standalone variant lives in <code>frosthaven_assistant_server/lib/standalone_server.dart</code> for headless hosts.</p>
+<p><strong>Caveats.</strong> Hosting from a phone over cellular usually doesn't work — most carriers block inbound connections. LAN hosting from a desktop is the most reliable; LAN hosting from a tablet is fine if it stays awake (consider the <em>Wakelock</em> setting on Android, which is on by default for this reason). Port forwarding is required for hosting across the public internet — most groups don't bother.</p>
+
+<h3 id="s9-2"><span class="secnum">§9.2</span>Joining</h3>
+<p>Sidebar drawer → <strong>Connect to Server &lt;address&gt;</strong>. The address shown is the last successfully-connected one; type a new one to override. On successful connect, the server's full state is pushed to the client and replaces whatever was there locally.</p>
+<p>The first connect of a session reads from the server; subsequent commands flow bidirectionally. Both host and clients can issue commands — the server arbitrates ordering via <em>command index</em> (see <a href="#s9-5">§9.5</a>).</p>
+
+<h3 id="s9-3"><span class="secnum">§9.3</span>What's synced, what isn't</h3>
+<table>
+  <thead><tr><th>State</th><th>Synced?</th></tr></thead>
+  <tbody>
+    <tr><td>Characters, monsters, standees, HP, conditions, initiative, round, modifier decks, elements</td><td><strong>Yes</strong> (this is "game state")</td></tr>
+    <tr><td>Loot deck contents, character loot, sanctuary state</td><td><strong>Yes</strong></td></tr>
+    <tr><td>Undo / Redo history</td><td><strong>Yes</strong></td></tr>
+    <tr><td>Settings (theme, scaling, soft numpad, etc.)</td><td><strong>No</strong> — local per device</td></tr>
+    <tr><td>Saved characters / character library</td><td><strong>No</strong> — local per device</td></tr>
+    <tr><td>Network connection state (last-known address)</td><td><strong>No</strong> — local per device</td></tr>
+  </tbody>
+</table>
+<p>The split is intentional: settings are per-user preferences (one player likes dark mode, another doesn't); game state is per-table.</p>
+
+<h3 id="s9-4"><span class="secnum">§9.4</span>Disconnect behavior</h3>
+<p>If a client loses connection (Wi-Fi drop, app backgrounded, host quits), the app surfaces an "error / disconnected / lost" toast via <code>NetworkUI</code> (<a href="#s3-4">§3.4</a>) with a <em>Retry</em> option. Tapping retry re-establishes the connection using the last known address.</p>
+<p>Mobile clients backgrounded for too long may have their connection torn down by the OS. On foregrounding, the toast surfaces and the user can retry. <em>Auto-reconnect</em> on Settings (<a href="#s11">§11</a>) attempts a reconnect automatically when the app returns to the foreground.</p>
+<p>Host disconnect (host kills the app or loses power) is not graceful — clients will receive disconnect notifications. The host's state is preserved on its device; bringing the host back up and reconnecting clients restores the session at the last persisted command index.</p>
+
+<h3 id="s9-5"><span class="secnum">§9.5</span>Conflict resolution</h3>
+<p>Every command (HP change, condition toggle, draw, etc.) is tagged with a monotonic <strong>command index</strong>. The server is the source of truth for the index; clients submit commands relative to the server's current index.</p>
+<p>The dedup logic lives in <code>frosthaven_assistant/lib/services/network/server.dart</code> (lines 91–117): if an incoming message's index is greater than the server's current index, it advances and broadcasts; if equal or lower, the message is logged and ignored. This is what protects the system from the most common multi-client races, including the morphing-button concern from <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">issue #135</a> — two near-simultaneous Next Round commands from different clients hit the server with the same index, and only the first lands.</p>
+<p><strong>Out-of-sync notification.</strong> If a client's local state diverges from the server (typically because of a missed broadcast), the next command issued will be rejected and a toast surfaces ("out of sync — reconnect"). Reconnecting fetches the server's authoritative state and replaces local.</p>
+
+<h3 id="s9-6"><span class="secnum">§9.6</span>Initiative secrecy</h3>
+<p>The classic Gloomhaven simultaneous-reveal moment: each player chooses cards in secret, initiative is revealed at the same time. The app supports this in network play by hiding initiative values from other clients until all characters' initiatives are entered. Then all initiatives reveal simultaneously when the round transitions to <code>playTurns</code>.</p>
+<p><strong>Edge case: modifying initiative.</strong> Once a value has been entered and the round is still in <code>chooseInitiative</code>, the entering client can change their value — but the change broadcasts immediately (with the new value), revealing it to other clients. This is intentional: a hidden modification could let a player change their initiative <em>after</em> seeing others', which is a cheating vector. The reveal-on-modify behavior closes the loophole.</p>
+<p>Initiative secrecy is configurable per-table; if your group plays open initiative, the setting in <a href="#s11">§11</a> exposes values immediately on entry.</p>
+</section>
+
+<hr>
+
+<section id="s10">
+<h2><span class="secnum">§10</span>Mistakes, Undo, and Customization</h2>
+
+<h3 id="s10-1"><span class="secnum">§10.1</span>Undo and redo</h3>
+<p>Two-thirds of the moves you make in this app are recoverable. Sidebar drawer → <strong>Undo</strong> reverses the last command. The drawer entry shows what would be undone (e.g., <em>Undo: Imbue element fire</em>), so you can confirm before tapping. <strong>Redo</strong> replays it.</p>
+<p>What gets undone:</p>
+<ul>
+  <li>HP / condition / XP changes on characters and monsters</li>
+  <li>Standee adds / removes</li>
+  <li>Element imbue / use</li>
+  <li>Initiative entries</li>
+  <li>Modifier deck draws</li>
+  <li>Round advances</li>
+  <li>Adding / removing characters and monsters</li>
+  <li>Setting a scenario / adding a section</li>
+</ul>
+<p>What does <em>not</em> get undone:</p>
+<ul>
+  <li><strong>Settings.</strong> Toggling dark mode, scaling, or any other Settings menu item is local-only and not recorded as a command.</li>
+  <li><strong>Network connection state.</strong> Connect/disconnect doesn't roll back through Undo.</li>
+  <li><strong>Saved-character library.</strong> Loading or saving a character writes to local storage outside the command stream.</li>
+</ul>
+<p>The undo stack is unbounded in practice (limited by available memory). After hundreds of commands in a session, you can still wind all the way back to scenario start — useful for "wait, what was the HP before that crit?" forensic reconstruction. Undo persists across saves, so closing and reopening the app preserves your history.</p>
+
+<h3 id="s10-2"><span class="secnum">§10.2</span>If something looks wrong with the data</h3>
+<p>The app's data files (monster ability decks, scenario rosters, class stats) are hand-curated from the rulebooks. With thousands of stat-card numbers and ability cards, occasional mistakes are inevitable.</p>
+<p>If you notice a discrepancy:</p>
+<ol>
+  <li>Confirm against the official rulebook or errata.</li>
+  <li>File an issue at <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues">github.com/Tarmslitaren/FrosthavenAssistant/issues</a> with the scenario number, monster type, and what's wrong.</li>
+  <li>In the meantime, work around using <em>Custom Difficulty</em> (<a href="#s4-5">§4.5</a>) — override the specific stat for the affected standee.</li>
+</ol>
+<p>Data fixes are easy contributions. The JSON files are at <code>frosthaven_assistant/assets/data/editions/&lt;Edition&gt;.json</code> if you want to PR a fix yourself.</p>
+
+<h3 id="s10-3"><span class="secnum">§10.3</span>House rules</h3>
+<p>The app supports a few common house rules out of the box:</p>
+<ul>
+  <li><strong>Open initiative.</strong> Settings → disable initiative secrecy (<a href="#s9-6">§9.6</a>). Now initiatives are visible to all clients as soon as they're entered.</li>
+  <li><strong>Auto-expire conditions.</strong> Settings → <em>Auto-expire conditions</em>. With this on, end-of-round Wound/Poison/Stun/Disarm/Immobilize/Muddle expire automatically per the rulebook. Off means you decide when to clear them — useful for groups that interpret edge cases differently.</li>
+  <li><strong>Custom monster HP.</strong> Long-press a stat card → set max HP. House-rule territory; rare.</li>
+  <li><strong>Custom scenario level.</strong> The level widget on the bottom bar offers a difficulty offset (<a href="#s4-5">§4.5</a>). Easy / Hard / etc. are scenario-level adjustments.</li>
+  <li><strong>No standees mode.</strong> Settings → <em>No standees</em>. Hides standee numbers throughout — for groups that don't use the physical standees and just track total HP per type.</li>
+</ul>
+<p>House rules that the app doesn't support directly (e.g., custom modifier-deck composition) typically need a manual workaround using the Add Monster + perks system, or a feature request.</p>
+</section>
+
+<hr>
+
+<section id="s11">
+<h2><span class="secnum">§11</span>Settings Reference</h2>
+
+<p>Sidebar drawer → <strong>Settings</strong> opens the settings menu (<code>SettingsMenu</code>, <code>lib/Layout/menus/settings_menu.dart</code>). The README enumerates every option; this section covers the ones that materially change app behavior, grouped by intent.</p>
+
+<h3 id="s11-1"><span class="secnum">§11.1</span>Display and layout</h3>
+<ul>
+  <li><strong>Dark mode.</strong> Switches the bar backgrounds and overall palette to a darker variant. Independent of <em>Frosthaven theme</em>.</li>
+  <li><strong>Bar scaling slider.</strong> Resizes the top and bottom bars. Useful on tablets where the default is too small. The corresponding <code>userScalingBars</code> value listenable cascades to most widget sizes.</li>
+  <li><strong>Main scaling slider.</strong> Resizes the main list (banners + monster widgets). Set independently from bar scaling.</li>
+  <li><strong>Fullscreen</strong> (desktop only). Hides the OS title bar; useful for game-day setups.</li>
+  <li><strong>Stat card text shimmers.</strong> Cosmetic — animates monster ability text. Off by default to reduce visual noise; some find it festive.</li>
+</ul>
+
+<h3 id="s11-2"><span class="secnum">§11.2</span>Round-flow behavior</h3>
+<ul>
+  <li><strong>Soft numpad for input.</strong> When on, tapping initiative slots opens the numpad (<a href="#s5-3">§5.3</a>). When off, the slot enters drag-on-banner mode instead.</li>
+  <li><strong>Don't ask for initiative.</strong> Skips the initiative-entry step entirely; useful for groups using a separate initiative tool or playing with always-open initiative.</li>
+  <li><strong>Expire Conditions.</strong> See <a href="#s10-3">§10.3</a> — auto-decrements end-of-round conditions per the rulebook.</li>
+  <li><strong>Auto Add Standees.</strong> Triggers the auto-spawn dialog (<a href="#s6-4">§6.4</a>) when sections introduce monsters.</li>
+  <li><strong>Auto Add Timed Spawns.</strong> Same idea but for scenarios with time-based (round-N) spawns rather than section-based.</li>
+  <li><strong>Random Standees.</strong> Randomizes which standee number is added rather than picking the lowest available. Tabletop-style draw-from-bag emulation.</li>
+</ul>
+
+<h3 id="s11-3"><span class="secnum">§11.3</span>Display filters and content</h3>
+<ul>
+  <li><strong>Don't track Standees / No Standees mode.</strong> Hides standee numbers and presents monster types as aggregate HP pools (<a href="#s10-3">§10.3</a>).</li>
+  <li><strong>No Calculations.</strong> Disables the auto-applied modifier-card math; players resolve attack modifiers manually. Used by groups who prefer to do the math themselves.</li>
+  <li><strong>Hide Loot Deck.</strong> Hides the Frosthaven loot-deck UI even on Frosthaven scenarios. For groups who want to track loot by hand.</li>
+  <li><strong>Show Scenario names in list.</strong> Adds the scenario name to the title; useful when running multiple groups.</li>
+  <li><strong>Show Battle Goal Reminder.</strong> Surfaces a battle-goal toast at scenario start.</li>
+  <li><strong>Show Attack Modifier Decks.</strong> Toggles AMD visibility globally.</li>
+  <li><strong>Show Custom Content.</strong> Enables fan-made content (Crimson Scales, Trail of Ashes, Seeker of Xorn, CCUG editions). Off by default for cleanliness.</li>
+  <li><strong>Unlock specials.</strong> Reveals the hidden Frosthaven character classes (those that show as <code>???</code> in <a href="#s4-1">§4.1</a>).</li>
+</ul>
+
+<h3 id="s11-4"><span class="secnum">§11.4</span>Networking</h3>
+<p>Network-related settings (auto-reconnect, last-known address, server toggle) live in this menu but are documented in <a href="#s9">§9</a>. The settings menu also surfaces the connection state via a checkbox row.</p>
+
+<h3 id="s11-5"><span class="secnum">§11.5</span>State management</h3>
+<ul>
+  <li><strong>Load/Save State.</strong> Save the entire current game state to a file (or load from one). Useful for moving a session between devices, sharing a problem state for bug reports, or resuming a paused scenario weeks later.</li>
+</ul>
+</section>
+
+<hr>
+
+<section id="s12">
+<h2><span class="secnum">§12</span>Walkthrough: Black Barrow Round-by-Round</h2>
+
+<p>This is the long-form companion to <a href="#s2">§2 Quick Start</a>. Where Quick Start gets you to "we just finished round 1," this section walks the entire scenario end-to-end. Read it the night before your first session — or 30 minutes before, if that's how the schedule worked out.</p>
+
+<p>The example: <strong>Black Barrow</strong> (Gloomhaven Scenario 1). One character, a level 1 <strong>Brute</strong>. Two rooms separated by a door. Two monster types: <em>Bandit Guard</em> (melee) and <em>Bandit Archer</em> (ranged). No special rules. The smallest possible Gloomhaven scenario, and the one the rulebook itself uses to teach the game.</p>
+
+<h3 id="s12-1"><span class="secnum">§12.1</span>Setup phase</h3>
+<p>Open the app. Sidebar (<code>≡</code>) → <strong>Add Character</strong>. Pick <em>Brute</em> (Gloomhaven). Confirm at level 1. The Brute appears in the main list as a yellow-orange banner showing class icon, name, level 1, HP 8/8 (the Brute's level-1 max), and an empty initiative slot.</p>
+<p>Sidebar → <strong>Set Scenario</strong>. Confirm campaign is <em>Gloomhaven</em>; if not, tap the campaign picker to switch. Find <em>#1 Black Barrow</em> (it's at the top of the scenario list since they're sorted by number). Tap it.</p>
+<p>The app now shows:</p>
+<ul>
+  <li>Bandit Guard normal &amp; elite ability decks ready</li>
+  <li>Bandit Archer normal &amp; elite ability decks ready</li>
+  <li>Scenario stat line in the bottom bar (level 1, the trap and hazardous values for level 1, etc.)</li>
+</ul>
+<p>Place your physical Brute miniature on the starting hex. Place the Bandit standees per the scenario book (the rulebook tells you how many of each). The app and the table are now in sync — the app knows the monster types, the table knows the positions.</p>
+
+<h3 id="s12-2"><span class="secnum">§12.2</span>Round 1 — the initial room</h3>
+<p><strong>Card selection.</strong> Look at your hand of Brute cards. Pick two. The lower of their initiatives is your initiative this round. Place the cards face-down on the table — the app doesn't know or care about your cards.</p>
+<p><strong>Draw.</strong> Tap <strong>Draw</strong> on the bottom bar. Bandit Guard and Bandit Archer ability cards reveal in their respective monster widgets. Each card has its own initiative printed on it.</p>
+<p><strong>Set initiative.</strong> Tap the empty slot under the Brute's banner. Numpad opens. Type your initiative (e.g., 21). The list reorders.</p>
+<p><strong>Resolve turns in initiative order.</strong> Suppose the order ends up: Bandit Archer (init 18), Brute (init 21), Bandit Guard (init 28). Then:</p>
+<ol>
+  <li><em>Bandit Archer.</em> Per its drawn ability card (e.g., "Attack 2, Range 3"), each Archer standee makes a ranged attack. Resolve physically: pick targets, draw a monster AMD card per attack, apply damage. Tap your character widget's HP control to subtract damage; tap the AMD card to advance to next draw if the rules require multiple draws this turn.</li>
+  <li><em>Brute.</em> Move and attack per your chosen cards. Decide your target (let's say Archer #1). Resolve the attack: declare base damage from your card, draw a Brute AMD card, apply the modifier. Tap Archer #1's standee, then the HP control to subtract damage. If the modifier card had a condition (e.g., +1 Wound), tap the condition icon in the standee menu.</li>
+  <li><em>Bandit Guard.</em> Per its drawn card (e.g., "Move 2, Attack 2"), each Guard standee moves and attacks. Resolve physically; apply damage to the Brute via the character widget.</li>
+</ol>
+<p><strong>End of round.</strong> Each figure should now show as <em>acted</em>. Tap the <strong>Next Round</strong> button (the same button that said Draw before). Round counter advances; element decay happens automatically (none in play yet); auto-expire conditions tick.</p>
+<p><strong>Quick recovery.</strong> Made a mistake? Sidebar → <strong>Undo</strong>. Each undo reverses one command. Three taps wind back three actions; six taps wind back six. You can wind all the way back to scenario start if needed.</p>
+
+<h3 id="s12-3"><span class="secnum">§12.3</span>Round 2 — opening the door</h3>
+<p>Suppose your Round 1 left a Bandit Guard adjacent to the closed door. On round 2, you decide to step adjacent and open it (a free action per Gloomhaven rules).</p>
+<p><strong>In the app:</strong> sidebar → <strong>Add Section</strong>. The menu lists the sections defined for Black Barrow that haven't been added yet. Tap the section the rulebook says is behind that door (typically labeled by a letter or color in the scenario book). The app spawns the new monsters into the main list.</p>
+<p>If <em>Auto Add Standees</em> is enabled in settings (<a href="#s11">§11</a>), a confirmation dialog appears with the new section's monster list — confirm to add. Otherwise the section's monsters appear immediately.</p>
+<p>Per upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/121">#121</a>, mid-round-added monsters insert into the existing initiative order using the section's drawn ability card, not the next round. The app handles this automatically.</p>
+
+<h3 id="s12-4"><span class="secnum">§12.4</span>Mid-scenario complications</h3>
+<p>Several things will go sideways during the scenario; the app's affordances cover most:</p>
+<ul>
+  <li><strong>Brute gets Wounded.</strong> Tap the Brute's banner → tap the Wound condition icon. At end of round, with <em>Expire Conditions</em> enabled, Wound deals 1 damage and stays for one more round.</li>
+  <li><strong>Brute reaches HP 0.</strong> Exhausted. The character stays in the main list (so end-of-scenario calculations can run) but is functionally dead. Physically remove the mini.</li>
+  <li><strong>You tapped the wrong condition by accident.</strong> Sidebar → <strong>Undo</strong>. The condition reverts.</li>
+  <li><strong>Modifier card was a "shuffle" trigger.</strong> The deck shuffles automatically at end of round (<a href="#s5-6">§5.6</a>). No action needed.</li>
+  <li><strong>You forgot to set initiative for a player.</strong> The list will be in chooseInitiative state — visible because the round counter on the button still says current round and the button still says Draw. Enter the missing initiative, list reorders.</li>
+</ul>
+
+<h3 id="s12-5"><span class="secnum">§12.5</span>End of scenario</h3>
+<p>Black Barrow ends when all bandits are defeated (per the rulebook). Once the last bandit's standee is removed:</p>
+<ul>
+  <li>The bottom bar's scenario stat line still shows the XP-per-kill and coin multiplier — your character's XP banner shows the running total earned this scenario.</li>
+  <li>Players collect physical loot (Gloomhaven uses coin tokens — Frosthaven uses the loot deck per <a href="#s7-1">§7.1</a>).</li>
+  <li>Battle goals are evaluated by the players against their personal goal cards (the app doesn't track these).</li>
+  <li>The Brute's HP, conditions, and final XP are still in the app — the next session's scenario reset will clear them, or you can save the character via <em>Load or Save Characters</em> in the Add Character menu (<a href="#s4-1">§4.1</a>) before resetting.</li>
+</ul>
+<p>Optional: take a screenshot of the final state for your group's play journal.</p>
+
+<h3 id="s12-6"><span class="secnum">§12.6</span>What this walkthrough deliberately didn't cover</h3>
+<ul>
+  <li><strong>Saving and restoring state between sessions for campaign play.</strong> The app's <em>Load/Save State</em> (<a href="#s11-5">§11.5</a>) handles whole-session save/load; campaign progression itself (unlocks, prosperity) lives outside the app.</li>
+  <li><strong>Battle goals.</strong> Managed physically per scenario; the app doesn't track them.</li>
+  <li><strong>Items and equipment.</strong> Tracked on character sheets, not in the app.</li>
+  <li><strong>Town events / road events.</strong> Out of scope.</li>
+  <li><strong>Multi-character parties.</strong> The walkthrough used a single Brute for clarity; the only thing that changes for multi-character parties is more banners in the list and more initiatives to enter.</li>
+</ul>
+
+<p>That's the entire scenario, app-side. Run it once and the rhythm becomes obvious — Draw, set initiative, resolve in order, tap to apply damage and conditions, Next Round, repeat until done.</p>
+</section>
+
+<hr>
+
+<section id="s13">
+<h2><span class="secnum">§13</span>Reference Appendix</h2>
+
+<h3 id="s13-1"><span class="secnum">§13.1</span>Menu map</h3>
+<p>Every menu the app exposes, where it lives, and what it does. Sidebar drawer items are reached via <code>≡</code>; contextual menus open from a tap on a specific widget.</p>
+<table>
+  <thead><tr><th>Menu</th><th>Where</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Add Character</strong></td><td>Sidebar</td><td>Add a class to the party. <a href="#s4-1">§4.1</a></td></tr>
+    <tr><td><strong>Remove Characters</strong></td><td>Sidebar</td><td>Remove one or more characters from the main list.</td></tr>
+    <tr><td><strong>Set Level</strong></td><td>Sidebar / bottom-bar level widget</td><td>Scenario level + difficulty offset. <a href="#s4-5">§4.5</a></td></tr>
+    <tr><td><strong>Set Character Level</strong></td><td>Character banner long-press / sidebar</td><td>Adjust an individual character's level.</td></tr>
+    <tr><td><strong>Save / Load Characters</strong></td><td>Add Character menu header</td><td>Persist characters across scenarios.</td></tr>
+    <tr><td><strong>Set Scenario</strong></td><td>Sidebar</td><td>Pick campaign + scenario. <a href="#s4-2">§4.2</a></td></tr>
+    <tr><td><strong>Add Section</strong></td><td>Sidebar</td><td>Reveal a section of the active scenario. <a href="#s4-4">§4.4</a></td></tr>
+    <tr><td><strong>Add Monsters</strong></td><td>Sidebar</td><td>Manually add a monster type. <a href="#s4-3">§4.3</a></td></tr>
+    <tr><td><strong>Remove Monsters</strong></td><td>Sidebar</td><td>Remove monster types from the main list.</td></tr>
+    <tr><td><strong>Add Standee</strong></td><td>Monster widget <code>+</code></td><td>Spawn an additional standee for an existing type.</td></tr>
+    <tr><td><strong>Auto Add Standee</strong></td><td>Auto-spawn dialog</td><td>Confirms section/timed spawns. <a href="#s6-4">§6.4</a></td></tr>
+    <tr><td><strong>Add Summon</strong></td><td>Character widget <code>+</code></td><td>Add a summon under a character.</td></tr>
+    <tr><td><strong>Loot Deck Menu</strong></td><td>Sidebar (Frosthaven only)</td><td>Loot deck composition + draws. <a href="#s7-1">§7.1</a></td></tr>
+    <tr><td><strong>Add Loot Card / Loot Card Enhancement / Set Loot Owner / Character Loot</strong></td><td>Loot deck menu</td><td>Manipulate the loot deck and per-character hauls.</td></tr>
+    <tr><td><strong>Modifier Deck Menu / Numpad Menu / Remove AMD Card / Return AMD Card / Removed Modifier Card</strong></td><td>AMD card / standee menus</td><td>AMD interactions for monsters and characters.</td></tr>
+    <tr><td><strong>Perks</strong></td><td>Character widget perks button</td><td>Toggle character perks; affects their AMD.</td></tr>
+    <tr><td><strong>Status Menu</strong></td><td>Standee tap</td><td>HP / conditions / level for a single standee. <a href="#s5-5">§5.5</a></td></tr>
+    <tr><td><strong>Condition Button</strong></td><td>Character / standee menu</td><td>Toggle a single condition.</td></tr>
+    <tr><td><strong>Ability Card Zoom / Modifier Card Zoom / Stat Card Zoom</strong></td><td>Card double-tap</td><td>Inspect a card at full screen. <a href="#s3-6">§3.6</a></td></tr>
+    <tr><td><strong>Ability Cards Menu</strong></td><td>Monster widget tap</td><td>Browse the type's full ability deck.</td></tr>
+    <tr><td><strong>Send to Bottom</strong></td><td>Main list reorder</td><td>Move a figure to the bottom of the initiative order.</td></tr>
+    <tr><td><strong>Special Unlocks</strong></td><td>Settings → Unlock specials</td><td>Reveals hidden content.</td></tr>
+    <tr><td><strong>GH2E Faction AMD Card</strong></td><td>Modifier deck menu (GH2E)</td><td>Faction-specific AMD additions in Gloomhaven 2E.</td></tr>
+    <tr><td><strong>Save / Load State</strong></td><td>Settings</td><td>Whole-session save/load. <a href="#s11-5">§11.5</a></td></tr>
+    <tr><td><strong>Settings</strong></td><td>Sidebar</td><td>App preferences. <a href="#s11">§11</a></td></tr>
+    <tr><td><strong>Documentation / Donate / Exit</strong></td><td>Sidebar</td><td>External links and app exit.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s13-2"><span class="secnum">§13.2</span>Gestures</h3>
+<p>See <a href="#s3-6">§3.6</a> for the full gesture table. The set is intentionally minimal: tap, long-press, double-tap, drag, tap-outside.</p>
+
+<h3 id="s13-3"><span class="secnum">§13.3</span>Icon and symbol glossary</h3>
+<p>The app's icons are sourced from PNG assets under <code>frosthaven_assistant/assets/images/</code>. The glossary below covers the icons that appear most often during play; specialized icons (boss frames, edition-specific variants) are described in their relevant sections.</p>
+<table>
+  <thead><tr><th>Group</th><th>Icons</th><th>Where they appear</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Elements</strong></td><td>Fire (flame), Ice (snowflake), Air (swirl), Earth (leaf), Light (radiating star), Dark (crescent moon)</td><td>Top bar (<a href="#s3-2">§3.2</a>), monster ability cards.</td></tr>
+    <tr><td><strong>Conditions</strong></td><td>Wound (blood drop), Poison (drop with skull), Stun (lightning), Disarm (broken sword), Immobilize (chains), Muddle (X), Strengthen (up arrow), Bless (orb with rays), Curse (dark orb), Invisible (eye)</td><td>Character banners, standee menus.</td></tr>
+    <tr><td><strong>Scenario stats</strong></td><td>Scenario level (number), Trap (triangle), Hazardous terrain, XP per kill (star + plus), Coin multiplier (coin + ×N)</td><td>Bottom bar (<a href="#s3-4">§3.4</a>).</td></tr>
+    <tr><td><strong>Class glyphs</strong></td><td>Per-class icons (Brute axe, Spellweaver runes, Tinkerer gears, etc.); colored to match the class banner color</td><td>Character banners, condition tokens, character library.</td></tr>
+    <tr><td><strong>Modifier deck symbols</strong></td><td>+0 / +1 / +2 / −1 / −2, Null, ×2, Rolling-modifier ribbon, Bless / Curse</td><td>AMD cards.</td></tr>
+    <tr><td><strong>Monster type indicators</strong></td><td>Normal frame (muted), Elite frame (yellow border), Boss frame (custom)</td><td>Standee blocks on monster widgets.</td></tr>
+    <tr><td><strong>Loot deck</strong></td><td>Money, Lumber, Hide, Metal, Arrowvine, Axenut, Corpsecap, Flamefruit, Rockroot, Snowthistle</td><td>Loot deck menu (<a href="#s7-1">§7.1</a>); Frosthaven only.</td></tr>
+  </tbody>
+</table>
+<p>Frosthaven uses slightly different art for some conditions (the codebase distinguishes via the <code>_fh</code> suffix on icon paths in <code>condition_icon.dart</code>). The active variant is picked automatically based on scenario edition.</p>
+
+<h3 id="s13-4"><span class="secnum">§13.4</span>Keyboard shortcuts (desktop)</h3>
+<p>Implemented in <code>lib/Layout/global_hotkeys.dart</code>. Shortcuts are suppressed when a text input is focused (the numpad's text field, the settings menu inputs, etc.).</p>
+<table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Space</kbd></td><td>Draw / Next Round (the morphing button) — <a href="#s5-2">§5.2</a></td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>Advance the active figure indicator — useful for sweeping through the initiative order.</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Reverse the active figure indicator (undo last activation).</td></tr>
+    <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd></td><td>Undo (<a href="#s10-1">§10.1</a>).</td></tr>
+    <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Y</kbd></td><td>Redo.</td></tr>
+    <tr><td><kbd>1</kbd> – <kbd>6</kbd></td><td>Toggle elements (1: fire, 2: ice, 3: air, 4: earth, 5: light, 6: dark). Same lifecycle as tapping in the top bar — <a href="#s5-7">§5.7</a>.</td></tr>
+  </tbody>
+</table>
+<p>Cross-reference upstream <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/304">PR #304</a> for shortcut history and any pending additions.</p>
+
+<h3 id="s13-5"><span class="secnum">§13.5</span>Where to get help</h3>
+<ul>
+  <li><strong>GitHub issues:</strong> <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues">github.com/Tarmslitaren/FrosthavenAssistant/issues</a> for bug reports and feature requests.</li>
+  <li><strong>BoardGameGeek:</strong> the X-Haven Assistant thread on the Gloomhaven and Frosthaven BGG forums is where ad-hoc Q&amp;A actually lives — search there before opening an issue if your question might already be answered.</li>
+  <li><strong>Maintainer email:</strong> in the project README, for questions that don't fit a GitHub issue (sponsorship, app store concerns, etc.).</li>
+</ul>
+
+<h3 id="s13-6"><span class="secnum">§13.6</span>Known issues</h3>
+<p>The README's <em>Known Issues</em> section is the authoritative list — refer there rather than duplicating it here, since it changes per release. As of this writing, the most relevant known issue for this manual is <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">#135</a> (the Draw / Next Round morphing-button race), called out throughout in the relevant sections.</p>
+</section>
+
+</body>
+</html>

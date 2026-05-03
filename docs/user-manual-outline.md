@@ -19,6 +19,16 @@ The current README has a "Usage" section with ~40 unstructured bullets — a fla
 
 A real manual organizes by play flow + app feature, with a reference section underneath.
 
+## Anchor scenario: Black Barrow (Gloomhaven Scenario 1)
+
+The manual uses **Black Barrow** — Scenario 1 of Gloomhaven — as its recurring concrete example. Three reasons:
+
+1. **The rulebook itself does.** Gloomhaven's rulebook uses Black Barrow to teach mechanics. Mirroring that surface means a reader can flip between the rulebook and the manual and see the same scenario from both sides — game rules from the rulebook, app behavior from the manual.
+2. **It's the universal entry point.** Every Gloomhaven and X-Haven user has either played it or will. It's also what the app's hero image in the README depicts.
+3. **It's contained.** Two starting rooms, a door, two monster types (Bandit Guards + Bandit Archers), no special rules. Small enough to walk through end-to-end without spoilers or scope creep.
+
+Where examples are needed in any chapter, default to Black Barrow figures and mechanics. When something only matters in Frosthaven (loot deck, sanctuary deck, etc.), use a Frosthaven scenario as the example for *that* section, but the spine of the manual stays Gloomhaven Scenario 1.
+
 ## Audience
 
 Three sketchy personas:
@@ -34,7 +44,16 @@ The manual should serve all three without privileging any. Quick Start handles p
 ### Front matter
 
 - **Welcome** — what the app does, what's outside scope (campaign progress, character sheets), supported editions.
-- **Quick Start** — first scenario from cold install. (Reuses the existing README "Set-up Guide" + adds tap-by-tap detail.)
+- **Quick Start: Your First Scenario (Black Barrow)** — a tap-by-tap walkthrough of getting from "I just installed the app" to "we just finished round 1 of Gloomhaven Scenario 1." Specifically:
+  - Install + launch
+  - Choosing a starting class (Brute used as example since the rulebook does)
+  - *Set Scenario* → Gloomhaven → 1
+  - What auto-populates (Bandit Guards normal+elite, Bandit Archers normal+elite, scenario level/difficulty stats)
+  - The first round: drawing monster ability cards, entering initiative, the main list reordering
+  - First combat exchange — tapping the standee to apply damage, the AMD, conditions
+  - Round end → Next Round → repeat
+  - Where the app fits in vs. what stays physical (you still pick your two ability cards on the table; the app tracks state)
+  - When to *Undo*
 
 ### Part I — Anatomy
 
@@ -120,6 +139,47 @@ A *short* list since the README already enumerates many. Highlights:
 - No standees mode
 - Networking settings
 
+### Walkthrough appendix — Black Barrow round by round
+
+A long-form narrative example. The chapter the panicking new player reads at 7pm Friday before their group arrives at 8. Walks the entire scenario from first round through completion, calling out the app's role at each beat:
+
+- **Setup phase**
+  - Open app, *Add Character* (e.g., Brute, level 1)
+  - *Set Scenario* → Gloomhaven → 1; observe what auto-populates
+  - Confirm difficulty stats in the bottom bar (Level 1, Trap 2, Hazardous 1, XP +4, Coin x1 — values for example)
+  - Place physical standees + character mat on the actual table (app and table now in sync)
+- **Round 1 (initial room)**
+  - Players choose two cards each (physical)
+  - Tap *Draw* — Bandit Guard and Bandit Archer ability decks reveal cards
+  - Enter each character's initiative under their banner
+  - Main list reorders by initiative; verify the order matches what's expected
+  - First character acts: e.g., Brute moves and attacks an adjacent Bandit Guard
+    - Apply damage: tap the Bandit Guard standee → adjust HP
+    - Draw a monster AMD card: tap the modifier deck pile
+    - If the modifier card has special effects (e.g., +1 push), apply manually
+  - Subsequent monster turn: monster ability card is already revealed; resolve attacks against characters; tap character widget HP to adjust
+  - Round end → tap *Next Round*
+- **Round 2 (door opening)**
+  - Brute moves adjacent to the door, opens it (physical action by player)
+  - In the app: *Add Section* menu → reveal section's monsters
+  - New standees auto-populate; their initiative tokens take effect (call out the rule from #121 about reinserting newly-added monsters into initiative order)
+  - Continue play
+- **Mid-scenario complications**
+  - Someone gets *Wound* → tap conditions on character widget, add Wound
+  - Someone's HP hits 0 → character is exhausted (app keeps them in list with HP 0; remove physically)
+  - A mistake: someone tapped the wrong condition → use *Undo* in sidebar
+- **End of scenario**
+  - Last bandit defeated → scenario complete
+  - The app's bottom bar shows the XP each character earned and the coin multiplier
+  - Players collect physical loot; XP is recorded on character sheets (out of app scope)
+  - Optional: take a screenshot for a play journal
+- **What we deliberately didn't cover**
+  - Saving and restoring state between sessions (app does not handle campaign progression — covered in front matter as out-of-scope)
+  - Battle goals (managed physically per scenario; app doesn't track)
+  - Items and equipment (out of scope)
+
+This walkthrough chapter is the *most cited* part of the manual after Quick Start. It's the one a brand new user will read end-to-end before their first session. It also serves as the anchor that grounds the abstract Parts I-V — when those mention "tap the standee," the reader can map it back to the Bandit Guard standee from this walkthrough.
+
 ### Reference appendix
 
 - **Menu Map** — every menu reachable from `≡` and what it does
@@ -148,7 +208,7 @@ Recommendation: **start doc-only.** Land the manual as `docs/manual.md`. Add the
 
 - **Voice:** match the README — friendly, direct, lowercase tolerant. Not formal documentation.
 - **Length per section:** lean. Anything over ~3 paragraphs without a sub-heading is too long.
-- **Examples over rules:** "If you set monster 3 to elite, then..." beats "When promoting monsters to elite class, the following stat substitutions occur."
+- **Examples over rules:** "If you tap a Bandit Guard standee in Black Barrow and promote it to elite..." beats "When promoting monsters to elite class, the following stat substitutions occur." Concrete + named-from-Scenario-1 beats abstract.
 - **Screenshots:** essential for the Anatomy section and Quick Start. Generate at standard 2x retina from `flutter run -d macos`. Annotate with simple arrows.
 - **Cross-reference, don't duplicate:** link to rulebook sections (Worldhaven, BGG, etc.) for game concepts.
 

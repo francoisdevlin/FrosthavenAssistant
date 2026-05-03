@@ -69,6 +69,32 @@ If a task feels like more than 3-4 commits, split it before starting. "Add X, up
 - **Immutability** — Models use `built_collection`. Don't expose mutable internals.
 - **Magic numbers** — Recent direction is to extract to a `values` file. Follow suit when touching UI.
 
-## Upstream
+## Upstream and Branch Policy
 
-Origin is `francoisdevlin/FrosthavenAssistant` (a fork). Upstream is `Tarmslitaren/FrosthavenAssistant`. When fixing a bug that exists upstream, consider whether the fix should also be offered upstream as a PR.
+This is a personal fork of `Tarmslitaren/FrosthavenAssistant`. Goals: contribute fixes/features back upstream where appropriate, and maintain personal quality-of-life improvements that may not be upstream-suitable. See [`docs/strategy.md`](docs/strategy.md) for the full plan and rationale.
+
+### Remotes
+
+```
+origin    = git@github.com:francoisdevlin/FrosthavenAssistant.git   (the fork)
+upstream  = https://github.com/Tarmslitaren/FrosthavenAssistant.git (Tarmslitaren's repo)
+```
+
+### Branches
+
+| Branch | Purpose | Pushed to upstream? |
+|---|---|---|
+| `main` | Mirror of `upstream/main`. Never commit directly here. Used as the base for upstream PRs. | n/a |
+| `fork-main` | Daily working branch. Contains everything in `main` PLUS this `CLAUDE.md`, the `docs/` tree, agent scaffolding, and any personal QoL features that aren't upstream-bound. | **Never.** Fork-only. |
+| `feat/*`, `fix/*`, `docs/*`, `refactor/*` | Topic branches. Cut from `main` if the work is destined for upstream; cut from `fork-main` if it's fork-only. | PR'd to upstream if cut from `main`. |
+
+### Rules
+
+1. **`fork-main` never gets PR'd to upstream.** It carries this CLAUDE.md and `docs/` — internal scaffolding that has no business in upstream.
+2. **Upstream-bound work cuts from `main`**, not `fork-main`. This keeps the PR diff free of agent/docs noise.
+3. **Keep `main` synced with upstream.** Periodically run `git fetch upstream && git merge --ff-only upstream/main` (or rebase) so PR branches stay clean.
+4. **When a fix is both useful to your group AND upstream-suitable**, do it as an upstream PR from `main`-based branch first. Once merged upstream, `fork-main` picks it up naturally on the next sync.
+
+### Working with the maintainer
+
+Tarmslitaren reviews PRs personally. Build trust progressively (see strategy doc). Tier 1 = trivial/obvious fixes. Don't open structural-refactor PRs cold — propose them via issue first.

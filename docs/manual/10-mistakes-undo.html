@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>§10 Mistakes, Undo, and Customization — X-Haven Assistant Manual</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<nav class="chapter-nav">
+  <a href="09-multiplayer.html">← §9</a> &middot; <a href="index.html">Contents</a> &middot; <a href="11-settings.html">§11 →</a>
+</nav>
+<h1>X-Haven Assistant — User Manual</h1>
+<section id="s10">
+<h2><span class="secnum">§10</span>Mistakes, Undo, and Customization</h2>
+
+<h3 id="s10-1"><span class="secnum">§10.1</span>Undo and redo</h3>
+<p>Two-thirds of the moves you make in this app are recoverable. Sidebar drawer → <strong>Undo</strong> reverses the last command. The drawer entry shows what would be undone (e.g., <em>Undo: Imbue element fire</em>), so you can confirm before tapping. <strong>Redo</strong> replays it.</p>
+<p>What gets undone:</p>
+<ul>
+  <li>HP / condition / XP changes on characters and monsters</li>
+  <li>Standee adds / removes</li>
+  <li>Element imbue / use</li>
+  <li>Initiative entries</li>
+  <li>Modifier deck draws</li>
+  <li>Round advances</li>
+  <li>Adding / removing characters and monsters</li>
+  <li>Setting a scenario / adding a section</li>
+</ul>
+<p>What does <em>not</em> get undone:</p>
+<ul>
+  <li><strong>Settings.</strong> Toggling dark mode, scaling, or any other Settings menu item is local-only and not recorded as a command.</li>
+  <li><strong>Network connection state.</strong> Connect/disconnect doesn't roll back through Undo.</li>
+  <li><strong>Saved-character library.</strong> Loading or saving a character writes to local storage outside the command stream.</li>
+</ul>
+<p>The undo stack is unbounded in practice (limited by available memory). After hundreds of commands in a session, you can still wind all the way back to scenario start — useful for "wait, what was the HP before that crit?" forensic reconstruction. Undo persists across saves, so closing and reopening the app preserves your history.</p>
+
+<h3 id="s10-2"><span class="secnum">§10.2</span>If something looks wrong with the data</h3>
+<p>The app's data files (monster ability decks, scenario rosters, class stats) are hand-curated from the rulebooks. With thousands of stat-card numbers and ability cards, occasional mistakes are inevitable.</p>
+<p>If you notice a discrepancy:</p>
+<ol>
+  <li>Confirm against the official rulebook or errata.</li>
+  <li>File an issue at <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues">github.com/Tarmslitaren/FrosthavenAssistant/issues</a> with the scenario number, monster type, and what's wrong.</li>
+  <li>In the meantime, work around using <em>Custom Difficulty</em> (<a href="04-setting-up.html#s4-5">§4.5</a>) — override the specific stat for the affected standee.</li>
+</ol>
+<p>Data fixes are easy contributions. The JSON files are at <code>frosthaven_assistant/assets/data/editions/&lt;Edition&gt;.json</code> if you want to PR a fix yourself.</p>
+
+<h3 id="s10-3"><span class="secnum">§10.3</span>House rules</h3>
+<p>The app supports a few common house rules out of the box:</p>
+<ul>
+  <li><strong>Open initiative.</strong> Settings → disable initiative secrecy (<a href="09-multiplayer.html#s9-6">§9.6</a>). Now initiatives are visible to all clients as soon as they're entered.</li>
+  <li><strong>Auto-expire conditions.</strong> Settings → <em>Auto-expire conditions</em>. With this on, end-of-round Wound/Poison/Stun/Disarm/Immobilize/Muddle expire automatically per the rulebook. Off means you decide when to clear them — useful for groups that interpret edge cases differently.</li>
+  <li><strong>Custom monster HP.</strong> Long-press a stat card → set max HP. House-rule territory; rare.</li>
+  <li><strong>Custom scenario level.</strong> The level widget on the bottom bar offers a difficulty offset (<a href="04-setting-up.html#s4-5">§4.5</a>). Easy / Hard / etc. are scenario-level adjustments.</li>
+  <li><strong>No standees mode.</strong> Settings → <em>No standees</em>. Hides standee numbers throughout — for groups that don't use the physical standees and just track total HP per type.</li>
+</ul>
+<p>House rules that the app doesn't support directly (e.g., custom modifier-deck composition) typically need a manual workaround using the Add Monster + perks system, or a feature request.</p>
+</section>
+<nav class="chapter-nav">
+  <a href="09-multiplayer.html">← §9</a> &middot; <a href="index.html">Contents</a> &middot; <a href="11-settings.html">§11 →</a>
+</nav>
+</body>
+</html>

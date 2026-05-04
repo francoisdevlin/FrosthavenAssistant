@@ -1,0 +1,52 @@
+:root {
+    --fg: #1a1a1a;
+    --muted: #555;
+    --accent: #2c5282;
+    --rule: #ddd;
+    --code-bg: #f4f4f4;
+    --note-bg: #fff8e1;
+    --note-border: #f0c75e;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--fg);
+    max-width: 760px;
+    margin: 2em auto;
+    padding: 0 1.2em;
+    line-height: 1.55;
+  }
+  h1 { font-size: 1.9em; border-bottom: 2px solid var(--rule); padding-bottom: 0.3em; }
+  h2 { font-size: 1.4em; color: var(--accent); margin-top: 2em; border-bottom: 1px solid var(--rule); padding-bottom: 0.2em; }
+  h3 { font-size: 1.15em; margin-top: 1.6em; }
+  h4 { font-size: 1.0em; margin-top: 1.2em; color: var(--muted); }
+  .secnum { color: var(--muted); font-weight: normal; margin-right: 0.4em; font-variant-numeric: tabular-nums; }
+  .stub { color: var(--muted); font-style: italic; }
+  code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.92em; }
+  .note {
+    background: var(--note-bg);
+    border-left: 3px solid var(--note-border);
+    padding: 0.6em 1em;
+    margin: 1em 0;
+    font-size: 0.95em;
+  }
+  .note strong { display: inline-block; margin-right: 0.4em; }
+  ol.toc { list-style: none; padding-left: 0; }
+  ol.toc li { margin: 0.25em 0; }
+  ol.toc a { text-decoration: none; color: var(--accent); }
+  ol.toc a:hover { text-decoration: underline; }
+  .toc-num { color: var(--muted); display: inline-block; width: 2.2em; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2em 0; }
+  .meta { color: var(--muted); font-size: 0.9em; }
+  figure { margin: 1.2em 0; padding: 0; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  figure img { display: block; max-width: 100%; height: auto; }
+  figcaption { padding: 0.5em 0.8em; background: #fafafa; color: var(--muted); font-size: 0.9em; border-top: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.95em; }
+  th, td { text-align: left; padding: 0.4em 0.6em; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: #fafafa; font-weight: 600; }
+
+/* Per-chapter navigation */
+.chapter-nav { font-size: 0.95em; color: var(--muted); padding: 0.6em 0; border-bottom: 1px solid var(--rule); margin-bottom: 1em; }
+.chapter-nav:last-of-type { border-bottom: none; border-top: 1px solid var(--rule); margin-top: 2em; margin-bottom: 0; }
+.chapter-nav a { text-decoration: none; color: var(--accent); }
+.chapter-nav a:hover { text-decoration: underline; }
+.nav-disabled { color: #ccc; }

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>§9 Multiplayer — X-Haven Assistant Manual</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<nav class="chapter-nav">
+  <a href="08-edition-differences.html">← §8</a> &middot; <a href="index.html">Contents</a> &middot; <a href="10-mistakes-undo.html">§10 →</a>
+</nav>
+<h1>X-Haven Assistant — User Manual</h1>
+<section id="s9">
+<h2><span class="secnum">§9</span>Multiplayer</h2>
+
+<p>The app supports a host/client model for sharing game state across multiple devices around the table. One device hosts; others connect as clients. The host's state is authoritative.</p>
+
+<h3 id="s9-1"><span class="secnum">§9.1</span>Hosting</h3>
+<p>Sidebar drawer → <strong>Start Host Server</strong>. The menu entry shows the local IPv6 address in parentheses (e.g., <em>Start Host Server (fe80::abc:1234)</em>) so clients on the same LAN know what address to type.</p>
+<p>Once started, the entry's label changes to <em>Stop Server</em>. The server listens on a fixed port; the address shown is the one to share. Server lifecycle is implemented in <code>lib/services/network/server.dart</code>; the standalone variant lives in <code>frosthaven_assistant_server/lib/standalone_server.dart</code> for headless hosts.</p>
+<p><strong>Caveats.</strong> Hosting from a phone over cellular usually doesn't work — most carriers block inbound connections. LAN hosting from a desktop is the most reliable; LAN hosting from a tablet is fine if it stays awake (consider the <em>Wakelock</em> setting on Android, which is on by default for this reason). Port forwarding is required for hosting across the public internet — most groups don't bother.</p>
+
+<h3 id="s9-2"><span class="secnum">§9.2</span>Joining</h3>
+<p>Sidebar drawer → <strong>Connect to Server &lt;address&gt;</strong>. The address shown is the last successfully-connected one; type a new one to override. On successful connect, the server's full state is pushed to the client and replaces whatever was there locally.</p>
+<p>The first connect of a session reads from the server; subsequent commands flow bidirectionally. Both host and clients can issue commands — the server arbitrates ordering via <em>command index</em> (see <a href="#s9-5">§9.5</a>).</p>
+
+<h3 id="s9-3"><span class="secnum">§9.3</span>What's synced, what isn't</h3>
+<table>
+  <thead><tr><th>State</th><th>Synced?</th></tr></thead>
+  <tbody>
+    <tr><td>Characters, monsters, standees, HP, conditions, initiative, round, modifier decks, elements</td><td><strong>Yes</strong> (this is "game state")</td></tr>
+    <tr><td>Loot deck contents, character loot, sanctuary state</td><td><strong>Yes</strong></td></tr>
+    <tr><td>Undo / Redo history</td><td><strong>Yes</strong></td></tr>
+    <tr><td>Settings (theme, scaling, soft numpad, etc.)</td><td><strong>No</strong> — local per device</td></tr>
+    <tr><td>Saved characters / character library</td><td><strong>No</strong> — local per device</td></tr>
+    <tr><td>Network connection state (last-known address)</td><td><strong>No</strong> — local per device</td></tr>
+  </tbody>
+</table>
+<p>The split is intentional: settings are per-user preferences (one player likes dark mode, another doesn't); game state is per-table.</p>
+
+<h3 id="s9-4"><span class="secnum">§9.4</span>Disconnect behavior</h3>
+<p>If a client loses connection (Wi-Fi drop, app backgrounded, host quits), the app surfaces an "error / disconnected / lost" toast via <code>NetworkUI</code> (<a href="03-anatomy.html#s3-4">§3.4</a>) with a <em>Retry</em> option. Tapping retry re-establishes the connection using the last known address.</p>
+<p>Mobile clients backgrounded for too long may have their connection torn down by the OS. On foregrounding, the toast surfaces and the user can retry. <em>Auto-reconnect</em> on Settings (<a href="11-settings.html#s11">§11</a>) attempts a reconnect automatically when the app returns to the foreground.</p>
+<p>Host disconnect (host kills the app or loses power) is not graceful — clients will receive disconnect notifications. The host's state is preserved on its device; bringing the host back up and reconnecting clients restores the session at the last persisted command index.</p>
+
+<h3 id="s9-5"><span class="secnum">§9.5</span>Conflict resolution</h3>
+<p>Every command (HP change, condition toggle, draw, etc.) is tagged with a monotonic <strong>command index</strong>. The server is the source of truth for the index; clients submit commands relative to the server's current index.</p>
+<p>The dedup logic lives in <code>frosthaven_assistant/lib/services/network/server.dart</code> (lines 91–117): if an incoming message's index is greater than the server's current index, it advances and broadcasts; if equal or lower, the message is logged and ignored. This is what protects the system from the most common multi-client races, including the morphing-button concern from <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">issue #135</a> — two near-simultaneous Next Round commands from different clients hit the server with the same index, and only the first lands.</p>
+<p><strong>Out-of-sync notification.</strong> If a client's local state diverges from the server (typically because of a missed broadcast), the next command issued will be rejected and a toast surfaces ("out of sync — reconnect"). Reconnecting fetches the server's authoritative state and replaces local.</p>
+
+<h3 id="s9-6"><span class="secnum">§9.6</span>Initiative secrecy</h3>
+<p>The classic Gloomhaven simultaneous-reveal moment: each player chooses cards in secret, initiative is revealed at the same time. The app supports this in network play by hiding initiative values from other clients until all characters' initiatives are entered. Then all initiatives reveal simultaneously when the round transitions to <code>playTurns</code>.</p>
+<p><strong>Edge case: modifying initiative.</strong> Once a value has been entered and the round is still in <code>chooseInitiative</code>, the entering client can change their value — but the change broadcasts immediately (with the new value), revealing it to other clients. This is intentional: a hidden modification could let a player change their initiative <em>after</em> seeing others', which is a cheating vector. The reveal-on-modify behavior closes the loophole.</p>
+<p>Initiative secrecy is configurable per-table; if your group plays open initiative, the setting in <a href="11-settings.html#s11">§11</a> exposes values immediately on entry.</p>
+</section>
+<nav class="chapter-nav">
+  <a href="08-edition-differences.html">← §8</a> &middot; <a href="index.html">Contents</a> &middot; <a href="10-mistakes-undo.html">§10 →</a>
+</nav>
+</body>
+</html>

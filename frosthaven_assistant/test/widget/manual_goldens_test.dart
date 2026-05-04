@@ -9,13 +9,17 @@ import 'package:frosthaven_assistant/Layout/main_list.dart';
 import 'package:frosthaven_assistant/Layout/menus/add_character_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/add_monster_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/main_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/add_section_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/numpad_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/select_scenario_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/set_level_menu.dart';
 import 'package:frosthaven_assistant/Layout/theme.dart';
 import 'package:frosthaven_assistant/Layout/top_bar.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_standee_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/set_scenario_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
 import 'package:frosthaven_assistant/Resource/game_data.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
@@ -366,6 +370,38 @@ void main() {
       await expectLater(
         find.byType(AddMonsterMenu),
         matchesGoldenFile('$_goldenDir/s4-3-add-monster-menu.png'),
+      );
+    });
+
+    // ── §4.4 Add Section menu ────────────────────────────────────────────
+    //
+    // Anchor scenario chosen for illustrative section content: Gloomhaven 2E
+    // #19 Military Outpost has three named, non-spawn sections — enough to
+    // populate the menu meaningfully without overflowing the capture. Most
+    // GH 1E scenarios (including Black Barrow, the §2/§3 anchor) carry no
+    // sections, so the manual switches anchor here.
+
+    testWidgets('s4-4 add section menu', (tester) async {
+      final gs = getIt<GameState>();
+      gs.action(SetCampaignCommand('Gloomhaven 2nd Edition'));
+      gs.action(SetScenarioCommand('#19 Military Outpost', false));
+      await _pumpInScaffold(tester, const AddSectionMenu());
+      await expectLater(
+        find.byType(AddSectionMenu),
+        matchesGoldenFile('$_goldenDir/s4-4-add-section-menu.png'),
+      );
+    });
+
+    // ── §4.5 Set Level / Custom difficulty menu ──────────────────────────
+
+    testWidgets('s4-5 set level menu', (tester) async {
+      await _pumpInScaffold(
+        tester,
+        const Center(child: SetLevelMenu()),
+      );
+      await expectLater(
+        find.byType(SetLevelMenu),
+        matchesGoldenFile('$_goldenDir/s4-5-set-level-menu.png'),
       );
     });
 

@@ -117,11 +117,19 @@
 
 <h3 id="s4-4"><span class="secnum">§4.4</span>Adding sections</h3>
 <p>Sidebar → <strong>Add Section</strong>. The menu (<code>AddSectionMenu</code>) lists the sections defined for the currently-set scenario that haven't yet been added. Use it when the scenario book reveals a section card mid-play — typically when a door is opened, a tile is unlocked, or a trigger fires.</p>
+<figure id="fig-4-4">
+  <img src="../screenshots/manual/s4-4-add-section-menu.png" alt="Add Section menu">
+  <figcaption><strong>Figure 4.4.</strong> Add Section menu, showing the three sections of Gloomhaven 2E #19 <em>Military Outpost</em>. Sections still pending appear in dark text; once added, an entry switches to a muted blue-grey to mark it as already in play. Most Gloomhaven 1E scenarios (including <em>Black Barrow</em>, the §2/§3 anchor) carry no sections, so this capture switches anchor to a 2E scenario.</figcaption>
+</figure>
 <p>Adding a section auto-spawns the section's monsters into the main list, applies any scenario rules listed for that section, and surfaces the section's reminders. Sections that introduce monsters of types already present add additional standees of that type rather than duplicating the monster widget.</p>
 <div class="note"><strong>Initiative timing.</strong> Per upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/121">#121</a>, monsters added mid-round should be inserted into the existing initiative order using the section's drawn ability card, not skipped to next round. The app handles this when a section is added mid-round.</div>
 
 <h3 id="s4-5"><span class="secnum">§4.5</span>Custom difficulty</h3>
 <p>Difficulty adjustments come in three flavors, each at a different scope:</p>
+<figure id="fig-4-5">
+  <img src="../screenshots/manual/s4-5-set-level-menu.png" alt="Set Scenario Level menu">
+  <figcaption><strong>Figure 4.5.</strong> The <em>Set Scenario Level</em> menu (<code>SetLevelMenu</code>) — the global form, opened via the bottom bar's level widget (<a href="03-anatomy.html#s3-4">§3.4</a>). Levels 0–7 across the top, then <em>Solo</em> and <em>Automatic Scenario Level</em> toggles, then a <em>Difficulty</em> offset row (−1 / 0 / +1 / +2 / +3). The legend at the bottom resolves the chosen level into the four scenario constants — trap damage, hazardous terrain damage, experience added, gold coin value — plus the effective monster level. Per-monster and per-standee variants of this menu (long-press on a stat card) replace the legend with override controls.</figcaption>
+</figure>
 <ul>
   <li><strong>Scenario level (global)</strong> — tap the level widget on the bottom bar (<a href="03-anatomy.html#s3-4">§3.4</a>). The <em>Set Level</em> menu (<code>SetLevelMenu</code>) lets you pick a level 0–7 and apply a difficulty offset (Easy −1, Normal 0, Hard +1, etc.). Affects every monster's stats simultaneously. The legend at the bottom of the menu shows the resulting numeric monster level for the chosen scenario level + difficulty.</li>
   <li><strong>Per-monster level</strong> — long-press a monster type's stat card to override its level. Useful for elite-only re-leveling, or for scenarios where the rules call out a single monster at a different level.</li>

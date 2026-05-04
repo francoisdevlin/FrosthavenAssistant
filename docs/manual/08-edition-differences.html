@@ -101,13 +101,36 @@
 <p>The core round flow (<a href="05-round-step-by-step.html#s5">§5</a>), elements (<a href="05-round-step-by-step.html#s5-7">§5.7</a>), AMDs (<a href="05-round-step-by-step.html#s5-6">§5.6</a>), and condition mechanics work identically across editions. The Save/Load Characters facility (<a href="04-setting-up.html#s4-1">§4.1</a>) is also edition-agnostic — load a Brute (Gloomhaven) into a Crimson Scales scenario and the app will accept it.</p>
 
 <h3 id="s8-3"><span class="secnum">§8.3</span>Edition-specific behaviors</h3>
-<ul>
-  <li><strong>Loot deck</strong> — Frosthaven only (<a href="07-frosthaven.html#s7-1">§7.1</a>). Other editions don't surface the Loot Deck Menu.</li>
-  <li><strong>Sanctuary deck</strong> — Crimson Scales / Trail of Ashes / Frosthaven (<a href="07-frosthaven.html#s7-2">§7.2</a>). Hidden in others.</li>
-  <li><strong>Theme switching</strong> — Gloomhaven uses the Pirata-styled marble theme; Frosthaven uses the GermaniaOne-styled icy theme. Switching campaigns swaps the active <code>ThemeData</code> via <code>ThemeSwitcher</code> (<code>lib/Resource/theme_switcher.dart</code>). Manual override available in settings (<a href="11-settings.html#s11">§11</a>).</li>
-  <li><strong>Condition glyph variants</strong> — some conditions use slightly different art in Frosthaven vs. Gloomhaven (the <code>_fh</code> suffix on icon paths in <code>condition_icon.dart</code>). The app picks the correct variant based on the active scenario edition.</li>
-  <li><strong>Battle goals</strong> — not tracked by the app in any edition; kept on physical cards. <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers Buttons &amp; Bugs's hidden-by-default behavior.</li>
-</ul>
+<table>
+  <thead><tr><th>Behavior</th><th>Applicable editions</th><th>Notes / details</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Loot deck</strong></td>
+      <td>Frosthaven only</td>
+      <td>See <a href="07-frosthaven.html#s7-1">§7.1</a>. Other editions don't surface the Loot Deck Menu.</td>
+    </tr>
+    <tr>
+      <td><strong>Sanctuary deck</strong></td>
+      <td>Crimson Scales, Trail of Ashes, Frosthaven</td>
+      <td>See <a href="07-frosthaven.html#s7-2">§7.2</a>. Hidden in other editions.</td>
+    </tr>
+    <tr>
+      <td><strong>Theme switching</strong></td>
+      <td>All editions (Gloomhaven vs. Frosthaven theme)</td>
+      <td>Gloomhaven uses the Pirata-styled marble theme; Frosthaven uses the GermaniaOne-styled icy theme. Switching campaigns swaps the active <code>ThemeData</code> via <code>ThemeSwitcher</code> (<code>lib/Resource/theme_switcher.dart</code>). Manual override available in settings (<a href="11-settings.html#s11">§11</a>).</td>
+    </tr>
+    <tr>
+      <td><strong>Condition glyph variants</strong></td>
+      <td>Frosthaven vs. Gloomhaven</td>
+      <td>Some conditions use slightly different art (the <code>_fh</code> suffix on icon paths in <code>condition_icon.dart</code>). The app picks the correct variant based on the active scenario edition.</td>
+    </tr>
+    <tr>
+      <td><strong>Battle goals</strong></td>
+      <td>None (kept on physical cards)</td>
+      <td>Not tracked by the app in any edition. <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers Buttons &amp; Bugs's hidden-by-default behavior.</td>
+    </tr>
+  </tbody>
+</table>
 
 <h3 id="s8-4"><span class="secnum">§8.4</span>Mixing editions in one party</h3>
 <p>The app permits a Banner Spear (Frosthaven), a Hatchet (Jaws of the Lion), and a Diviner (Forgotten Circles) in the same scenario. The <strong>Add Character</strong> menu (<a href="04-setting-up.html#s4-1">§4.1</a>) sorts the active campaign's classes first but doesn't restrict by edition. Whether mixing makes <em>game sense</em> is a house-rule decision; the app stays out of it.</p>

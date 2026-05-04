@@ -135,6 +135,49 @@ Future<void> _setUpGameWithFullData() async {
   await gs.load();
 }
 
+/// Sets up the Black Barrow roster used by §2 Quick Start and §3 anatomy
+/// goldens. Brute is the manual's anchor character; Spellweaver is added
+/// when `withSpellweaver` so §2.7 can demonstrate element management
+/// (Spellweaver casts a fire ability, fire becomes infused).
+void _setupBlackBarrow({bool withSpellweaver = false}) {
+  AddCharacterCommand('Brute', 'Gloomhaven', null, 1).execute();
+  if (withSpellweaver) {
+    AddCharacterCommand('Spellweaver', 'Gloomhaven', null, 1).execute();
+  }
+  AddMonsterCommand('Bandit Guard', 1, false).execute();
+  AddStandeeCommand(1, null, 'Bandit Guard', MonsterType.normal, false)
+      .execute();
+  AddStandeeCommand(2, null, 'Bandit Guard', MonsterType.elite, false)
+      .execute();
+  AddMonsterCommand('Bandit Archer', 1, false).execute();
+  AddStandeeCommand(3, null, 'Bandit Archer', MonsterType.normal, false)
+      .execute();
+}
+
+/// Pumps the full app shell (TopBar + BottomBar + MainMenu drawer + MainList)
+/// in a layout that mirrors the live app. Used for §2 full-screen goldens
+/// where the manual needs to show the actual app, not isolated widgets.
+Future<void> _pumpFullApp(WidgetTester tester) async {
+  final originalOnError = FlutterError.onError;
+  FlutterError.onError = ignoreOverflowErrors;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: theme,
+      home: const Scaffold(
+        appBar: PreferredSize(
+            preferredSize: Size.fromHeight(56), child: TopBar()),
+        bottomNavigationBar: BottomBar(),
+        drawer: MainMenu(),
+        body: MainList(),
+      ),
+    ),
+  );
+  // Drain NetworkUI's 200ms Future.delayed before capturing.
+  await tester.pump(const Duration(milliseconds: 250));
+  await _precacheAllImages(tester);
+  FlutterError.onError = originalOnError;
+}
+
 void main() {
   setUpAll(() async {
     await _setUpGameWithFullData();
@@ -146,6 +189,42 @@ void main() {
   });
 
   group('Manual screenshots', () {
+    // ── §2.1 Quick Start — fresh app at launch ───────────────────────────
+
+    testWidgets('s2-1 fresh app', (tester) async {
+      await _pumpFullApp(tester);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('$_goldenDir/s2-1-fresh-app.png'),
+      );
+    });
+
+    // ── §2.3 Quick Start — scenario active, party assembled ──────────────
+
+    testWidgets('s2-3 scenario active', (tester) async {
+      _setupBlackBarrow(withSpellweaver: true);
+      await _pumpFullApp(tester);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('$_goldenDir/s2-3-scenario-active.png'),
+      );
+    });
+
+    // ── §2.7 Quick Start — fire infused after Spellweaver casts ──────────
+
+    testWidgets('s2-7 elements after cast', (tester) async {
+      final gs = getIt<GameState>();
+      _setupBlackBarrow(withSpellweaver: true);
+      await _pumpFullApp(tester);
+      await tester.tap(_elementButton(Elements.fire));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('$_goldenDir/s2-7-elements-after-cast.png'),
+      );
+      gs.undo();
+    });
+
     // ── §3.2 Top bar — elements ──────────────────────────────────────────
 
     testWidgets('s3-2 top bar all inert', (tester) async {
@@ -206,19 +285,7 @@ void main() {
     });
 
     testWidgets('s3-3 main list populated', (tester) async {
-      // Black Barrow roster — the manual's anchor scenario (Gloomhaven
-      // Scenario 1). One Brute character at level 1 + one Bandit Guard
-      // (normal+elite standees) + one Bandit Archer. Available because
-      // setUpAll loaded production data (assets/) rather than testData.
-      AddCharacterCommand('Brute', 'Gloomhaven', null, 1).execute();
-      AddMonsterCommand('Bandit Guard', 1, false).execute();
-      AddStandeeCommand(1, null, 'Bandit Guard', MonsterType.normal, false)
-          .execute();
-      AddStandeeCommand(2, null, 'Bandit Guard', MonsterType.elite, false)
-          .execute();
-      AddMonsterCommand('Bandit Archer', 1, false).execute();
-      AddStandeeCommand(3, null, 'Bandit Archer', MonsterType.normal, false)
-          .execute();
+      _setupBlackBarrow(withSpellweaver: true);
       await _pumpInScaffold(tester, const MainList());
       await expectLater(
         find.byType(MainList),
@@ -248,15 +315,7 @@ void main() {
     testWidgets('s3-5 main menu drawer', (tester) async {
       // Populate body with the Black Barrow roster so the scrim has
       // something behind it to dim, matching what users see in the live app.
-      AddCharacterCommand('Brute', 'Gloomhaven', null, 1).execute();
-      AddMonsterCommand('Bandit Guard', 1, false).execute();
-      AddStandeeCommand(1, null, 'Bandit Guard', MonsterType.normal, false)
-          .execute();
-      AddStandeeCommand(2, null, 'Bandit Guard', MonsterType.elite, false)
-          .execute();
-      AddMonsterCommand('Bandit Archer', 1, false).execute();
-      AddStandeeCommand(3, null, 'Bandit Archer', MonsterType.normal, false)
-          .execute();
+      _setupBlackBarrow(withSpellweaver: true);
 
       await tester.pumpWidget(
         MaterialApp(

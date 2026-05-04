@@ -51,13 +51,25 @@ def filename_for(num: int) -> str:
 
 
 def extract_subsections(html: str, num: int) -> list[tuple[str, str]]:
-    """Return list of (id, title) tuples for §N.M sections in this chapter."""
-    pattern = rf'<h3 id="(s{num}-\d+)"[^>]*>(.*?)</h3>'
-    found = re.findall(pattern, html)
+    """Return list of (id, title) tuples for §N.M sections in this chapter.
+
+    Sub-sections are typically <h3 id="sN-M">, but some chapters render as
+    a single table where groupings are <th id="sN-M"> spanning rows. We
+    pick up both patterns so navigation works the same either way.
+    """
+    pattern = (
+        rf'<(?:h3|th)[^>]*\bid="(s{num}-\d+)"[^>]*>(.*?)</(?:h3|th)>'
+    )
+    found = re.findall(pattern, html, re.DOTALL)
+    # Deduplicate by id while preserving document order
+    seen: set[str] = set()
     out: list[tuple[str, str]] = []
     for id_, raw_title in found:
+        if id_ in seen:
+            continue
+        seen.add(id_)
         # Strip the <span class="secnum">§N.M</span> prefix
-        title = re.sub(r'<span class="secnum">[^<]*</span>\s*', "", raw_title)
+        title = re.sub(r'<span class="(?:secnum|group-num)">[^<]*</span>\s*', "", raw_title)
         # Strip any remaining tags
         title = re.sub(r"<[^>]+>", "", title)
         out.append((id_, title.strip()))

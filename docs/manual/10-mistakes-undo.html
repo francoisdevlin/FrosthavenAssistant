@@ -76,8 +76,13 @@
 <h2><span class="secnum">§10</span>Mistakes, Undo, and Customization</h2>
 
 <h3 id="s10-1"><span class="secnum">§10.1</span>Undo and redo</h3>
-<p>Two-thirds of the moves you make in this app are recoverable. Sidebar drawer → <strong>Undo</strong> reverses the last command. The drawer entry shows what would be undone (e.g., <em>Undo: Imbue element fire</em>), so you can confirm before tapping. <strong>Redo</strong> replays it.</p>
-<p>What gets undone:</p>
+<p>The mental model to hold for this section: the app draws a hard line between <strong>shared state</strong> and <strong>player preferences</strong>.</p>
+<ul>
+  <li><strong>Shared state</strong> is the campaign — HP, conditions, initiatives, modifier draws, element imbues, scenario setup. Every modification is a <em>command</em>: it goes into a stream that syncs across all connected clients and can be undone.</li>
+  <li><strong>Player preferences</strong> are your local settings — theme, scaling, language, which house-rule toggles your copy of the app uses. Preferences are written to local storage on the device that changed them. They never enter the command stream, never sync, and Undo never sees them.</li>
+</ul>
+<p>Sidebar drawer → <strong>Undo</strong> reverses the last command in the shared stream. The drawer entry shows what would be undone (e.g., <em>Undo: Imbue element fire</em>), so you can confirm before tapping. <strong>Redo</strong> replays it. Because the stream is shared, an Undo on any connected client rolls the action back for everyone.</p>
+<p>What gets undone (shared state — flows through the command stream):</p>
 <ul>
   <li>HP / condition / XP changes on characters and monsters</li>
   <li>Standee adds / removes</li>
@@ -88,9 +93,9 @@
   <li>Adding / removing characters and monsters</li>
   <li>Setting a scenario / adding a section</li>
 </ul>
-<p>What does <em>not</em> get undone:</p>
+<p>What does <em>not</em> get undone (player preferences and local-only writes — never enter the command stream):</p>
 <ul>
-  <li><strong>Settings.</strong> Toggling dark mode, scaling, or any other Settings menu item is local-only and not recorded as a command.</li>
+  <li><strong>Settings.</strong> Toggling dark mode, scaling, language, or any other Settings menu item is a preference. It only changes the device that toggled it.</li>
   <li><strong>Network connection state.</strong> Connect/disconnect doesn't roll back through Undo.</li>
   <li><strong>Saved-character library.</strong> Loading or saving a character writes to local storage outside the command stream.</li>
 </ul>
@@ -107,14 +112,42 @@
 <p>Data fixes are easy contributions. The JSON files are at <code>frosthaven_assistant/assets/data/editions/&lt;Edition&gt;.json</code> if you want to PR a fix yourself.</p>
 
 <h3 id="s10-3"><span class="secnum">§10.3</span>House rules</h3>
-<p>The app supports a few common house rules out of the box:</p>
-<ul>
-  <li><strong>Open initiative.</strong> Settings → disable initiative secrecy (<a href="09-multiplayer.html#s9-6">§9.6</a>). Now initiatives are visible to all clients as soon as they're entered.</li>
-  <li><strong>Auto-expire conditions.</strong> Settings → <em>Auto-expire conditions</em>. With this on, end-of-round Wound/Poison/Stun/Disarm/Immobilize/Muddle expire automatically per the rulebook. Off means you decide when to clear them — useful for groups that interpret edge cases differently.</li>
-  <li><strong>Custom monster HP.</strong> Long-press a stat card → set max HP. House-rule territory; rare.</li>
-  <li><strong>Custom scenario level.</strong> The level widget on the bottom bar offers a difficulty offset (<a href="04-setting-up.html#s4-5">§4.5</a>). Easy / Hard / etc. are scenario-level adjustments.</li>
-  <li><strong>No standees mode.</strong> Settings → <em>No standees</em>. Hides standee numbers throughout — for groups that don't use the physical standees and just track total HP per type.</li>
-</ul>
+<p>The app supports a few common house rules out of the box. The <strong>Scope</strong> column maps each rule onto the §10.1 distinction: <em>Shared state</em> rules ride the command stream and sync to every connected client (and are undoable); <em>Local preference</em> rules are per-device toggles that don't sync — every player at the table needs to set them on their own client if you want consistent behavior.</p>
+<table>
+  <thead><tr><th>Rule</th><th>Setting</th><th>Scope</th><th>When to use</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Open initiative</strong></td>
+      <td>Settings → disable initiative secrecy (<a href="09-multiplayer.html#s9-6">§9.6</a>)</td>
+      <td>Local preference</td>
+      <td>Groups that don't care about hidden initiative reveals — initiatives become visible on your client as soon as they're entered.</td>
+    </tr>
+    <tr>
+      <td><strong>Auto-expire conditions</strong></td>
+      <td>Settings → <em>Auto-expire conditions</em></td>
+      <td>Local preference</td>
+      <td>Groups playing strict RAW: end-of-round Wound / Poison / Stun / Disarm / Immobilize / Muddle clear automatically. Turn it off if your table prefers to decide manually for edge cases.</td>
+    </tr>
+    <tr>
+      <td><strong>Custom monster HP</strong></td>
+      <td>Long-press a stat card → set max HP</td>
+      <td>Shared state</td>
+      <td>One-off scenario tweaks — a monster's printed HP doesn't fit your house ruling. The change syncs and can be undone.</td>
+    </tr>
+    <tr>
+      <td><strong>Custom scenario level</strong></td>
+      <td>Level widget on the bottom bar → difficulty offset (<a href="04-setting-up.html#s4-5">§4.5</a>)</td>
+      <td>Shared state</td>
+      <td>Easy / Hard difficulty adjustments — applies to the whole scenario and to every connected client.</td>
+    </tr>
+    <tr>
+      <td><strong>No standees</strong></td>
+      <td>Settings → <em>No standees</em></td>
+      <td>Local preference</td>
+      <td>Groups that don't use physical standees — hides standee numbers throughout and tracks aggregate HP per type instead.</td>
+    </tr>
+  </tbody>
+</table>
 <p>House rules that the app doesn't support directly (e.g., custom modifier-deck composition) typically need a manual workaround using the Add Monster + perks system, or a feature request.</p>
 </section>
 <nav class="chapter-nav">

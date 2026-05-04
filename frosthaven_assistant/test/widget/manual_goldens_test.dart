@@ -17,8 +17,10 @@ import 'package:frosthaven_assistant/Resource/commands/add_character_command.dar
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_standee_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
+import 'package:frosthaven_assistant/Resource/game_data.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../command/test_helpers.dart';
 
@@ -83,15 +85,17 @@ Future<void> _pumpInScaffold(WidgetTester tester, Widget body,
 
 // Register the custom fonts declared in pubspec.yaml so goldens render
 // title text and other glyphs faithfully instead of missing-glyph boxes.
+// Also explicitly registers MaterialIcons (the hamburger ≡ etc.) — without
+// this the Icon widgets render as empty boxes in the test environment.
 Future<void> _loadAppFonts() async {
   const fontsDir = 'assets/fonts';
-  final families = <String, List<String>>{
+  final appFamilies = <String, List<String>>{
     'Majalla': ['$fontsDir/majallab.ttf'],
     'Pirata': ['$fontsDir/PirataOne-Gloomhaven.ttf'],
     'GermaniaOne': ['$fontsDir/GermaniaOne-Regular.ttf'],
     'Markazi': ['$fontsDir/MarkaziText-VariableFont_wght.ttf'],
   };
-  for (final entry in families.entries) {
+  for (final entry in appFamilies.entries) {
     final loader = FontLoader(entry.key);
     for (final path in entry.value) {
       loader.addFont(File(path).readAsBytes().then(
@@ -100,11 +104,40 @@ Future<void> _loadAppFonts() async {
     }
     await loader.load();
   }
+
+  // Material Icons — Flutter ships this with the SDK. FLUTTER_ROOT is set
+  // by the test runner; fall back to common install paths.
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'] ??
+      '${Platform.environment['HOME']}/development/flutter';
+  final materialIconsPath =
+      '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf';
+  if (File(materialIconsPath).existsSync()) {
+    final loader = FontLoader('MaterialIcons');
+    loader.addFont(File(materialIconsPath).readAsBytes().then(
+          (bytes) => ByteData.view(bytes.buffer),
+        ));
+    await loader.load();
+  }
+}
+
+/// Like setUpGame but loads production data (assets/) instead of testData.
+/// Needed so the manual's anchor edition Gloomhaven is reachable —
+/// Brute, Bandit Guard, Bandit Archer aren't present in testData.
+/// GameData.editions is `late final` so we can't call loadData twice;
+/// this replaces the setUpGame call entirely.
+Future<void> _setUpGameWithFullData() async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+  setupGetIt();
+  final gs = getIt<GameState>();
+  gs.init();
+  await getIt<GameData>().loadData('assets/data/');
+  await gs.load();
 }
 
 void main() {
   setUpAll(() async {
-    await setUpGame();
+    await _setUpGameWithFullData();
     await _loadAppFonts();
   });
 
@@ -173,18 +206,19 @@ void main() {
     });
 
     testWidgets('s3-3 main list populated', (tester) async {
-      // Two characters + one monster type with normal + elite standees.
-      // Entities chosen to match what's available in test data
-      // (assets/testData/editions/): Blinkblade, Banner Spear (Frosthaven),
-      // Zealot (Jaws of the Lion).
-      // Commands use positional args only (no gameState named param) so the
-      // test compiles on both upstream/main and upstream/claude_refactor.
-      AddCharacterCommand('Blinkblade', 'Frosthaven', null, 3).execute();
-      AddCharacterCommand('Banner Spear', 'Frosthaven', null, 3).execute();
-      AddMonsterCommand('Zealot', 2, false).execute();
-      AddStandeeCommand(1, null, 'Zealot', MonsterType.normal, false).execute();
-      AddStandeeCommand(2, null, 'Zealot', MonsterType.normal, false).execute();
-      AddStandeeCommand(3, null, 'Zealot', MonsterType.elite, false).execute();
+      // Black Barrow roster — the manual's anchor scenario (Gloomhaven
+      // Scenario 1). One Brute character at level 1 + one Bandit Guard
+      // (normal+elite standees) + one Bandit Archer. Available because
+      // setUpAll loaded production data (assets/) rather than testData.
+      AddCharacterCommand('Brute', 'Gloomhaven', null, 1).execute();
+      AddMonsterCommand('Bandit Guard', 1, false).execute();
+      AddStandeeCommand(1, null, 'Bandit Guard', MonsterType.normal, false)
+          .execute();
+      AddStandeeCommand(2, null, 'Bandit Guard', MonsterType.elite, false)
+          .execute();
+      AddMonsterCommand('Bandit Archer', 1, false).execute();
+      AddStandeeCommand(3, null, 'Bandit Archer', MonsterType.normal, false)
+          .execute();
       await _pumpInScaffold(tester, const MainList());
       await expectLater(
         find.byType(MainList),
@@ -212,17 +246,36 @@ void main() {
     // ── §3.5 Sidebar drawer ──────────────────────────────────────────────
 
     testWidgets('s3-5 main menu drawer', (tester) async {
+      // Populate body with the Black Barrow roster so the scrim has
+      // something behind it to dim, matching what users see in the live app.
+      AddCharacterCommand('Brute', 'Gloomhaven', null, 1).execute();
+      AddMonsterCommand('Bandit Guard', 1, false).execute();
+      AddStandeeCommand(1, null, 'Bandit Guard', MonsterType.normal, false)
+          .execute();
+      AddStandeeCommand(2, null, 'Bandit Guard', MonsterType.elite, false)
+          .execute();
+      AddMonsterCommand('Bandit Archer', 1, false).execute();
+      AddStandeeCommand(3, null, 'Bandit Archer', MonsterType.normal, false)
+          .execute();
+
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
           home: const Scaffold(
-            body: SizedBox(width: 304, child: MainMenu()),
+            drawer: MainMenu(),
+            body: MainList(),
           ),
         ),
       );
+      // Open the drawer first so the DrawerHeader's icon.png is mounted
+      // and reachable by the precache pass; Scaffold draws a scrim over the
+      // body automatically — that's the dim-overlay effect from the live app.
+      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+      scaffoldState.openDrawer();
+      await tester.pumpAndSettle();
       await _precacheAllImages(tester);
       await expectLater(
-        find.byType(MainMenu),
+        find.byType(MaterialApp),
         matchesGoldenFile('$_goldenDir/s3-5-main-menu.png'),
       );
     });

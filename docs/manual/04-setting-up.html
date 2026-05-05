@@ -79,15 +79,53 @@
 <section id="s4">
 <h2><span class="secnum">§4</span>Setting Up</h2>
 
-<h3 id="s4-1"><span class="secnum">§4.1</span>Adding characters</h3>
-<p>Open the sidebar (<a href="03-anatomy.html#s3-5">§3.5</a>) and tap <strong>Add Character</strong>. The menu (<code>AddCharacterMenu</code>, <code>lib/Layout/menus/add_character_menu.dart</code>) lists every character class the app knows about, sorted with the current campaign's classes first.</p>
+<h3 id="s4-1"><span class="secnum">§4.1</span>Character lifecycle: create, save, remove, load</h3>
+
+<p>Characters in the app go through four operations across a campaign: <strong>create</strong> them when they join the party, <strong>save</strong> them between sessions, <strong>remove</strong> them when the scenario ends or someone retires, and <strong>load</strong> them back when the next scenario starts. All four live behind the <em>Add Character</em> menu and its <em>Load or Save Characters</em> sub-menu — close enough together that you'll bounce between them in a single session.</p>
+
+<p>The walkthrough below uses three characters to motivate each step:</p>
+<ul>
+  <li><strong>Brute</strong> — the manual's anchor character; melee, simple, level 1 to start.</li>
+  <li><strong>Spellweaver</strong> — added partway through to demonstrate elements (<a href="02-quick-start.html#s2-7">§2.7</a>).</li>
+  <li><strong>Tinkerer</strong> — added later to demonstrate the "new character joins an existing party" path.</li>
+</ul>
+
+<h4>Create</h4>
+<p>Sidebar (<a href="03-anatomy.html#s3-5">§3.5</a>) → <strong>Add Character</strong>. The menu (<code>AddCharacterMenu</code>, <code>lib/Layout/menus/add_character_menu.dart</code>) lists every class the app knows about, sorted with the current campaign's classes first.</p>
 <figure id="fig-4-1">
   <img src="../screenshots/manual/s4-1-add-character-menu.png" alt="Add Character menu">
-  <figcaption><strong>Figure 4.1.</strong> The Add Character menu. Each row is one class: colored class icon, class name, edition tag in parentheses. Top-of-list <em>Escort</em> and <em>Objective</em> are scenario-construct "characters" rather than playable classes (see <a href="06-special-mechanics.html#s6-1">§6.1</a>). The <code>???</code> entry is a placeholder for a hidden/locked Frosthaven class — typing its name in the search field reveals it.</figcaption>
+  <figcaption><strong>Figure 4.1.</strong> The Add Character menu. Each row is one class: colored class icon, class name, edition tag in parentheses. Top-of-list <em>Escort</em> and <em>Objective</em> are scenario-construct "characters" rather than playable classes (see <a href="06-special-mechanics.html#s6-1">§6.1</a>). The <code>???</code> entry is a placeholder for a hidden/locked Frosthaven class — typing its name in the search field reveals it. The <strong>Load or Save Characters</strong> banner at the top opens the persistence menu (covered below).</figcaption>
 </figure>
-<p>Tap a class to add it at level 1 with the default name. To pick a different starting level, the workflow is two steps: add the class, then use <strong>Set Level</strong> from the sidebar to change it (or tap the level on the character banner). Renaming a character is done by tapping the name on its banner; changes are local to the app and don't affect game state.</p>
-<p>The <strong>Load or Save Characters</strong> header opens a separate menu for persisting characters across sessions — useful for ongoing campaigns where you want to keep the same Brute across scenarios without re-entering perks every time.</p>
-<div class="note"><strong>Starting HP edge cases.</strong> Some perks and items grant <em>+max HP</em>. The app starts characters at the class's stock max HP for the chosen level — if your character has perks bumping max HP, adjust on the banner via long-press on the HP control. Tracked at upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/213">#213</a>.</div>
+<p>Tap a class to add it at level 1 with the default name. To start above level 1, do two steps: add at 1, then <strong>Set Level</strong> on the sidebar (or tap the level on the character banner). To rename, tap the name on the banner — purely cosmetic, doesn't affect game state.</p>
+
+<p><em>Walkthrough — assemble the starting party.</em> Tap Add Character, pick <strong>Brute</strong>. The Brute appears in the main list (orange-and-blue banner with the horned-helm icon). Repeat: Add Character → <strong>Spellweaver</strong>. The two banners stack in the order added; the list will reorder by initiative once the round starts.</p>
+
+<h4>Save</h4>
+<p>From the Add Character menu, tap the <strong>Load or Save Characters</strong> banner at the top. This opens <code>SaveCharacterMenu</code> (<code>lib/Layout/menus/save_character_menu.dart</code>), which lists every character currently in the party and every previously-saved character on this device.</p>
+<p>To save a character: enter a <em>save name</em> (e.g., <code>Tuesday Crew</code>) and tap the save row for the character. Behind the scenes the app stores everything that's character-specific — class, name, level, current HP, conditions, XP, summons, and the full perk-checkbox state — keyed by <code>"&lt;save name&gt;\n&lt;character id&gt;"</code> in shared preferences (<code>Settings.saveCharacterState</code>, <code>lib/Resource/settings.dart</code>). The save survives app restart and device reboot.</p>
+<p>Practically: save names group your party. Save Brute and Spellweaver under the same name (<code>Tuesday Crew</code>) and they'll come back together when you load. Save the Spellweaver alone under <code>solo-spellweaver-experiment</code> and you've got a separate slot for one-off play.</p>
+
+<p><em>Walkthrough — between scenarios.</em> Your group just finished Black Barrow. Brute earned 14 XP and bought a perk; Spellweaver dropped to 4/8 HP and is still poisoned. Save both: <strong>Load or Save Characters</strong> → name it <code>Tuesday Crew, end of #1</code> → tap save on each row. The current state — including the lingering Poison — is now persisted exactly as it stands.</p>
+
+<h4>Remove</h4>
+<p>Sidebar → <strong>Remove Characters</strong> opens <code>RemoveCharacterMenu</code> (<code>lib/Layout/menus/remove_character_menu.dart</code>). Each row is a tap-to-remove for one character; <strong>Remove All</strong> at the top clears the list in one go.</p>
+<p>Removing a character does <em>not</em> delete its save. Your <code>Tuesday Crew</code> save is still there — <em>Remove</em> just takes the character off the active main list. Use this:</p>
+<ul>
+  <li>At scenario end, before loading the next scenario's roster.</li>
+  <li>When a player can't make a session, save their character and remove it for the night.</li>
+  <li>When you accidentally added the wrong class.</li>
+</ul>
+
+<p><em>Walkthrough — clearing the table.</em> Saved both characters above; now sidebar → <strong>Remove Characters</strong> → <strong>Remove All</strong>. Main list is empty. The Tuesday Crew save is still on disk; nothing in-progress was lost.</p>
+
+<h4>Load</h4>
+<p>Back in the Add Character menu, the <strong>Load or Save Characters</strong> banner also offers loading. The save list shows every character ever saved, grouped by save name. Tap a character entry to load it — the character returns to the main list with the exact state it had when saved (HP, conditions, perks, level, XP). Saves stay on disk after loading; you can load the same save multiple times if needed.</p>
+<p>Loaded characters merge into the current main list. If you've already added a Brute and you load a saved Brute, you'll have two Brutes in the list (different ids — the app distinguishes them). To replace rather than append, remove first then load.</p>
+
+<p><em>Walkthrough — next session, with a new face.</em> Open the app: empty main list. <strong>Add Character</strong> → <strong>Load or Save Characters</strong> → tap the saved Brute under <code>Tuesday Crew, end of #1</code>, then the saved Spellweaver. Both come back at their saved levels and HP. The Spellweaver is still poisoned — clear that with <em>Undo</em> if it shouldn't carry, or just tap the Poison icon on the banner to remove it.</p>
+<p>The party's friend is in town this week and will play a Tinkerer. Sidebar → <strong>Add Character</strong> → <strong>Tinkerer</strong>. The Tinkerer joins at level 1; Set Level on the sidebar to bring them up to the party's level. They have no perks — the player will pick those during their first scenario per the rulebook. Save the Tinkerer at end of session under the same <code>Tuesday Crew</code> name to keep the roster aligned.</p>
+
+<div class="note"><strong>Starting HP edge cases.</strong> Some perks and items grant <em>+max HP</em>. The app starts characters at the class's stock max HP for the chosen level — if a perk should add to max HP, adjust on the banner (long-press the HP control). Once you've set it and saved, the modified max HP is part of the save. Tracked at upstream issue <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/213">#213</a>.</div>
 
 <h3 id="s4-2"><span class="secnum">§4.2</span>Setting a scenario</h3>
 <p>Sidebar → <strong>Set Scenario</strong>. The menu (<code>SelectScenarioMenu</code>, <code>lib/Layout/menus/select_scenario_menu.dart</code>) has two parts:</p>

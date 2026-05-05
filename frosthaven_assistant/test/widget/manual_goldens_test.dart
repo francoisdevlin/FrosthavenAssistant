@@ -69,12 +69,20 @@ Future<void> _precacheAllImages(WidgetTester tester) async {
 }
 
 Future<void> _pumpInScaffold(WidgetTester tester, Widget body,
-    {PreferredSizeWidget? appBar, Widget? bottomBar, Widget? drawer}) async {
+    {PreferredSizeWidget? appBar,
+    Widget? bottomBar,
+    Widget? drawer,
+    Size? surfaceSize}) async {
+  if (surfaceSize != null) {
+    await tester.binding.setSurfaceSize(surfaceSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+  }
   final originalOnError = FlutterError.onError;
   FlutterError.onError = ignoreOverflowErrors;
   await tester.pumpWidget(
     MaterialApp(
       theme: theme,
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: appBar,
         drawer: drawer,
@@ -161,12 +169,19 @@ void _setupBlackBarrow({bool withSpellweaver = false}) {
 /// Pumps the full app shell (TopBar + BottomBar + MainMenu drawer + MainList)
 /// in a layout that mirrors the live app. Used for §2 full-screen goldens
 /// where the manual needs to show the actual app, not isolated widgets.
+///
+/// Surface size is widened to 800×900 so the §2 Black Barrow roster
+/// (Spellweaver + Brute + Bandit Guard + Bandit Archer rows) fits without
+/// clipping the trailing figure at the bottom of the viewport.
 Future<void> _pumpFullApp(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(800, 900));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
   final originalOnError = FlutterError.onError;
   FlutterError.onError = ignoreOverflowErrors;
   await tester.pumpWidget(
     MaterialApp(
       theme: theme,
+      debugShowCheckedModeBanner: false,
       home: const Scaffold(
         appBar: PreferredSize(
             preferredSize: Size.fromHeight(56), child: TopBar()),
@@ -290,7 +305,10 @@ void main() {
 
     testWidgets('s3-3 main list populated', (tester) async {
       _setupBlackBarrow(withSpellweaver: true);
-      await _pumpInScaffold(tester, const MainList());
+      // Wider surface so the four-row roster (Spellweaver, Brute, Bandit
+      // Guard, Bandit Archer) fits without crushing portraits at small scale.
+      await _pumpInScaffold(tester, const MainList(),
+          surfaceSize: const Size(800, 900));
       await expectLater(
         find.byType(MainList),
         matchesGoldenFile('$_goldenDir/s3-3-main-list-populated.png'),
@@ -324,6 +342,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
+          debugShowCheckedModeBanner: false,
           home: const Scaffold(
             drawer: MainMenu(),
             body: MainList(),

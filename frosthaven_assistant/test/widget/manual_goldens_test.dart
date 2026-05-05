@@ -346,9 +346,54 @@ void main() {
     // ── §4.1 Add Character menu ──────────────────────────────────────────
 
     testWidgets('s4-1 add character menu', (tester) async {
-      await _pumpInScaffold(tester, const AddCharacterMenu());
+      // Render Add Character as the live app shows it: the menu opened as
+      // a centered modal over the populated main scaffold, with the rest
+      // of the app dimmed behind a scrim. We compose this manually with a
+      // Stack rather than calling showDialog — showDialog leaves a pending
+      // Future that the test framework treats as a failure when the test
+      // ends without the dialog being dismissed.
+      _setupBlackBarrow(withSpellweaver: true);
+      // Switch to Gloomhaven so the menu surfaces Brute / Spellweaver /
+      // Tinkerer first, matching the manual's anchor and the §4.1 narrative.
+      getIt<GameState>().action(SetCampaignCommand('Gloomhaven'));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            appBar: const PreferredSize(
+                preferredSize: Size.fromHeight(56), child: TopBar()),
+            bottomNavigationBar: const BottomBar(),
+            body: Stack(
+              children: const [
+                MainList(),
+                // Scrim — heavier than Material's default 0x80 to match the
+                // live-app reference (background is strongly desaturated).
+                Positioned.fill(child: ColoredBox(color: Color(0xB0000000))),
+                // Centered dialog with elevation/shadow + a fixed reading
+                // width that mirrors the live app's modal proportions.
+                Center(
+                  child: Material(
+                    elevation: 24,
+                    color: Colors.white,
+                    child: SizedBox(width: 400, child: AddCharacterMenu()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      // Drain NetworkUI's 200ms Future.delayed before capture.
+      await tester.pump(const Duration(milliseconds: 250));
+      await _precacheAllImages(tester);
+      // Connectivity_plus's platform stream fires a MissingPluginException
+      // in the test environment (no native impl). Other tests where it
+      // surfaces don't fail because the exception arrives after expectLater
+      // resolves. Here the longer setup gives it time to land before
+      // capture, so consume it explicitly.
+      tester.takeException();
       await expectLater(
-        find.byType(AddCharacterMenu),
+        find.byType(MaterialApp),
         matchesGoldenFile('$_goldenDir/s4-1-add-character-menu.png'),
       );
     });

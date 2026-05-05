@@ -93,9 +93,9 @@
 
 <h3 id="s2-1"><span class="secnum">§2.1</span>Install and launch</h3>
 <p>Install from the platform store (or build from source — see the project README). On first launch the app opens to an empty <em>Main Screen</em>: a top bar (elements), a near-empty body (the main list), and a bottom bar with round controls. The hamburger menu (<code>≡</code>) in the corner opens the sidebar drawer; that's where every menu lives.</p>
-<figure>
+<figure id="fig-2-1">
   <img src="../screenshots/manual/s2-1-fresh-app.png" alt="X-Haven Assistant on first launch — empty main screen">
-  <figcaption>First-launch state. Top bar: hamburger menu, "X-haven Assistant" title, six element icons. Body: empty (textured background). Bottom bar: <em>Draw</em> button, scenario stat icons (no scenario set yet so they're stubs), level widget, attack modifier deck card.</figcaption>
+  <figcaption><strong>Figure 2.1.</strong> First-launch state. Top bar: hamburger menu, "X-haven Assistant" title, six element icons. Body: empty (textured background). Bottom bar: <em>Draw</em> button, scenario stat icons (no scenario set yet so they're stubs), level widget, attack modifier deck card.</figcaption>
 </figure>
 
 <h3 id="s2-2"><span class="secnum">§2.2</span>Add your character</h3>
@@ -109,9 +109,9 @@
   <li>Scenario stat line in the bottom bar (level, trap damage, hazardous terrain damage, XP bonus, coin multiplier)</li>
 </ul>
 <p>It does <em>not</em> place individual standees — those go on the table physically. The app tracks each standee once you tap to add it during play (see <a href="#s2-6">§2.6</a>).</p>
-<figure>
+<figure id="fig-2-2">
   <img src="../screenshots/manual/s2-3-scenario-active.png" alt="Black Barrow set up — Brute and Spellweaver in the main list, Bandit Guard and Bandit Archer monster widgets visible">
-  <figcaption>Black Barrow set up with a Brute and a Spellweaver (this walkthrough uses both — Brute for melee, Spellweaver for the element discussion in <a href="#s2-7">§2.7</a>). Bandit Guard widget shows one normal and one elite standee already added; Bandit Archer below has one normal. Bottom bar: scenario stats now populated (level / trap / hazardous / XP / coin).</figcaption>
+  <figcaption><strong>Figure 2.2.</strong> Black Barrow set up with a Brute and a Spellweaver (this walkthrough uses both — Brute for melee, Spellweaver for the element discussion in <a href="#s2-7">§2.7</a>). Bandit Guard widget shows one normal and one elite standee already added; Bandit Archer below has one normal. Bottom bar: scenario stats now populated (level / trap / hazardous / XP / coin).</figcaption>
 </figure>
 
 <h3 id="s2-4"><span class="secnum">§2.4</span>Round 1: draw monster abilities</h3>
@@ -137,9 +137,9 @@
 <h3 id="s2-7"><span class="secnum">§2.7</span>Round end: Next Round</h3>
 <p>When all figures have acted and the round is over, the <strong>Draw</strong> button's label changes to <strong>Next Round</strong>. Tap it. The round counter advances; monster ability decks reshuffle if any drew a "shuffle" card; conditions decrement per the rules (Poison, Wound, etc., behave per the app's auto-expire setting — see <a href="11-settings.html#s11">§11</a>).</p>
 <p><strong>Elements decay too.</strong> Suppose during this round the Spellweaver played an ability that creates a fire element. Tap the fire icon in the top bar to mark it infused. At round end, full elements step down to <em>waning</em> (half-filled circle); waning elements step down to <em>inert</em>. So the fire you just created will be <em>waning</em> after Next Round, and gone the round after that.</p>
-<figure>
+<figure id="fig-2-3">
   <img src="../screenshots/manual/s2-7-elements-after-cast.png" alt="Top bar with fire infused after a Spellweaver cast">
-  <figcaption>After the Spellweaver casts a fire ability — fire icon shows the orange-red "full" state. The Brute (or anyone with a fire-consuming ability) can use this on a later turn before it decays. See <a href="03-anatomy.html#s3-2">§3.2</a> for the full element lifecycle.</figcaption>
+  <figcaption><strong>Figure 2.3.</strong> After the Spellweaver casts a fire ability — fire icon shows the orange-red "full" state. The Brute (or anyone with a fire-consuming ability) can use this on a later turn before it decays. See <a href="03-anatomy.html#s3-2">§3.2</a> for the full element lifecycle.</figcaption>
 </figure>
 
 <div class="note"><strong>Caveat — morphing button race.</strong> Because the same button serves Draw and Next Round, a stray double-tap at the moment the round ends can resolve as Draw → Next Round in quick succession. <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/issues/135">Issue #135</a> tracks this. If you see initiative reset unexpectedly, that's the cause; <em>Undo</em> (<a href="10-mistakes-undo.html#s10">§10</a>) reverses it.</div>

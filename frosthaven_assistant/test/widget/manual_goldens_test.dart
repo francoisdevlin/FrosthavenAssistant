@@ -663,16 +663,77 @@ void main() {
       );
     });
 
-    // ── §5.3 Initiative numpad ───────────────────────────────────────────
+    // ── §5.3 Initiative numpad (Soft numpad opt-in) ─────────────────────
+    //
+    // Per the live-app reference (owner screenshot 2026-05-07), the in-app
+    // numpad shown by enabling "Soft numpad for input" in Settings appears
+    // as a centered card over the dimmed main scaffold — same composition
+    // as §4.1 (Add Character menu). The previous golden rendered the
+    // production NumpadMenu widget in isolation, where its inner
+    // ModalBackground(width: 10, ...) container collapses to a thin strip
+    // that AssetImage paints with the test-environment placeholder
+    // (vertical red striping). The earlier prose then documented that
+    // placeholder as a "modal-dismiss affordance" — fictional. This test
+    // renders the numpad inside a properly sized Material card on top of
+    // the populated scaffold + scrim, matching the live app's actual
+    // appearance: a parchment-textured popup with a 3×3 grid of digits
+    // 1–9 and 0 below center, no red bar.
 
     _goldenTest('s5-3 numpad menu', (tester) async {
       final controller = TextEditingController();
-      await _pumpInScaffold(
-        tester,
-        Center(child: NumpadMenu(controller: controller, maxLength: 2)),
+      _setupBlackBarrow(withSpellweaver: true);
+      // Switch to Gloomhaven so the rendered scaffold (top bar elements,
+      // monster portraits) matches the manual's anchor.
+      getIt<GameState>().action(SetCampaignCommand('Gloomhaven'));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            appBar: const PreferredSize(
+                preferredSize: Size.fromHeight(56), child: TopBar()),
+            bottomNavigationBar: const BottomBar(),
+            body: Stack(
+              children: [
+                const MainList(),
+                // Scrim — same heavier opacity used by s4-1 so the
+                // background figures stay visible but desaturated.
+                const Positioned.fill(
+                    child: ColoredBox(color: Color(0xB0000000))),
+                // Centered card with the production NumpadMenu inside.
+                // The ConstrainedBox imposes the same minWidth:280 that
+                // Flutter's Dialog applies in production — without it,
+                // NumpadMenu's inner ModalBackground(width: 10, ...)
+                // collapses the Column to 10px wide and the digit grid
+                // overflows the card. With the min constraint, the inner
+                // Container expands to fit, the parchment background
+                // image (white_bg.png) covers the full card, and the
+                // 3×3 digit grid lays out cleanly — matching the live
+                // app's actual rendering.
+                Center(
+                  child: Material(
+                    elevation: 24,
+                    color: Colors.transparent,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                          minWidth: 280, minHeight: 280),
+                      child: NumpadMenu(
+                          controller: controller, maxLength: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
+      // Drain NetworkUI's 200ms Future.delayed before capture (same
+      // hazard as s4-1 — TopBar/BottomBar schedule async work on build).
+      await tester.pump(const Duration(milliseconds: 250));
+      await _precacheAllImages(tester);
+      tester.takeException();
       await expectLater(
-        find.byType(NumpadMenu),
+        find.byType(MaterialApp),
         matchesGoldenFile('$_goldenDir/s5-3-numpad-menu.png'),
       );
     });

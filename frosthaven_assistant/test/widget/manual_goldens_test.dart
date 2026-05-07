@@ -13,6 +13,7 @@ import 'package:frosthaven_assistant/Layout/menus/add_section_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/numpad_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/select_scenario_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/set_level_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/settings_menu.dart';
 import 'package:frosthaven_assistant/Layout/theme.dart';
 import 'package:frosthaven_assistant/Layout/top_bar.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
@@ -197,6 +198,102 @@ Future<void> _pumpFullApp(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 250));
   await _precacheAllImages(tester);
   FlutterError.onError = originalOnError;
+}
+
+/// Stubs the connectivity_plus + network_info_plus platform channels so
+/// SettingsMenu's initState async probes don't throw MissingPluginException
+/// during the §9 goldens. Idempotent — safe to call from multiple tests.
+void _stubNetworkPlugins() {
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  // network_info_plus — wifiIPAddress() returns null in the test env.
+  const networkInfoChannel =
+      MethodChannel('dev.fluttercommunity.plus/network_info');
+  messenger.setMockMethodCallHandler(networkInfoChannel, (call) async => null);
+  // connectivity_plus — both the lookup channel and the broadcast stream.
+  const connectivityChannel =
+      MethodChannel('dev.fluttercommunity.plus/connectivity');
+  messenger.setMockMethodCallHandler(
+      connectivityChannel, (call) async => <String>['none']);
+  const connectivityStream =
+      EventChannel('dev.fluttercommunity.plus/connectivity_status');
+  messenger.setMockStreamHandler(
+      connectivityStream, _NoopStreamHandler());
+}
+
+class _NoopStreamHandler extends MockStreamHandler {
+  @override
+  void onListen(Object? arguments, MockStreamHandlerEventSink events) {}
+  @override
+  void onCancel(Object? arguments) {}
+}
+
+/// Pumps the SettingsMenu inside a centered Material modal over a dim
+/// scaffold (s4-1 pattern). Used by §9.1 / §9.2 to capture the multiplayer
+/// "Connect devices on local wifi" subsection. Mocks the singleton network
+/// info with IPv6 ULA addresses so the dropdown and server-ip-address text
+/// field are deterministic and leak no real host addresses.
+Future<void> _pumpMultiplayerSettings(WidgetTester tester) async {
+  _stubNetworkPlugins();
+  final settings = getIt<Settings>();
+  final netInfo = getIt<Network>().networkInfo;
+  const ula = 'fd12:3456:789a::1';
+  const ulaAlt = 'fd12:3456:789a::42';
+
+  netInfo.wifiIPv6List
+    ..clear()
+    ..add(ula)
+    ..add(ulaAlt);
+  netInfo.wifiIPv6.value = ula;
+  netInfo.outgoingIPv6.value = '';
+  settings.lastKnownConnection = ula;
+  settings.lastKnownPort = '4567';
+  settings.server.value = false;
+  settings.client.value = ClientState.disconnected;
+
+  addTearDown(() {
+    settings.server.value = false;
+    settings.client.value = ClientState.disconnected;
+    settings.lastKnownConnection = '192.168.1.???';
+    settings.lastKnownPort = '4567';
+    netInfo.wifiIPv6.value = '';
+    netInfo.wifiIPv6List.clear();
+  });
+
+  await tester.binding.setSurfaceSize(const Size(500, 380));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: theme,
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Stack(
+          children: const [
+            Positioned.fill(child: ColoredBox(color: Color(0xFF202020))),
+            Positioned.fill(child: ColoredBox(color: Color(0xB0000000))),
+            Center(
+              child: Material(
+                elevation: 24,
+                color: Colors.white,
+                child: SizedBox(
+                  width: 360,
+                  height: 300,
+                  child: SettingsMenu(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  // SettingsMenu's initState kicks off async network probes (Ipify HTTP,
+  // network_info_plus platform channel) that fail in the test environment.
+  // Drain pending tasks then consume any thrown exception — same hazard as s4-1.
+  await tester.pump(const Duration(milliseconds: 250));
+  await _precacheAllImages(tester);
+  tester.takeException();
 }
 
 /// Wraps testWidgets to render with real (blurred) shadows.
@@ -497,63 +594,45 @@ void main() {
       );
     });
 
-    // ── §9.1 Multiplayer — Hosting (sidebar drawer with server started) ──
+    // ── §9.1/§9.2 Multiplayer — Settings modal "Connect devices on local
+    //    wifi" section ──────────────────────────────────────────────────
     //
-    // Captures the sidebar drawer with the host server entry visible. The
-    // surface is taller than the s3-5 default (800×1100 vs 800×600) so the
-    // drawer's network entries — which sit below the standard menu items —
-    // are reachable in a single shot, and the host-side "Stop Server"
-    // label confirms the listening state.
+    // Per the live-app reference (owner screenshot 2026-05-07), the multiplayer
+    // controls live inside the Settings modal — not in the sidebar drawer.
+    // Path in the live app: ≡ → Settings → scroll to "Connect devices on
+    // local wifi:". That section contains:
+    //   • "Connect as Client" checkbox
+    //   • "server ip address" text field
+    //   • "port" text field (4567 default)
+    //   • "Start Host Server" checkbox
+    //   • dropdown of detected local IPs
+    //   • a second "port" text field
     //
-    // The IPv6 ULA address fd12:3456:789a::1 (RFC 4193 unique-local space —
-    // the IPv6 analog of IPv4 RFC1918 10.x/192.168.x) is pinned on the
-    // singleton network info so the golden is deterministic and never
-    // leaks a real host's address into committed pixels.
+    // Both §9.1 (host) and §9.2 (client) figures are captures of this same
+    // section in the same idle state. The two figures differ only in the
+    // crop region — §9.1 scrolls the host-side rows into frame, §9.2 the
+    // client-side rows. Both render the SettingsMenu directly inside a
+    // centered Material modal over a dim scaffold (s4-1 pattern).
+    //
+    // IPv6 ULA address fd12:3456:789a::1 (RFC 4193 unique-local space — the
+    // IPv6 analog of IPv4 RFC1918) is injected into the singleton network
+    // info so the dropdown + server-ip-address field are deterministic and
+    // never leak a real host's address into committed pixels.
 
     _goldenTest('s9-1 host server', (tester) async {
-      // Clear undo history so the drawer's Undo/Redo labels render as the
-      // bare "Undo"/"Redo" — without this, prior tests in batch order (e.g.
-      // s4-4's SetScenarioCommand) leak into commandDescriptions and the
-      // label becomes "Undo: Set Scenario", making the golden order-flaky.
-      final gs = getIt<GameState>();
-      gs.commandDescriptions.clear();
-      gs.commandIndex.value = -1;
-
-      final settings = getIt<Settings>();
-      final wifiIPv6 = getIt<Network>().networkInfo.wifiIPv6;
-      const ula = 'fd12:3456:789a::1';
-      wifiIPv6.value = ula;
-      settings.lastKnownConnection = ula;
-      settings.server.value = true;
-      addTearDown(() {
-        settings.server.value = false;
-        settings.lastKnownConnection = '192.168.1.???';
-        wifiIPv6.value = '';
-      });
-
-      await tester.binding.setSurfaceSize(const Size(800, 1100));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: theme,
-          debugShowCheckedModeBanner: false,
-          home: const Scaffold(
-            drawer: MainMenu(),
-            // Plain body — the drawer is the subject of this golden, and
-            // anything game-state-dependent (MainList, monster widgets)
-            // would re-introduce ordering flakiness between tests.
-            body: ColoredBox(color: Color(0xFF202020)),
-          ),
-        ),
+      await _pumpMultiplayerSettings(tester);
+      // Anchor the host-server row at the top of the modal viewport. The
+      // section header ("Connect devices on local wifi:") scrolls off the
+      // top, the dropdown + port + Load/Save State + Close button fill the
+      // visible region — the figure focuses on the host controls.
+      await Scrollable.ensureVisible(
+        tester.element(find.text('Start Host Server')),
+        alignment: 0,
+        duration: Duration.zero,
       );
-      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
-      scaffoldState.openDrawer();
-      await tester.pumpAndSettle();
-      await _precacheAllImages(tester);
-      // connectivity_plus has no platform impl in tests; consume any
-      // pending exception before capture (same hazard as s4-1).
+      await tester.pump(const Duration(milliseconds: 50));
       tester.takeException();
       FlutterError.onError = originalOnError;
       await expectLater(
@@ -562,46 +641,20 @@ void main() {
       );
     });
 
-    // ── §9.2 Multiplayer — Joining (sidebar drawer with connect entry) ───
-    //
-    // Same drawer surface as s9-1 but server toggled off, so the
-    // "Connect as Client (fd12:3456:789a::1)" entry is enabled and
-    // "Start Host Server (...)" appears in its un-started state.
-
     _goldenTest('s9-2 connect to server', (tester) async {
-      final gs = getIt<GameState>();
-      gs.commandDescriptions.clear();
-      gs.commandIndex.value = -1;
-
-      final settings = getIt<Settings>();
-      final wifiIPv6 = getIt<Network>().networkInfo.wifiIPv6;
-      const ula = 'fd12:3456:789a::1';
-      wifiIPv6.value = ula;
-      settings.lastKnownConnection = ula;
-      settings.server.value = false;
-      addTearDown(() {
-        settings.lastKnownConnection = '192.168.1.???';
-        wifiIPv6.value = '';
-      });
-
-      await tester.binding.setSurfaceSize(const Size(800, 1100));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: theme,
-          debugShowCheckedModeBanner: false,
-          home: const Scaffold(
-            drawer: MainMenu(),
-            body: ColoredBox(color: Color(0xFF202020)),
-          ),
-        ),
+      await _pumpMultiplayerSettings(tester);
+      // Anchor the section header at the top of the viewport so the figure
+      // shows the Connect-as-Client row and server-ip-address field with
+      // the "Connect devices on local wifi:" label visible above them —
+      // signalling "this is the Settings dialog" without showing host rows.
+      await Scrollable.ensureVisible(
+        tester.element(find.text('Connect devices on local wifi:')),
+        alignment: 0,
+        duration: Duration.zero,
       );
-      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
-      scaffoldState.openDrawer();
-      await tester.pumpAndSettle();
-      await _precacheAllImages(tester);
+      await tester.pump(const Duration(milliseconds: 50));
       tester.takeException();
       FlutterError.onError = originalOnError;
       await expectLater(

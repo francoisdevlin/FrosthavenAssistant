@@ -84,12 +84,21 @@
 <p>The app supports a host/client model for sharing game state across multiple devices around the table. One device hosts; others connect as clients. The host's state is authoritative.</p>
 
 <h3 id="s9-1"><span class="secnum">§9.1</span>Hosting</h3>
-<p>Sidebar drawer → <strong>Start Host Server</strong>. The menu entry shows the local IPv6 address in parentheses (e.g., <em>Start Host Server (fe80::abc:1234)</em>) so clients on the same LAN know what address to type.</p>
+<p>Sidebar drawer → <strong>Start Host Server</strong>. The menu entry shows the local IPv6 address in parentheses (e.g., <em>Start Host Server (fd12:3456:789a::1)</em>) so clients on the same LAN know what address to type.</p>
+<figure id="fig-9-1">
+  <img src="../screenshots/manual/s9-1-host-server.png" alt="Sidebar drawer with the host server started, IPv6 address visible">
+  <figcaption><strong>Figure 9.1.</strong> The sidebar drawer with hosting active. The two network entries sit at the bottom of the menu, below <em>Settings</em>. <strong>Start Host Server</strong> toggles the host listener; once running its label flips to <strong>Stop Server</strong>, as shown — the green checkmark confirms the listening state. The address in parentheses is the local IPv6 (an RFC 4193 unique-local example here, <code>fd12:3456:789a::1</code>) — that's the address clients on the LAN should type. While the server is up the <strong>Connect as Client</strong> row is greyed out: a single device can host or join, not both.</figcaption>
+</figure>
 <p>Once started, the entry's label changes to <em>Stop Server</em>. The server listens on a fixed port; the address shown is the one to share. Server lifecycle is implemented in <code>lib/services/network/server.dart</code>; the standalone variant lives in <code>frosthaven_assistant_server/lib/standalone_server.dart</code> for headless hosts.</p>
+<p><strong>No password / no auth handshake.</strong> The server accepts any client that knows the address and port — there is no shared-secret prompt, certificate check, or PIN exchange. Access control is by network reachability: a client either has a route to the host's IPv6 and the right port, or it doesn't. This is fine for trusted LAN play; do not expose the host to the public internet without a tunnel or VPN.</p>
 <p><strong>Caveats.</strong> Hosting from a phone over cellular usually doesn't work — most carriers block inbound connections. LAN hosting from a desktop is the most reliable; LAN hosting from a tablet is fine if it stays awake (consider the <em>Wakelock</em> setting on Android, which is on by default for this reason). Port forwarding is required for hosting across the public internet — most groups don't bother.</p>
 
 <h3 id="s9-2"><span class="secnum">§9.2</span>Joining</h3>
-<p>Sidebar drawer → <strong>Connect to Server &lt;address&gt;</strong>. The address shown is the last successfully-connected one; type a new one to override. On successful connect, the server's full state is pushed to the client and replaces whatever was there locally.</p>
+<p>Sidebar drawer → <strong>Connect as Client &lt;address&gt;</strong>. The address shown is the last successfully-connected one; type a new one to override. On successful connect, the server's full state is pushed to the client and replaces whatever was there locally.</p>
+<figure id="fig-9-2">
+  <img src="../screenshots/manual/s9-2-connect-to-server.png" alt="Sidebar drawer showing the Connect as Client entry with an IPv6 server address">
+  <figcaption><strong>Figure 9.2.</strong> The sidebar drawer with no server running locally. <strong>Connect as Client (fd12:3456:789a::1)</strong> is the join entry — the parenthesized address is the last-known server. Tapping the checkbox initiates a connection; the label cycles through <em>Connecting…</em> and lands at <em>Connected as Client</em> on success. The neighboring <strong>Start Host Server</strong> row remains available — switching this device into host mode disables the client row instead (compare <a href="#fig-9-1">Figure 9.1</a>).</figcaption>
+</figure>
 <p>The first connect of a session reads from the server; subsequent commands flow bidirectionally. Both host and clients can issue commands — the server arbitrates ordering via <em>command index</em> (see <a href="#s9-5">§9.5</a>).</p>
 
 <h3 id="s9-3"><span class="secnum">§9.3</span>What's synced, what isn't</h3>

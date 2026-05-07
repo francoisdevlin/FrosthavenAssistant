@@ -96,7 +96,30 @@
   <li><strong>Toasts</strong> — short status notifications that fade in and out (e.g., "Round end").</li>
   <li><strong>Modal menus</strong> — every "tap to open a menu" interaction (Add Character, Set Scenario, etc.) opens a dismissable dialog over the main screen rather than navigating.</li>
 </ul>
-<div class="note"><strong>Diagram pending.</strong> A full-screen annotated diagram of all four regions (with arrows pointing to each) belongs here. That requires a real-app integration screenshot rather than a widget-test golden — captured with <code>flutter run -d macos</code> + screencapture. Forthcoming once the integration_test harness is in place.</div>
+<figure id="fig-3-1" class="anatomy-overview">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 2700" role="img" aria-label="X-haven Assistant main screen with all four regions labeled — top bar, main list, bottom bar, sidebar drawer (accessed via the menu icon)">
+    <image href="../screenshots/manual/s2-3-scenario-active.png" x="0" y="0" width="2400" height="2700"/>
+    <g fill="none" stroke-width="10" stroke-dasharray="24 16">
+      <rect x="10" y="10" width="2380" height="190" stroke="#d62828"/>
+      <rect x="10" y="215" width="2380" height="2255" stroke="#1d4ed8"/>
+      <rect x="10" y="2485" width="2380" height="205" stroke="#16a34a"/>
+      <rect x="15" y="15" width="200" height="180" stroke="#ea580c" stroke-dasharray="14 10"/>
+    </g>
+    <g font-family="-apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-weight="700" font-size="110" text-anchor="middle">
+      <g><circle cx="1200" cy="105" r="72" fill="#d62828" stroke="#fff" stroke-width="8"/><text x="1200" y="143" fill="#fff">1</text></g>
+      <g><circle cx="1200" cy="1495" r="72" fill="#1d4ed8" stroke="#fff" stroke-width="8"/><text x="1200" y="1533" fill="#fff">2</text></g>
+      <g><circle cx="800" cy="2585" r="72" fill="#16a34a" stroke="#fff" stroke-width="8"/><text x="800" y="2623" fill="#fff">3</text></g>
+      <g><circle cx="300" cy="105" r="72" fill="#ea580c" stroke="#fff" stroke-width="8"/><text x="300" y="143" fill="#fff">4</text></g>
+    </g>
+  </svg>
+  <figcaption><strong>Figure 3.1.</strong> The four named regions of the main screen.
+    <span style="color:#d62828">①</span> <strong>Top bar</strong> — menu icon, title, six element icons (<a href="#s3-2">§3.2</a>).
+    <span style="color:#1d4ed8">②</span> <strong>Main list</strong> — character banners and monster widgets in initiative order (<a href="#s3-3">§3.3</a>).
+    <span style="color:#16a34a">③</span> <strong>Bottom bar</strong> — Draw / Next Round, scenario stats, attack modifier deck (<a href="#s3-4">§3.4</a>).
+    <span style="color:#ea580c">④</span> <strong>Sidebar drawer</strong> — opens when the menu icon (<code>≡</code>) is tapped (<a href="#s3-5">§3.5</a>).
+  </figcaption>
+</figure>
+<div class="note"><strong>Test ref.</strong> The base image is <code>s2-3-scenario-active.png</code>, produced by the <code>Manual screenshots</code> group in <code>test/widget/manual_goldens_test.dart</code>. The numbered callouts and region outlines are an inline SVG overlay — edit them directly in this file. The sidebar drawer is closed in the base image; callout ④ marks the menu icon (<code>≡</code>) that opens it.</div>
 
 <h3 id="s3-2"><span class="secnum">§3.2</span>Top bar — elements</h3>
 <p>The top bar (<code>TopBar</code>, <code>lib/Layout/top_bar.dart</code>) houses the six element icons that the rules call out: fire, ice, air, earth, light, dark. Each element has three visual states:</p>
@@ -106,17 +129,17 @@
   <li><strong>Waning / half</strong> — element is fading at the end of next round.</li>
 </ul>
 <p><strong>Tap</strong> an element to infuse it to full. <strong>Long-press</strong> to set it directly to waning (useful for the start-of-scenario element conditions some scenarios specify, and for Elementalist play). Tapping a full element again uses it (returns to inert). At round end, full elements decay to waning, and waning to inert (subject to the Elementalist's perk in Gloomhaven 2E).</p>
-<figure id="fig-3-1">
-  <img src="../screenshots/manual/s3-2-top-bar-inert.png" alt="Top bar with all elements inert">
-  <figcaption><strong>Figure 3.1.</strong> All six elements inert — the default state at scenario start. From left: fire, ice, air, earth, light, dark.</figcaption>
-</figure>
 <figure id="fig-3-2">
-  <img src="../screenshots/manual/s3-2-top-bar-fire-full.png" alt="Top bar with fire infused to full">
-  <figcaption><strong>Figure 3.2.</strong> Fire infused to <em>full</em> after a single tap.</figcaption>
+  <img src="../screenshots/manual/s3-2-top-bar-inert.png" alt="Top bar with all elements inert">
+  <figcaption><strong>Figure 3.2.</strong> All six elements inert — the default state at scenario start. From left: fire, ice, air, earth, light, dark.</figcaption>
 </figure>
 <figure id="fig-3-3">
+  <img src="../screenshots/manual/s3-2-top-bar-fire-full.png" alt="Top bar with fire infused to full">
+  <figcaption><strong>Figure 3.3.</strong> Fire infused to <em>full</em> after a single tap.</figcaption>
+</figure>
+<figure id="fig-3-4">
   <img src="../screenshots/manual/s3-2-top-bar-fire-half.png" alt="Top bar with fire set to waning">
-  <figcaption><strong>Figure 3.3.</strong> Fire set to <em>waning</em> via long-press — note the half-filled circle.</figcaption>
+  <figcaption><strong>Figure 3.4.</strong> Fire set to <em>waning</em> via long-press — note the half-filled circle.</figcaption>
 </figure>
 <div class="note"><strong>Test ref.</strong> Goldens are produced by the <code>Manual screenshots</code> group in <code>test/widget/manual_goldens_test.dart</code>. Regenerate after UI changes: <code>flutter test --update-goldens test/widget/manual_goldens_test.dart</code>. Verify against goldens (no rewrite): omit <code>--update-goldens</code>.</div>
 
@@ -128,13 +151,13 @@
   <li><strong>Objective / escort entries</strong> — represented as characters with a special class. See <a href="06-special-mechanics.html#s6-1">§6.1</a>.</li>
 </ul>
 <p><strong>Reordering.</strong> When initiative is entered for all figures, the list re-sorts automatically. To reorder manually (e.g., for ties or scenario-specific overrides), <strong>long-press</strong> any entry and drag.</p>
-<figure id="fig-3-4">
-  <img src="../screenshots/manual/s3-3-main-list-populated.png" alt="Main list set up for Black Barrow with a Brute and a Spellweaver">
-  <figcaption><strong>Figure 3.4.</strong> Main list set up for Black Barrow (Gloomhaven Scenario 1) — a Brute and a Spellweaver, both level 1, plus the scenario's monsters: Bandit Guard with one normal and one elite standee, and Bandit Archer with one normal standee. Each character banner shows class color, name, level, current/max HP, and an initiative slot. The monster widget shows the type's portrait, ability-card area, stat card, and a row of standee blocks (the elite block has the yellow border).</figcaption>
-</figure>
 <figure id="fig-3-5">
+  <img src="../screenshots/manual/s3-3-main-list-populated.png" alt="Main list set up for Black Barrow with a Brute and a Spellweaver">
+  <figcaption><strong>Figure 3.5.</strong> Main list set up for Black Barrow (Gloomhaven Scenario 1) — a Brute and a Spellweaver, both level 1, plus the scenario's monsters: Bandit Guard with one normal and one elite standee, and Bandit Archer with one normal standee. Each character banner shows class color, name, level, current/max HP, and an initiative slot. The monster widget shows the type's portrait, ability-card area, stat card, and a row of standee blocks (the elite block has the yellow border).</figcaption>
+</figure>
+<figure id="fig-3-6">
   <img src="../screenshots/manual/s3-3-main-list-empty.png" alt="Main list — empty state">
-  <figcaption><strong>Figure 3.5.</strong> Same widget on first launch — no characters, no scenario, just the textured background. Tapping <a href="04-setting-up.html#s4-1">§4.1 Add Character</a> and <a href="04-setting-up.html#s4-2">§4.2 Set Scenario</a> populates it.</figcaption>
+  <figcaption><strong>Figure 3.6.</strong> Same widget on first launch — no characters, no scenario, just the textured background. Tapping <a href="04-setting-up.html#s4-1">§4.1 Add Character</a> and <a href="04-setting-up.html#s4-2">§4.2 Set Scenario</a> populates it.</figcaption>
 </figure>
 
 <h3 id="s3-4"><span class="secnum">§3.4</span>Bottom bar — round, scenario, draw, AMD</h3>
@@ -146,16 +169,16 @@
   <li><strong>Network UI</strong> — invisible 0×0 widget that owns network toast notifications. No visual footprint; only surfaces toasts when network state changes.</li>
   <li><strong>Modifier deck card</strong> — the right-edge card showing the top-of-deck for the monster attack modifier deck (or the current draw if a card is showing). Tappable for AMD interactions; see <a href="05-round-step-by-step.html#s5-6">§5.6</a>.</li>
 </ul>
-<figure id="fig-3-6">
+<figure id="fig-3-7">
   <img src="../screenshots/manual/s3-4-bottom-bar-default.png" alt="Bottom bar default state">
-  <figcaption><strong>Figure 3.6.</strong> Bottom bar at scenario start. "Draw" button on the left, scenario stats in the middle (level <code>1</code>, trap <code>3</code>, hazardous <code>2</code>, XP <code>+6</code>, coin <code>x2</code>), level widget showing <code>20</code>, modifier deck card on the right.</figcaption>
+  <figcaption><strong>Figure 3.7.</strong> Bottom bar at scenario start. "Draw" button on the left, scenario stats in the middle (level <code>1</code>, trap <code>3</code>, hazardous <code>2</code>, XP <code>+6</code>, coin <code>x2</code>), level widget showing <code>20</code>, modifier deck card on the right.</figcaption>
 </figure>
 
 <h3 id="s3-5"><span class="secnum">§3.5</span>Sidebar drawer</h3>
 <p>The sidebar drawer (<code>MainMenu</code>, <code>lib/Layout/menus/main_menu.dart</code>) is the catalog of everything you can do that isn't a tap on a banner or button. Open it by tapping <code>≡</code> in the top bar; close it by tapping outside or swiping it away.</p>
-<figure id="fig-3-7">
+<figure id="fig-3-8">
   <img src="../screenshots/manual/s3-5-main-menu.png" alt="Main menu drawer open">
-  <figcaption><strong>Figure 3.7.</strong> Drawer in its default state. The "Redo: Imbue element fire" entry shows that Undo/Redo carry a description of the action they'd reverse.</figcaption>
+  <figcaption><strong>Figure 3.8.</strong> Drawer in its default state. The "Redo: Imbue element fire" entry shows that Undo/Redo carry a description of the action they'd reverse.</figcaption>
 </figure>
 <p>From top to bottom, the drawer contains:</p>
 <ul>

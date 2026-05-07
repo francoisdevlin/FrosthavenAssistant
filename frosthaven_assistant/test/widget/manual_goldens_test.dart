@@ -22,7 +22,9 @@ import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart
 import 'package:frosthaven_assistant/Resource/commands/set_scenario_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
 import 'package:frosthaven_assistant/Resource/game_data.dart';
+import 'package:frosthaven_assistant/Resource/settings.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
+import 'package:frosthaven_assistant/services/network/network.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -492,6 +494,119 @@ void main() {
       await expectLater(
         find.byType(SetLevelMenu),
         matchesGoldenFile('$_goldenDir/s4-5-set-level-menu.png'),
+      );
+    });
+
+    // ── §9.1 Multiplayer — Hosting (sidebar drawer with server started) ──
+    //
+    // Captures the sidebar drawer with the host server entry visible. The
+    // surface is taller than the s3-5 default (800×1100 vs 800×600) so the
+    // drawer's network entries — which sit below the standard menu items —
+    // are reachable in a single shot, and the host-side "Stop Server"
+    // label confirms the listening state.
+    //
+    // The IPv6 ULA address fd12:3456:789a::1 (RFC 4193 unique-local space —
+    // the IPv6 analog of IPv4 RFC1918 10.x/192.168.x) is pinned on the
+    // singleton network info so the golden is deterministic and never
+    // leaks a real host's address into committed pixels.
+
+    _goldenTest('s9-1 host server', (tester) async {
+      // Clear undo history so the drawer's Undo/Redo labels render as the
+      // bare "Undo"/"Redo" — without this, prior tests in batch order (e.g.
+      // s4-4's SetScenarioCommand) leak into commandDescriptions and the
+      // label becomes "Undo: Set Scenario", making the golden order-flaky.
+      final gs = getIt<GameState>();
+      gs.commandDescriptions.clear();
+      gs.commandIndex.value = -1;
+
+      final settings = getIt<Settings>();
+      final wifiIPv6 = getIt<Network>().networkInfo.wifiIPv6;
+      const ula = 'fd12:3456:789a::1';
+      wifiIPv6.value = ula;
+      settings.lastKnownConnection = ula;
+      settings.server.value = true;
+      addTearDown(() {
+        settings.server.value = false;
+        settings.lastKnownConnection = '192.168.1.???';
+        wifiIPv6.value = '';
+      });
+
+      await tester.binding.setSurfaceSize(const Size(800, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = ignoreOverflowErrors;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          debugShowCheckedModeBanner: false,
+          home: const Scaffold(
+            drawer: MainMenu(),
+            // Plain body — the drawer is the subject of this golden, and
+            // anything game-state-dependent (MainList, monster widgets)
+            // would re-introduce ordering flakiness between tests.
+            body: ColoredBox(color: Color(0xFF202020)),
+          ),
+        ),
+      );
+      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+      scaffoldState.openDrawer();
+      await tester.pumpAndSettle();
+      await _precacheAllImages(tester);
+      // connectivity_plus has no platform impl in tests; consume any
+      // pending exception before capture (same hazard as s4-1).
+      tester.takeException();
+      FlutterError.onError = originalOnError;
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('$_goldenDir/s9-1-host-server.png'),
+      );
+    });
+
+    // ── §9.2 Multiplayer — Joining (sidebar drawer with connect entry) ───
+    //
+    // Same drawer surface as s9-1 but server toggled off, so the
+    // "Connect as Client (fd12:3456:789a::1)" entry is enabled and
+    // "Start Host Server (...)" appears in its un-started state.
+
+    _goldenTest('s9-2 connect to server', (tester) async {
+      final gs = getIt<GameState>();
+      gs.commandDescriptions.clear();
+      gs.commandIndex.value = -1;
+
+      final settings = getIt<Settings>();
+      final wifiIPv6 = getIt<Network>().networkInfo.wifiIPv6;
+      const ula = 'fd12:3456:789a::1';
+      wifiIPv6.value = ula;
+      settings.lastKnownConnection = ula;
+      settings.server.value = false;
+      addTearDown(() {
+        settings.lastKnownConnection = '192.168.1.???';
+        wifiIPv6.value = '';
+      });
+
+      await tester.binding.setSurfaceSize(const Size(800, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = ignoreOverflowErrors;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          debugShowCheckedModeBanner: false,
+          home: const Scaffold(
+            drawer: MainMenu(),
+            body: ColoredBox(color: Color(0xFF202020)),
+          ),
+        ),
+      );
+      final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+      scaffoldState.openDrawer();
+      await tester.pumpAndSettle();
+      await _precacheAllImages(tester);
+      tester.takeException();
+      FlutterError.onError = originalOnError;
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('$_goldenDir/s9-2-connect-to-server.png'),
       );
     });
 

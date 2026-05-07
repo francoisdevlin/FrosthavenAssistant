@@ -197,6 +197,31 @@ Future<void> _pumpFullApp(WidgetTester tester) async {
   FlutterError.onError = originalOnError;
 }
 
+/// Wraps testWidgets to render with real (blurred) shadows.
+///
+/// AutomatedTestWidgetsFlutterBinding sets debugDisableShadows=true for
+/// golden stability across engine versions, but that flag turns
+/// PhysicalShape(elevation:N) into a hard `elevation*2`-pixel stroke around
+/// the clipped path (see RenderPhysicalShape.paint in proxy_box.dart). For
+/// monster_widget's PhysicalShape(elevation:8, shadowColor:Colors.black,
+/// CircleBorder()) that produced a 16px-wide black ring around every
+/// portrait — visible in the live-app reference as a soft drop shadow only.
+///
+/// These are documentation screenshots, not regression goldens, so we accept
+/// the small flakiness risk to render shadows faithfully. The flag must be
+/// reset BEFORE the test body returns; the per-test invariant check runs
+/// before tearDown callbacks, so setUp/tearDown can't be used for this.
+void _goldenTest(String description, Future<void> Function(WidgetTester) body) {
+  testWidgets(description, (tester) async {
+    debugDisableShadows = false;
+    try {
+      await body(tester);
+    } finally {
+      debugDisableShadows = true;
+    }
+  });
+}
+
 void main() {
   setUpAll(() async {
     await _setUpGameWithFullData();
@@ -210,7 +235,7 @@ void main() {
   group('Manual screenshots', () {
     // ── §2.1 Quick Start — fresh app at launch ───────────────────────────
 
-    testWidgets('s2-1 fresh app', (tester) async {
+    _goldenTest('s2-1 fresh app', (tester) async {
       await _pumpFullApp(tester);
       await expectLater(
         find.byType(MaterialApp),
@@ -220,7 +245,7 @@ void main() {
 
     // ── §2.3 Quick Start — scenario active, party assembled ──────────────
 
-    testWidgets('s2-3 scenario active', (tester) async {
+    _goldenTest('s2-3 scenario active', (tester) async {
       _setupBlackBarrow(withSpellweaver: true);
       await _pumpFullApp(tester);
       await expectLater(
@@ -231,7 +256,7 @@ void main() {
 
     // ── §2.7 Quick Start — fire infused after Spellweaver casts ──────────
 
-    testWidgets('s2-7 elements after cast', (tester) async {
+    _goldenTest('s2-7 elements after cast', (tester) async {
       final gs = getIt<GameState>();
       _setupBlackBarrow(withSpellweaver: true);
       await _pumpFullApp(tester);
@@ -246,7 +271,7 @@ void main() {
 
     // ── §3.2 Top bar — elements ──────────────────────────────────────────
 
-    testWidgets('s3-2 top bar all inert', (tester) async {
+    _goldenTest('s3-2 top bar all inert', (tester) async {
       await _pumpInScaffold(
         tester,
         const SizedBox(),
@@ -259,7 +284,7 @@ void main() {
       );
     });
 
-    testWidgets('s3-2 top bar fire full', (tester) async {
+    _goldenTest('s3-2 top bar fire full', (tester) async {
       final gs = getIt<GameState>();
       await _pumpInScaffold(
         tester,
@@ -276,7 +301,7 @@ void main() {
       gs.undo();
     });
 
-    testWidgets('s3-2 top bar fire waning', (tester) async {
+    _goldenTest('s3-2 top bar fire waning', (tester) async {
       final gs = getIt<GameState>();
       await _pumpInScaffold(
         tester,
@@ -295,7 +320,7 @@ void main() {
 
     // ── §3.3 Main list — initiative and figures ──────────────────────────
 
-    testWidgets('s3-3 main list empty', (tester) async {
+    _goldenTest('s3-3 main list empty', (tester) async {
       await _pumpInScaffold(tester, const MainList());
       await expectLater(
         find.byType(MainList),
@@ -303,7 +328,7 @@ void main() {
       );
     });
 
-    testWidgets('s3-3 main list populated', (tester) async {
+    _goldenTest('s3-3 main list populated', (tester) async {
       _setupBlackBarrow(withSpellweaver: true);
       // Wider surface so the four-row roster (Spellweaver, Brute, Bandit
       // Guard, Bandit Archer) fits without crushing portraits at small scale.
@@ -317,7 +342,7 @@ void main() {
 
     // ── §3.4 Bottom bar — round, scenario, draw, AMD ─────────────────────
 
-    testWidgets('s3-4 bottom bar default', (tester) async {
+    _goldenTest('s3-4 bottom bar default', (tester) async {
       await _pumpInScaffold(
         tester,
         const SizedBox(),
@@ -334,7 +359,7 @@ void main() {
 
     // ── §3.5 Sidebar drawer ──────────────────────────────────────────────
 
-    testWidgets('s3-5 main menu drawer', (tester) async {
+    _goldenTest('s3-5 main menu drawer', (tester) async {
       // Populate body with the Black Barrow roster so the scrim has
       // something behind it to dim, matching what users see in the live app.
       _setupBlackBarrow(withSpellweaver: true);
@@ -364,7 +389,7 @@ void main() {
 
     // ── §4.1 Add Character menu ──────────────────────────────────────────
 
-    testWidgets('s4-1 add character menu', (tester) async {
+    _goldenTest('s4-1 add character menu', (tester) async {
       // Render Add Character as the live app shows it: the menu opened as
       // a centered modal over the populated main scaffold, with the rest
       // of the app dimmed behind a scrim. We compose this manually with a
@@ -378,6 +403,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
+          debugShowCheckedModeBanner: false,
           home: Scaffold(
             appBar: const PreferredSize(
                 preferredSize: Size.fromHeight(56), child: TopBar()),
@@ -419,7 +445,7 @@ void main() {
 
     // ── §4.2 Set Scenario menu ───────────────────────────────────────────
 
-    testWidgets('s4-2 select scenario menu', (tester) async {
+    _goldenTest('s4-2 select scenario menu', (tester) async {
       await _pumpInScaffold(tester, const SelectScenarioMenu());
       await expectLater(
         find.byType(SelectScenarioMenu),
@@ -429,7 +455,7 @@ void main() {
 
     // ── §4.3 Add Monsters menu ───────────────────────────────────────────
 
-    testWidgets('s4-3 add monster menu', (tester) async {
+    _goldenTest('s4-3 add monster menu', (tester) async {
       await _pumpInScaffold(tester, const AddMonsterMenu());
       await expectLater(
         find.byType(AddMonsterMenu),
@@ -445,7 +471,7 @@ void main() {
     // GH 1E scenarios (including Black Barrow, the §2/§3 anchor) carry no
     // sections, so the manual switches anchor here.
 
-    testWidgets('s4-4 add section menu', (tester) async {
+    _goldenTest('s4-4 add section menu', (tester) async {
       final gs = getIt<GameState>();
       gs.action(SetCampaignCommand('Gloomhaven 2nd Edition'));
       gs.action(SetScenarioCommand('#19 Military Outpost', false));
@@ -458,7 +484,7 @@ void main() {
 
     // ── §4.5 Set Level / Custom difficulty menu ──────────────────────────
 
-    testWidgets('s4-5 set level menu', (tester) async {
+    _goldenTest('s4-5 set level menu', (tester) async {
       await _pumpInScaffold(
         tester,
         const Center(child: SetLevelMenu()),
@@ -471,7 +497,7 @@ void main() {
 
     // ── §5.3 Initiative numpad ───────────────────────────────────────────
 
-    testWidgets('s5-3 numpad menu', (tester) async {
+    _goldenTest('s5-3 numpad menu', (tester) async {
       final controller = TextEditingController();
       await _pumpInScaffold(
         tester,

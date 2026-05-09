@@ -155,6 +155,12 @@
       <td>Randomizes which standee number is added rather than picking the lowest available. Tabletop-style draw-from-bag emulation.</td>
       <td>Off</td>
     </tr>
+    <tr>
+      <td><strong>Use Frosthaven Hazardous Terrain Calculation in OG Gloomhaven</strong></td>
+      <td>Toggle</td>
+      <td>Applies the Frosthaven hazardous-terrain damage rule (per-step) to original Gloomhaven scenarios as well. Off restores the legacy Gloomhaven calculation. Field: <code>fhHazTerrainCalcInOGGloom</code>.</td>
+      <td>On</td>
+    </tr>
 
     <tr class="group"><th colspan="4" id="s11-3"><span class="group-num">§11.3</span>Display filters and content</th></tr>
     <tr>
@@ -200,6 +206,36 @@
       <td>On</td>
     </tr>
     <tr>
+      <td><strong>Show Sections in Main Screen</strong></td>
+      <td>Toggle</td>
+      <td>Shows scenario section markers (auto-spawn triggers, see <a href="06-special-mechanics.html#s6-4">§6.4</a>) inline in the main list. Off hides the section row. Field: <code>showSectionsInMainView</code>.</td>
+      <td>On</td>
+    </tr>
+    <tr>
+      <td><strong>Show Round Special Rule Reminders</strong></td>
+      <td>Toggle</td>
+      <td>Surfaces round-special-rule reminders during scenarios (<a href="06-special-mechanics.html#s6-3">§6.3</a>). Field: <code>showReminders</code>.</td>
+      <td>On</td>
+    </tr>
+    <tr>
+      <td><strong>Show character Attack Modifier Decks</strong></td>
+      <td>Toggle</td>
+      <td>Toggles per-character AMD visibility (independent of the global <em>Show Attack Modifier Decks</em> toggle above). Field: <code>showCharacterAMD</code>.</td>
+      <td>On</td>
+    </tr>
+    <tr>
+      <td><strong>Enable health wheel</strong></td>
+      <td>Toggle</td>
+      <td>Shows the radial health-wheel control on character/monster widgets for tap-to-adjust HP. Off falls back to plus/minus controls only. Field: <code>enableHeathWheel</code>.</td>
+      <td>On</td>
+    </tr>
+    <tr>
+      <td><strong>Use Ally Attack Modifier Deck in OG Gloomhaven</strong></td>
+      <td>Toggle</td>
+      <td>Applies the shared ally AMD (Frosthaven-style) to original Gloomhaven scenarios. Off keeps OG Gloomhaven without an ally deck. Field: <code>allyDeckInOGGloom</code>.</td>
+      <td>On</td>
+    </tr>
+    <tr>
       <td><strong>Unlock specials</strong></td>
       <td>Action</td>
       <td>Opens the special-unlocks dialog, which reveals the hidden Frosthaven character classes (those that show as <code>???</code> in <a href="04-setting-up.html#s4-1">§4.1</a>).</td>
@@ -207,7 +243,7 @@
     </tr>
 
     <tr class="group"><th colspan="4" id="s11-4"><span class="group-num">§11.4</span>Networking</th></tr>
-    <tr><td colspan="4" style="font-style:italic; color:var(--muted); background:#fbfbfb;">Network behavior — auto-reconnect, last-known address, server lifecycle — is documented in <a href="09-multiplayer.html#s9">§9</a>. Controls below.</td></tr>
+    <tr><td colspan="4" style="font-style:italic; color:var(--muted); background:#fbfbfb;">Network behavior — last-known address, startup connect, server lifecycle — is documented in <a href="09-multiplayer.html#s9">§9</a>. There is no auto-reconnect on foreground; <em>Connect on startup</em> below is the only automatic reconnect path. Controls below.</td></tr>
     <tr>
       <td><strong>Connect as Client</strong></td>
       <td>Toggle</td>
@@ -237,6 +273,12 @@
       <td>Dropdown</td>
       <td>Picks which local interface to advertise when hosting (multi-homed machines only).</td>
       <td>First detected interface</td>
+    </tr>
+    <tr>
+      <td><strong>Connect on startup</strong></td>
+      <td>Toggle</td>
+      <td>If on, the app attempts a single client connect to the last-known address roughly two seconds after launch (<code>connectClientOnStartup</code> in <code>lib/Resource/settings.dart</code>). Does not run on resume from background — see <a href="09-multiplayer.html#s9-4">§9.4</a>.</td>
+      <td>Off</td>
     </tr>
 
     <tr class="group"><th colspan="4" id="s11-5"><span class="group-num">§11.5</span>State management</th></tr>

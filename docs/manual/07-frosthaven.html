@@ -90,7 +90,7 @@
 <p>This deck is not present in vanilla Gloomhaven or Jaws of the Lion campaigns; switching to those campaigns hides the deck entirely.</p>
 
 <h3 id="s7-3"><span class="secnum">§7.3</span>Buttons &amp; Bugs differences</h3>
-<p>Buttons &amp; Bugs (a Frosthaven solo expansion) plays as a single-character variant. The app detects Buttons &amp; Bugs scenarios via an <code>isButtonsAndBugs</code> check in <code>lib/Layout/main_scaffold.dart</code> and adjusts the layout:</p>
+<p>Buttons &amp; Bugs (a Frosthaven solo expansion) plays as a single-character variant. There is no dedicated predicate function for this mode — instead, several layout files perform an inline string compare against the active campaign value, e.g. <code>getIt&lt;GameState&gt;().currentCampaign.value == "Buttons and Bugs"</code>. The same comparison appears in <code>lib/Layout/main_scaffold.dart</code> (line 235), <code>bottom_bar.dart</code> (line 65), <code>monster_box.dart</code> (line 275), and <code>monster_stat_card_widget.dart</code> (line 51). Each call site adjusts its own slice of the layout:</p>
 <ul>
   <li><strong>Modifier deck position.</strong> The on-bar attack modifier deck is suppressed when in Buttons &amp; Bugs mode; the deck appears inline with the single character instead.</li>
   <li><strong>Battle goals hidden by default.</strong> Buttons &amp; Bugs scenarios hide the battle-goal interaction the app surfaces in other modes — <a href="https://github.com/Tarmslitaren/FrosthavenAssistant/pull/250">PR #250</a> covers the scope.</li>

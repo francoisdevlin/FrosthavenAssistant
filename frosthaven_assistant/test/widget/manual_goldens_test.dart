@@ -543,21 +543,93 @@ void main() {
     });
 
     // ── §4.2 Set Scenario menu ───────────────────────────────────────────
+    //
+    // Renders the Set Scenario menu as the live app shows it: a centered
+    // Material modal over a populated, dimmed Black Barrow scaffold, with
+    // the campaign set to Gloomhaven so the scenario list surfaces #1
+    // Black Barrow and friends. Same composition as §4.1 (Add Character).
 
     _goldenTest('s4-2 select scenario menu', (tester) async {
-      await _pumpInScaffold(tester, const SelectScenarioMenu());
+      _setupBlackBarrow(withSpellweaver: true);
+      // Switch to Gloomhaven so the menu's scenario list opens on
+      // #1 Black Barrow etc., matching the manual's anchor.
+      getIt<GameState>().action(SetCampaignCommand('Gloomhaven'));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            appBar: const PreferredSize(
+                preferredSize: Size.fromHeight(56), child: TopBar()),
+            bottomNavigationBar: const BottomBar(),
+            body: Stack(
+              children: const [
+                MainList(),
+                // Scrim — same heavier opacity used by s4-1.
+                Positioned.fill(child: ColoredBox(color: Color(0xB0000000))),
+                Center(
+                  child: Material(
+                    elevation: 24,
+                    color: Colors.white,
+                    child: SizedBox(width: 400, child: SelectScenarioMenu()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      // Drain NetworkUI's 200ms Future.delayed before capture.
+      await tester.pump(const Duration(milliseconds: 250));
+      await _precacheAllImages(tester);
+      // Consume the connectivity_plus MissingPluginException — same
+      // hazard as s4-1.
+      tester.takeException();
       await expectLater(
-        find.byType(SelectScenarioMenu),
+        find.byType(MaterialApp),
         matchesGoldenFile('$_goldenDir/s4-2-select-scenario-menu.png'),
       );
     });
 
     // ── §4.3 Add Monsters menu ───────────────────────────────────────────
+    //
+    // Same composition as §4.1 / §4.2: centered Material modal over a
+    // populated, dimmed Black Barrow scaffold. Gloomhaven is the active
+    // campaign so the monster list surfaces Bandit Guard, Bandit Archer,
+    // Living Bones, etc.
 
     _goldenTest('s4-3 add monster menu', (tester) async {
-      await _pumpInScaffold(tester, const AddMonsterMenu());
+      _setupBlackBarrow(withSpellweaver: true);
+      getIt<GameState>().action(SetCampaignCommand('Gloomhaven'));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            appBar: const PreferredSize(
+                preferredSize: Size.fromHeight(56), child: TopBar()),
+            bottomNavigationBar: const BottomBar(),
+            body: Stack(
+              children: const [
+                MainList(),
+                Positioned.fill(child: ColoredBox(color: Color(0xB0000000))),
+                Center(
+                  child: Material(
+                    elevation: 24,
+                    color: Colors.white,
+                    child: SizedBox(width: 400, child: AddMonsterMenu()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+      await _precacheAllImages(tester);
+      tester.takeException();
       await expectLater(
-        find.byType(AddMonsterMenu),
+        find.byType(MaterialApp),
         matchesGoldenFile('$_goldenDir/s4-3-add-monster-menu.png'),
       );
     });

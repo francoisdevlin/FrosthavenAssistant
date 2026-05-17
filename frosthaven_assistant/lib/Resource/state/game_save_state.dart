@@ -4,7 +4,9 @@ class GameSaveState {
   String? _savedState;
 
   String getState() {
-    return _savedState!;
+    final state = _savedState;
+    if (state == null) throw StateError('GameSaveState: no saved state');
+    return state;
   }
 
   void save(GameState gameState) {
@@ -14,7 +16,7 @@ class GameSaveState {
   void load(GameState gameState) {
     if (_savedState != null) {
       try {
-        var data = json.decode(_savedState!) as Map<String, dynamic>;
+        final data = json.decode(_savedState ?? '') as Map<String, dynamic>;
 
         gameState._level.value = data['level'] as int;
         gameState._scenario.value = data['scenario']; // as String;
@@ -23,21 +25,22 @@ class GameSaveState {
         }
 
         if (data.containsKey('scenarioSectionsAdded')) {
-          List<dynamic> scenarioSectionsAdded =
-              data['scenarioSectionsAdded'] as List;
+          List<Object?> scenarioSectionsAdded =
+              data['scenarioSectionsAdded'] as List<Object?>;
           gameState._scenarioSectionsAdded.clear();
-          for (var item in scenarioSectionsAdded) {
-            gameState._scenarioSectionsAdded.add(item);
+          for (final item in scenarioSectionsAdded) {
+            gameState._scenarioSectionsAdded.add(item as String);
           }
         }
 
         if (data.containsKey('scenarioSpecialRules')) {
-          var scenarioSpecialRulesList = data['scenarioSpecialRules'] as List;
+          final scenarioSpecialRulesList = data['scenarioSpecialRules'] as List;
           gameState._scenarioSpecialRules.clear();
           for (Map<String, dynamic> item in scenarioSpecialRulesList) {
             gameState._scenarioSpecialRules.add(SpecialRule.fromJson(item));
           }
         }
+        gameState._scenarioSectionsVersion.value++;
         gameState._currentCampaign.value = data['currentCampaign'];
         gameState._round.value = data['round'] as int;
         if (data.containsKey('totalRounds')) {
@@ -45,7 +48,12 @@ class GameSaveState {
         } else {
           gameState._totalRounds.value = gameState._round.value;
         }
-        gameState._roundState.value = RoundState.values[data['roundState']];
+        final roundStateIdx = data['roundState'] as int?;
+        if (roundStateIdx != null &&
+            roundStateIdx >= 0 &&
+            roundStateIdx < RoundState.values.length) {
+          gameState._roundState.value = RoundState.values[roundStateIdx];
+        }
         gameState._solo.value = data['solo'] as bool;
 
         if (data.containsKey('autoScenarioLevel')) {
@@ -68,40 +76,55 @@ class GameSaveState {
           gameState._difficulty.value = 0;
         }
 
-        //main list
-        var list = data['currentList'] as List;
-        gameState._currentList.clear();
+        //main list — update existing objects in-place to preserve VLB subscriptions
+        final list = data['currentList'] as List;
         List<ListItemData> newList = [];
         for (Map<String, dynamic> item in list) {
           if (item["characterClass"] != null) {
-            Character character = Character.fromJson(item);
-            //is character
-            newList.add(character);
+            final String itemId = item["id"] as String;
+            final Character? existing = gameState._currentList
+                .whereType<Character>()
+                .firstWhereOrNull((e) => e.id == itemId);
+            if (existing != null) {
+              existing.updateFromJson(item);
+              newList.add(existing);
+            } else {
+              newList.add(Character.fromJson(item));
+            }
           } else if (item["type"] != null) {
-            //is monster
-            Monster monster = Monster.fromJson(item);
-            newList.add(monster);
+            final String itemId = item["id"] as String;
+            final Monster? existing = gameState._currentList
+                .whereType<Monster>()
+                .firstWhereOrNull((e) => e.id == itemId);
+            if (existing != null) {
+              existing.updateFromJson(item);
+              newList.add(existing);
+            } else {
+              newList.add(Monster.fromJson(item));
+            }
           }
         }
         gameState._currentList = newList;
+        gameState._notifyCurrentList();
 
-        var unlockedClassesList = data['unlockedClasses'] as List;
+        final unlockedClassesList = data['unlockedClasses'] as List;
         gameState._unlockedClasses.clear();
         for (String item in unlockedClassesList) {
           gameState._unlockedClasses.add(item);
         }
+        gameState._unlockedClassesVersion.value++;
 
         //ability decks
-        var decks = data['currentAbilityDecks'] as List;
+        final decks = data['currentAbilityDecks'] as List;
         gameState._currentAbilityDecks.clear();
         for (Map<String, dynamic> item in decks) {
           MonsterAbilityState state = MonsterAbilityState(item["name"]);
 
           List<MonsterAbilityCardModel> newDrawList = [];
           List drawPile = item["drawPile"] as List;
-          for (var item in drawPile) {
+          for (final item in drawPile) {
             int nr = item["nr"];
-            for (var card in state._drawPile.getList()) {
+            for (final card in state._drawPile.getList()) {
               if (card.nr == nr) {
                 newDrawList.add(card);
                 break;
@@ -109,9 +132,9 @@ class GameSaveState {
             }
           }
           List<MonsterAbilityCardModel> newDiscardList = [];
-          for (var item in item["discardPile"] as List) {
+          for (final item in item["discardPile"] as List) {
             int nr = item["nr"];
-            for (var card in state._drawPile.getList()) {
+            for (final card in state._drawPile.getList()) {
               if (card.nr == nr) {
                 newDiscardList.add(card);
                 break;
@@ -145,23 +168,18 @@ class GameSaveState {
 
         //////elements
         Map elementData = data['elementState'];
-        gameState._elementState.clear();
-        gameState._elementState[Elements.fire] =
-            ElementState.values[elementData[Elements.fire.index.toString()]];
-        gameState._elementState[Elements.ice] =
-            ElementState.values[elementData[Elements.ice.index.toString()]];
-        gameState._elementState[Elements.air] =
-            ElementState.values[elementData[Elements.air.index.toString()]];
-        gameState._elementState[Elements.earth] =
-            ElementState.values[elementData[Elements.earth.index.toString()]];
-        gameState._elementState[Elements.light] =
-            ElementState.values[elementData[Elements.light.index.toString()]];
-        gameState._elementState[Elements.dark] =
-            ElementState.values[elementData[Elements.dark.index.toString()]];
-      } catch (e) {
-        if (kDebugMode) {
-          print(e.toString());
+        for (final element in Elements.values) {
+          final raw = elementData[element.index.toString()] as int?;
+          final idx =
+              (raw != null && raw >= 0 && raw < ElementState.values.length)
+                  ? raw
+                  : ElementState.inert.index;
+          gameState._elementState[element]?.value = ElementState.values[idx];
         }
+      } catch (e, stack) {
+        // Deserialization failure: log always (not just debug) so it surfaces
+        // in release builds and can be caught by crash-reporting tools.
+        debugPrint('GameSaveState.load error: $e\n$stack');
       }
     }
   }
@@ -174,7 +192,7 @@ class GameSaveState {
     try {
       final prefs = await SharedPreferences.getInstance();
       // save
-      await prefs.setString(sharedPrefsKey, _savedState!);
+      await prefs.setString(sharedPrefsKey, _savedState ?? '');
     } catch (error) {
       if (kDebugMode) {
         print(error);
@@ -186,16 +204,12 @@ class GameSaveState {
     //have to call after init or element state overridden
 
     const sharedPrefsKey = 'gameState';
-    bool hasError = false;
-    bool isWaiting = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       _savedState = prefs.getString(sharedPrefsKey);
-      hasError = false;
     } catch (error) {
-      hasError = true;
+      //todo
     }
-    isWaiting = false;
 
     if (_savedState != null) {
       load(gameState);
@@ -210,26 +224,17 @@ class GameSaveState {
     load(gameState);
   }
 
-  void _loadLootDeck(var data, GameState gameState) {
-    var lootDeckData = data["lootDeck"];
-    LootDeck state = LootDeck.fromJson(lootDeckData);
-    gameState._lootDeck = state;
+  void _loadLootDeck(Map<String, dynamic> data, GameState gameState) {
+    gameState._lootDeck.updateFromJson(data["lootDeck"]);
   }
 
-  void _loadModifierDeck(String identifier, var data, GameState gameState) {
-    //modifier deck
-    String name = "";
-    if (identifier == 'modifierDeckAllies') {
-      name = "allies";
-    }
-
-    var modifierDeckData = data[identifier];
-    ModifierDeck state = ModifierDeck.fromJson(name, modifierDeckData);
-
+  void _loadModifierDeck(
+      String identifier, Map<String, dynamic> data, GameState gameState) {
+    final modifierDeckData = data[identifier] as Map<String, dynamic>;
     if (identifier == 'modifierDeck') {
-      gameState._modifierDeck = state;
+      gameState._modifierDeck.updateFromJson(modifierDeckData);
     } else {
-      gameState._modifierDeckAllies = state;
+      gameState._modifierDeckAllies.updateFromJson(modifierDeckData);
     }
   }
 }

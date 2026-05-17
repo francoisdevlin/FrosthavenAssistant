@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/amd_imbue1_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/amd_remove_imbue_command.dart';
@@ -12,13 +14,13 @@ void main() {
   });
 
   setUp(() {
-    AMDRemoveImbueCommand().execute();
+    AMDRemoveImbueCommand(gameState: getIt<GameState>()).execute();
   });
 
   group('AMDImbue1Command', () {
     test('should set imbue1 on the monster modifier deck', () {
       // Arrange
-      final command = AMDImbue1Command();
+      final command = AMDImbue1Command(gameState: getIt<GameState>());
       final monsterDeck = getIt<GameState>().modifierDeck;
       expect(monsterDeck.imbuement.value, 0);
 
@@ -36,7 +38,7 @@ void main() {
 
     test('describe should return correct string', () {
       // Arrange
-      final command = AMDImbue1Command();
+      final command = AMDImbue1Command(gameState: getIt<GameState>());
 
       // Act & Assert
       expect(command.describe(), 'Imbue Monster Deck');

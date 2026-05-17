@@ -1,7 +1,10 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frosthaven_assistant/Layout/loot_deck_widget.dart';
-import 'package:frosthaven_assistant/Layout/menus/loot_cards_menu.dart';
+import 'package:frosthaven_assistant/Layout/LootDeckWidget/loot_deck_widget.dart';
+import 'package:frosthaven_assistant/Layout/menus/LootCardsMenu/loot_cards_menu.dart';
+import 'package:frosthaven_assistant/Resource/commands/draw_loot_card_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_scenario_command.dart';
 import 'package:frosthaven_assistant/Resource/settings.dart';
@@ -48,7 +51,9 @@ void main() {
       getIt<Settings>().hideLootDeck.value = true;
       // Set up a loot deck so it would normally show
       SetCampaignCommand('Frosthaven').execute();
-      SetScenarioCommand('#0 Howling in the Snow', false).execute();
+      SetScenarioCommand('#0 Howling in the Snow', false,
+              gameState: getIt<GameState>())
+          .execute();
 
       await pumpWidget(tester);
       expect(find.byType(InkWell), findsNothing);
@@ -61,7 +66,9 @@ void main() {
     setUp(() {
       getIt<GameState>().clearList();
       SetCampaignCommand('Frosthaven').execute();
-      SetScenarioCommand('#0 Howling in the Snow', false).execute();
+      SetScenarioCommand('#0 Howling in the Snow', false,
+              gameState: getIt<GameState>())
+          .execute();
     });
 
     testWidgets('renders InkWell for draw pile when deck has cards',
@@ -81,7 +88,7 @@ void main() {
         return;
       }
       await pumpWidget(tester);
-      expect(find.text(deck.cardCount.value.toString()), findsAtLeast(1));
+      expect(find.text(deck.drawPileSize.toString()), findsAtLeast(1));
     });
 
     testWidgets('renders Row with draw and discard sections',
@@ -150,6 +157,23 @@ void main() {
       await pumpWidget(tester);
       // LootDeckWidget uses SizedBox(width: 94 * scale, height: 58.6666 * scale)
       expect(find.byType(SizedBox), findsAtLeast(1));
+    });
+
+    testWidgets('card count text updates after drawing a card',
+        (WidgetTester tester) async {
+      final gameState = getIt<GameState>();
+      final deck = gameState.lootDeck;
+      if (deck.drawPileIsEmpty) return;
+      final countBefore = deck.drawPileSize;
+
+      await pumpWidget(tester);
+      expect(find.text(countBefore.toString()), findsAtLeast(1));
+
+      gameState.action(DrawLootCardCommand(gameState: gameState));
+      await tester.pump();
+
+      expect(find.text((countBefore - 1).toString()), findsAtLeast(1));
+      gameState.undo();
     });
   });
 }

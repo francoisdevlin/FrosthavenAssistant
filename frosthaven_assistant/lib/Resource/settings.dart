@@ -17,9 +17,13 @@ import 'commands/load_save_command.dart';
 import 'enums.dart';
 
 class Settings {
+  static const double _kDesktopBarScale = 1.6;
+
   final userScalingMainList = ValueNotifier<double>(1.0);
   final userScalingBars = ValueNotifier<double>(
-      (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? 1.6 : 1.0);
+      (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+          ? _kDesktopBarScale
+          : 1.0);
   final userScalingMenus = ValueNotifier<double>(1.0);
   final fullScreen = ValueNotifier<bool>(true);
   final darkMode = ValueNotifier<bool>(false);
@@ -60,25 +64,26 @@ class Settings {
 
   bool connectClientOnStartup = false;
 
-  Future<void> init() async {
+  Future<void> init({Network? network}) async {
     await loadFromDisk();
     setFullscreen(fullScreen.value);
 
-    getIt<Network>().networkInfo.initNetworkInfo();
+    (network ?? getIt<Network>()).networkInfo.initNetworkInfo();
   }
 
-  void loadSave(String saveName) {
+  void loadSave(String saveName, {GameState? gameState}) {
     String? save = saves.value[saveName];
     if (save != null) {
-      getIt<GameState>().action(LoadSaveCommand(saveName, save));
+      final gs = gameState ?? getIt<GameState>();
+      gs.action(LoadSaveCommand(saveName, save, gameState: gs));
     }
   }
 
-  void saveState(String saveName) {
-    saves.value[saveName] = getIt<GameState>().toString();
+  void saveState(String saveName, {GameState? gameState}) {
+    saves.value[saveName] = (gameState ?? getIt<GameState>()).toString();
     Map<String, String> newMap = {};
     for (String key in saves.value.keys) {
-      newMap[key] = saves.value[key]!;
+      newMap[key] = saves.value[key] ?? '';
     }
     saves.value = newMap;
     saveToDisk();
@@ -88,16 +93,17 @@ class Settings {
     saves.value.remove(saveName);
     Map<String, String> newMap = {};
     for (String key in saves.value.keys) {
-      newMap[key] = saves.value[key]!;
+      newMap[key] = saves.value[key] ?? '';
     }
     saves.value = newMap;
     saveToDisk();
   }
 
-  void loadCharacterSave(String saveName) {
+  void loadCharacterSave(String saveName, {GameState? gameState}) {
     String? save = characterSaves.value[saveName];
     if (save != null) {
-      getIt<GameState>().action(LoadCharacterSaveCommand(saveName, save));
+      final gs = gameState ?? getIt<GameState>();
+      gs.action(LoadCharacterSaveCommand(saveName, save, gameState: gs));
     }
   }
 
@@ -105,7 +111,7 @@ class Settings {
     characterSaves.value['$saveName\n${character.id}'] = character.toSave();
     Map<String, String> newMap = {};
     for (String key in characterSaves.value.keys) {
-      newMap[key] = characterSaves.value[key]!;
+      newMap[key] = characterSaves.value[key] ?? '';
     }
     characterSaves.value = newMap;
     saveToDisk();
@@ -115,7 +121,7 @@ class Settings {
     characterSaves.value.remove(saveId);
     Map<String, String> newMap = {};
     for (String key in characterSaves.value.keys) {
-      newMap[key] = characterSaves.value[key]!;
+      newMap[key] = characterSaves.value[key] ?? '';
     }
     characterSaves.value = newMap;
     saveToDisk();
@@ -129,27 +135,26 @@ class Settings {
       windowManager.ensureInitialized();
 
       // Use it only after calling `hiddenWindowAtLaunch`
-      windowManager.waitUntilReadyToShow().then((_) async {
-        // Hide window title bar
-        if (fullscreen) {
-          await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
-          await windowManager.setFullScreen(true);
-          await windowManager.center();
-          await windowManager.show();
-          await windowManager.setSkipTaskbar(false);
-          await windowManager
-              .setPosition(const Offset(0, 0)); //weird this was needed
-          await windowManager.show();
-        } else {
-          await windowManager.setTitleBarStyle(TitleBarStyle.normal);
-          await windowManager.setFullScreen(false);
-          await windowManager.center();
-          await windowManager.show();
-          await windowManager.setSkipTaskbar(false);
-          await windowManager.focus();
-          await windowManager.setAlwaysOnTop(false);
-        }
-      });
+      await windowManager.waitUntilReadyToShow();
+      // Hide window title bar
+      if (fullscreen) {
+        await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+        await windowManager.setFullScreen(true);
+        await windowManager.center();
+        await windowManager.show();
+        await windowManager.setSkipTaskbar(false);
+        await windowManager
+            .setPosition(const Offset(0, 0)); //weird this was needed
+        await windowManager.show();
+      } else {
+        await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+        await windowManager.setFullScreen(false);
+        await windowManager.center();
+        await windowManager.show();
+        await windowManager.setSkipTaskbar(false);
+        await windowManager.focus();
+        await windowManager.setAlwaysOnTop(false);
+      }
     } else {
       //android:
       //to hide ui top and bottom on android
@@ -204,7 +209,7 @@ class Settings {
     }
   }
 
-  Future<void> loadFromDisk() async {
+  Future<void> loadFromDisk({Client? client}) async {
     //have to call after init or element state overridden
 
     const sharedPrefsKey = 'settingsState';
@@ -318,14 +323,14 @@ class Settings {
 
       if (data["saves"] != null) {
         Map<String, dynamic> map = data["saves"];
-        for (var key in map.keys) {
+        for (final key in map.keys) {
           saves.value[key] = map[key];
         }
       }
 
       if (data["characterSaves"] != null) {
         Map<String, dynamic> map = data["characterSaves"];
-        for (var key in map.keys) {
+        for (final key in map.keys) {
           characterSaves.value[key] = map[key];
         }
       }
@@ -333,7 +338,7 @@ class Settings {
       if (data["connectClientOnStartup"] != null &&
           data["connectClientOnStartup"] != false) {
         Future.delayed(const Duration(milliseconds: 2000), () {
-          getIt<Client>().connect(lastKnownConnection);
+          (client ?? getIt<Client>()).connect(lastKnownConnection);
         });
       }
     }

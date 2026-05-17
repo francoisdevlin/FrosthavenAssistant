@@ -1,15 +1,16 @@
-import '../../services/service_locator.dart';
 import '../state/game_state.dart';
 
 class SetDifficultyCommand extends Command {
-  SetDifficultyCommand(this.difficulty);
+  SetDifficultyCommand(this.difficulty, {required GameState gameState})
+      : _gameState = gameState;
 
   int difficulty;
+  final GameState _gameState;
 
   @override
   void execute() {
-    getIt<GameState>().setDifficulty(stateAccess, difficulty);
-    MutableGameMethods.applyDifficulty(stateAccess);
+    _gameState.setDifficulty(stateAccess, difficulty);
+    ScenarioMethods.applyDifficulty(stateAccess);
   }
 
   @override

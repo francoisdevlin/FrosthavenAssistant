@@ -4,33 +4,38 @@ import 'package:frosthaven_assistant/Resource/scaling.dart';
 
 import '../Resource/game_methods.dart';
 import '../Resource/state/game_state.dart';
-import '../services/service_locator.dart';
+import 'view_models/health_wheel_controller_view_model.dart';
 
 class HealthWheelController extends StatefulWidget {
   const HealthWheelController(
       {super.key,
       required this.figureId,
       required this.ownerId,
-      required this.child});
+      required this.child,
+      this.gameState});
 
   final String figureId;
   final String? ownerId;
   final Widget child;
+  final GameState? gameState;
 
   @override
   HealthWheelControllerState createState() => HealthWheelControllerState();
 }
 
 class HealthWheelControllerState extends State<HealthWheelController> {
+  static const double _kOverlayXOffset = 100.0;
+  static const double _kOverlayYOffset = 40.0;
+  static const double _kOverlayWidth = 200.0;
+  static const double _kOverlayHeight = 50.0;
+
   OverlayEntry? entry;
+  HealthWheelControllerViewModel? _vmInstance;
+  HealthWheelControllerViewModel get _vm => _vmInstance ??=
+      HealthWheelControllerViewModel(gameState: widget.gameState);
 
   final wheelDelta = ValueNotifier<double>(0);
   final wheelTimeDelta = ValueNotifier<int>(0);
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -39,34 +44,43 @@ class HealthWheelControllerState extends State<HealthWheelController> {
   }
 
   void hideOverlay() {
-    if (entry != null && entry!.mounted) {
+    if (entry?.mounted == true) {
       entry?.remove();
       entry?.dispose();
       entry = null;
-      getIt<GameState>().updateList.value++;
+      _vm.triggerListUpdate();
     }
   }
 
   void showOverlay(String figureId, double scale, BuildContext context) {
-    double dx = context.globalPaintBounds!.topCenter.dx - 100 * scale;
-    double dy = context.globalPaintBounds!.topCenter.dy - 40 * scale;
-    var selectHealthWheel = SelectHealthWheel(
+    final figure = GameMethods.getFigure(widget.ownerId, widget.figureId);
+    if (figure == null) return;
+    final bounds = context.globalPaintBounds;
+    double dx = 0;
+    double dy = 0;
+    if (bounds != null) {
+      dx = bounds.topCenter.dx - _kOverlayXOffset * scale;
+      dy = bounds.topCenter.dy - _kOverlayYOffset * scale;
+    }
+    final selectHealthWheel = SelectHealthWheel(
         key: UniqueKey(),
-        data: GameMethods.getFigure(widget.ownerId, widget.figureId)!,
+        data: figure,
         figureId: figureId,
         ownerId: widget.ownerId,
         delta: wheelDelta,
         time: wheelTimeDelta);
-    entry = OverlayEntry(
+
+    final overlayEntry = OverlayEntry(
         builder: (context) => Positioned(
             left: dx,
             top: dy,
-            width: 200 * scale,
-            height: 50 * scale,
+            width: _kOverlayWidth * scale,
+            height: _kOverlayHeight * scale,
             child:
                 Material(color: Colors.transparent, child: selectHealthWheel)));
     final overlay = Overlay.of(context);
-    overlay.insert(entry!);
+    entry = overlayEntry;
+    overlay.insert(overlayEntry);
   }
 
   @override
@@ -87,14 +101,18 @@ class HealthWheelControllerState extends State<HealthWheelController> {
         },
         onHorizontalDragUpdate: (DragUpdateDetails details) {
           int timeDiff = 0;
-          if (lastTimeStamp != null) {
-            timeDiff = details.sourceTimeStamp!.inMicroseconds - lastTimeStamp!;
+          final lastTime = lastTimeStamp;
+          if (lastTime != null) {
+            final timeStamp = details.sourceTimeStamp;
+            if (timeStamp != null) {
+              timeDiff = timeStamp.inMicroseconds - lastTime;
+            }
           }
 
           wheelTimeDelta.value = timeDiff;
           wheelDelta.value = details.delta.dx;
 
-          lastTimeStamp = details.sourceTimeStamp!.inMicroseconds;
+          lastTimeStamp = details.sourceTimeStamp?.inMicroseconds;
         },
         onHorizontalDragEnd: (details) {
           //close scrollview and run changeHeath command

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frosthaven_assistant/Layout/menus/numpad_menu.dart';
+import 'package:frosthaven_assistant/Layout/widgets/filtered_list_view.dart';
+import 'package:frosthaven_assistant/Layout/widgets/menu_card.dart';
 import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/ui_utils.dart';
 
@@ -11,25 +13,39 @@ import '../../Resource/state/game_state.dart';
 import '../../services/service_locator.dart';
 
 class AddSectionMenu extends StatefulWidget {
-  const AddSectionMenu({super.key});
+  const AddSectionMenu({
+    super.key,
+    this.gameState,
+    this.settings,
+    this.gameData,
+  });
+
+  final GameState? gameState;
+  // injected for testing
+  final Settings? settings;
+  final GameData? gameData;
 
   @override
   AddSectionMenuState createState() => AddSectionMenuState();
 }
 
 class AddSectionMenuState extends State<AddSectionMenu> {
+  static const int _kNumpadMaxLength = 3;
   // This list holds the data for the list view
   List<String> _foundScenarios = [];
-  final GameState _gameState = getIt<GameState>();
-  final GameData _gameData = getIt<GameData>();
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
+  Settings get _settings => widget.settings ?? getIt<Settings>();
+  GameData get _gameData => widget.gameData ?? getIt<GameData>();
   final TextEditingController _controller = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
 
   @override
   initState() {
     // at the beginning, all items are shown
-    var scenarios = _gameData.modelData.value[_gameState.currentCampaign.value]
-        ?.scenarios[_gameState.scenario.value]?.sections
+    final scenarios = _gameData
+        .modelData
+        .value[_gameState.currentCampaign.value]
+        ?.scenarios[_gameState.scenario.value]
+        ?.sections
         .map((e) => e.name)
         .toList();
     if (scenarios != null) {
@@ -87,97 +103,70 @@ class AddSectionMenuState extends State<AddSectionMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Card(
-            margin: const EdgeInsets.all(2),
-            child: Stack(children: [
-              Column(
-                children: [
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(left: 10, right: 10),
-                    child: TextField(
-                      controller: _controller,
-                      keyboardType: getIt<Settings>().softNumpadInput.value
-                          ? TextInputType.none
-                          : TextInputType.text,
-                      onChanged: (value) => _runFilter(value),
-                      onTap: () {
-                        _controller.clear();
-                        if (getIt<Settings>().softNumpadInput.value) {
-                          openDialog(
-                              context,
-                              NumpadMenu(
-                                  controller: _controller,
-                                  maxLength: 3,
-                                  onChange: (String value) {
-                                    _runFilter(value);
-                                  }));
-                        }
-                      },
-                      decoration: InputDecoration(
-                          labelText:
-                              _gameState.scenario.value == "#Random Dungeon"
-                                  ? 'Add Random Dungeon Card'
-                                  : 'Add Section',
-                          suffixIcon: const Icon(Icons.search)),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  Expanded(
-                    child: _foundScenarios.isNotEmpty
-                        ? Scrollbar(
-                            controller: _scrollController,
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              itemCount: _foundScenarios.length,
-                              itemBuilder: (context, index) => ListTile(
-                                title: Text(_foundScenarios[index],
-                                    style: TextStyle(
-                                        color: _gameState.scenarioSectionsAdded
-                                                .contains(
-                                                    _foundScenarios[index])
-                                            ? Colors.blueGrey
-                                            : Colors.black,
-                                        fontSize: kFontSizeTitle)),
-                                onTap: () {
-                                  if (!_gameState.scenarioSectionsAdded
-                                      .contains(_foundScenarios[index])) {
-                                    Navigator.pop(context);
-                                    _gameState.action(SetScenarioCommand(
-                                        _foundScenarios[index], true));
-                                  }
-                                },
-                              ),
-                            ))
-                        : const Text(
-                            'No results found',
-                            style: kHeadingStyle,
-                          ),
-                  ),
-                  const SizedBox(
-                    height: kMenuCloseButtonSpacing,
-                  ),
-                ],
+    return MenuCard(
+        cardMargin: const EdgeInsets.all(2),
+        child: Column(
+          children: [
+            const SizedBox(
+              height: 20,
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              child: TextField(
+                controller: _controller,
+                keyboardType: _settings.softNumpadInput.value
+                    ? TextInputType.none
+                    : TextInputType.text,
+                onChanged: (value) => _runFilter(value),
+                onTap: () {
+                  _controller.clear();
+                  if (_settings.softNumpadInput.value) {
+                    openDialog(
+                        context,
+                        NumpadMenu(
+                            controller: _controller,
+                            maxLength: _kNumpadMaxLength,
+                            onChange: (String value) {
+                              _runFilter(value);
+                            }));
+                  }
+                },
+                decoration: InputDecoration(
+                    labelText:
+                        _gameState.scenario.value == "#Random Dungeon"
+                            ? 'Add Random Dungeon Card'
+                            : 'Add Section',
+                    suffixIcon: const Icon(Icons.search)),
               ),
-              Positioned(
-                  width: kCloseButtonWidth,
-                  height: kButtonSize,
-                  right: 0,
-                  bottom: 0,
-                  child: TextButton(
-                      child: const Text(
-                        'Close',
-                        style: kButtonLabelStyle,
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      }))
-            ])));
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            FilteredListView(
+              items: _foundScenarios,
+              itemBuilder: (context, index) => ListTile(
+                title: Text(_foundScenarios[index],
+                    style: TextStyle(
+                        color: _gameState.scenarioSectionsAdded
+                                .contains(_foundScenarios[index])
+                            ? Colors.blueGrey
+                            : Colors.black,
+                        fontSize: kFontSizeTitle)),
+                onTap: () {
+                  if (!_gameState.scenarioSectionsAdded
+                      .contains(_foundScenarios[index])) {
+                    Navigator.pop(context);
+                    _gameState.action(SetScenarioCommand(
+                        _foundScenarios[index], true,
+                        gameState: _gameState));
+                  }
+                },
+              ),
+            ),
+            const SizedBox(
+              height: kMenuCloseButtonSpacing,
+            ),
+          ],
+        ));
   }
 }

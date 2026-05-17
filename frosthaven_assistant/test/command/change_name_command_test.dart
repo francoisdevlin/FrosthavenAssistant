@@ -1,3 +1,5 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/change_name_command.dart';
@@ -15,15 +17,20 @@ void main() {
 
   setUp(() {
     AddCharacterCommand('Blinkblade', 'Frosthaven', "Blinky", 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   group('ChangeNameCommand', () {
     test('should change a character\'s name', () {
       // Arrange
       final newName = 'BlinkyTheBlade';
-      final command = ChangeNameCommand(newName, character.id);
+      final command = ChangeNameCommand(
+        newName,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
       final initialName = character.characterState.display.value;
       expect(initialName, 'Blinky');
 
@@ -38,7 +45,11 @@ void main() {
 
     test('describe should return correct string', () {
       // Arrange
-      final command = ChangeNameCommand('NewName', 'Blinkblade');
+      final command = ChangeNameCommand(
+        'NewName',
+        'Blinkblade',
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'change character name');

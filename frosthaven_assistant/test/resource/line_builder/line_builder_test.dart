@@ -4,6 +4,8 @@ import 'package:frosthaven_assistant/Resource/line_builder/line_builder.dart';
 
 import '../../command/test_helpers.dart';
 
+// ignore_for_file: no-magic-number
+
 void main() {
   setUpAll(() async {
     await setUpGame();
@@ -70,41 +72,41 @@ void main() {
 
   group('LineBuilder.getTopPaddingForStyle', () {
     test('non-Markazi font with height=0.85 returns fontSize * 0.25', () {
-      const style = TextStyle(
-          fontFamily: 'Majalla', fontSize: 12.0, height: 0.85);
+      const style =
+          TextStyle(fontFamily: 'Majalla', fontSize: 12.0, height: 0.85);
       expect(LineBuilder.getTopPaddingForStyle(style), closeTo(3.0, 0.001));
     });
 
     test('Markazi font with height=0.84 returns fontSize * 0.1', () {
-      const style = TextStyle(
-          fontFamily: 'Markazi', fontSize: 10.0, height: 0.84);
+      const style =
+          TextStyle(fontFamily: 'Markazi', fontSize: 10.0, height: 0.84);
       expect(LineBuilder.getTopPaddingForStyle(style), closeTo(1.0, 0.001));
     });
 
     test('non-Markazi font with height=0.84 returns 0', () {
-      const style = TextStyle(
-          fontFamily: 'Majalla', fontSize: 12.0, height: 0.84);
+      const style =
+          TextStyle(fontFamily: 'Majalla', fontSize: 12.0, height: 0.84);
       expect(LineBuilder.getTopPaddingForStyle(style), 0.0);
     });
 
     test('Markazi font with height=0.85 returns 0', () {
       // Markazi check uses 0.84 specifically; 0.85 does not match
-      const style = TextStyle(
-          fontFamily: 'Markazi', fontSize: 10.0, height: 0.85);
+      const style =
+          TextStyle(fontFamily: 'Markazi', fontSize: 10.0, height: 0.85);
       expect(LineBuilder.getTopPaddingForStyle(style), 0.0);
     });
 
     test('non-Markazi font with height=1.0 returns 0', () {
-      const style = TextStyle(
-          fontFamily: 'Majalla', fontSize: 14.0, height: 1.0);
+      const style =
+          TextStyle(fontFamily: 'Majalla', fontSize: 14.0, height: 1.0);
       expect(LineBuilder.getTopPaddingForStyle(style), 0.0);
     });
 
     test('padding scales with fontSize', () {
-      const small = TextStyle(
-          fontFamily: 'Majalla', fontSize: 8.0, height: 0.85);
-      const large = TextStyle(
-          fontFamily: 'Majalla', fontSize: 16.0, height: 0.85);
+      const small =
+          TextStyle(fontFamily: 'Majalla', fontSize: 8.0, height: 0.85);
+      const large =
+          TextStyle(fontFamily: 'Majalla', fontSize: 16.0, height: 0.85);
       expect(LineBuilder.getTopPaddingForStyle(large),
           greaterThan(LineBuilder.getTopPaddingForStyle(small)));
     });
@@ -164,6 +166,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('row tokens [r] and [/r] render without error',
@@ -195,6 +198,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('inner row tokens [s] and [/s] render without error',
@@ -210,6 +214,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('[subLineEnd] token renders without error',
@@ -225,6 +230,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('image token starting with ¤ renders without error',
@@ -240,6 +246,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('right-join token starting with ! renders without error',
@@ -255,6 +262,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('small-style token starting with * renders without error',
@@ -270,6 +278,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('mid-style token starting with ^ renders without error',
@@ -285,6 +294,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('double ^^ mid-squished style renders without error',
@@ -300,6 +310,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('grant token starting with > renders without error',
@@ -315,6 +326,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('icon token %attack% renders without error',
@@ -330,6 +342,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('£ elite-style switch renders without error',
@@ -345,6 +358,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('left=true with icon token renders black icon',
@@ -360,6 +374,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('alignment start renders without error',
@@ -375,6 +390,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('alignment end renders without error',
@@ -390,6 +406,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('¤fire image inside column renders without error',
@@ -405,6 +422,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
 
     testWidgets('¤fire image as last element returns column',
@@ -420,6 +438,7 @@ void main() {
         false,
       );
       await pump(tester, widget);
+      expect(find.byType(Column), findsAtLeast(1));
     });
   });
 }

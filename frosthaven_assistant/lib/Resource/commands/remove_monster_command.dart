@@ -1,20 +1,13 @@
-import '../../services/service_locator.dart';
 import '../state/game_state.dart';
 
 class RemoveMonsterCommand extends Command {
-  final GameState _gameState = getIt<GameState>();
   final List<Monster> names;
 
-  RemoveMonsterCommand(this.names);
+  RemoveMonsterCommand(this.names, {required GameState gameState});
 
   @override
   void execute() {
-    MutableGameMethods.removeMonsters(stateAccess, names);
-  }
-
-  @override
-  void undo() {
-    _gameState.updateList.value++;
+    MonsterMethods.removeMonsters(stateAccess, names);
   }
 
   @override
@@ -22,6 +15,6 @@ class RemoveMonsterCommand extends Command {
     if (names.length > 1) {
       return "Remove all monsters";
     }
-    return "Remove ${names[0].type.display}";
+    return "Remove ${names.first.type.display}";
   }
 }

@@ -1,6 +1,5 @@
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
-import '../../services/service_locator.dart';
 import '../enums.dart';
 
 class AddStandeeCommand extends Command {
@@ -9,28 +8,27 @@ class AddStandeeCommand extends Command {
   final MonsterType type;
   final String ownerId;
   final bool addAsSummon;
+  final GameState _gameState;
 
   AddStandeeCommand(
-      this.nr, this.summon, this.ownerId, this.type, this.addAsSummon);
+      this.nr, this.summon, this.ownerId, this.type, this.addAsSummon,
+      {required GameState gameState})
+      : _gameState = gameState;
 
   @override
   void execute() {
-    MutableGameMethods.executeAddStandee(
+    MonsterMethods.executeAddStandee(
         stateAccess, nr, summon, type, ownerId, addAsSummon);
 
-    if (getIt<GameState>().roundState.value == RoundState.playTurns) {
+    if (_gameState.roundState.value == RoundState.playTurns) {
       Future.delayed(const Duration(milliseconds: 600), () {
-        getIt<GameState>().updateList.value++;
+        _gameState.updateList.notify();
       });
     } else {
-      getIt<GameState>().updateList.value++;
+      _gameState.updateList.notify();
     }
   }
 
-  @override
-  void undo() {
-    getIt<GameState>().updateList.value++;
-  }
 
   @override
   String describe() {

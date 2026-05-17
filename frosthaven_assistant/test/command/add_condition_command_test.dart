@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_condition_command.dart';
@@ -21,36 +23,58 @@ void main() {
   setUp(() {
     getIt<GameState>().clearList();
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    AddMonsterCommand("Ancient Artillery (FH)", 1, false).execute();
+    AddMonsterCommand(
+      "Ancient Artillery (FH)",
+      1,
+      false,
+      gameState: getIt<GameState>(),
+    ).execute();
     AddStandeeCommand(
-            1, null, "Ancient Artillery (FH)", MonsterType.normal, false)
-        .execute();
+      1,
+      null,
+      "Ancient Artillery (FH)",
+      MonsterType.normal,
+      false,
+      gameState: getIt<GameState>(),
+    ).execute();
 
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
-    monster = getIt<GameState>().currentList.firstWhere((e) => e is Monster)
-        as Monster;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
+    monster =
+        getIt<GameState>().currentList.firstWhere((e) => e is Monster)
+            as Monster;
     monsterInstance = monster.monsterInstances.first;
   });
 
   group('AddConditionCommand', () {
     test('should add a condition to a character', () {
       // Arrange
-      final command =
-          AddConditionCommand(Condition.poison, character.id, character.id);
+      final command = AddConditionCommand(
+        Condition.poison,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
 
       // Assert
-      expect(character.characterState.conditions.value,
-          contains(Condition.poison));
+      expect(
+        character.characterState.conditions.value,
+        contains(Condition.poison),
+      );
     });
 
     test('should add a condition to a monster instance', () {
       // Arrange
       final command = AddConditionCommand(
-          Condition.wound, monsterInstance.getId(), monster.id);
+        Condition.wound,
+        monsterInstance.getId(),
+        monster.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -61,10 +85,18 @@ void main() {
 
     test('should increment chill counter when adding CHILL condition', () {
       // Arrange
-      final command1 =
-          AddConditionCommand(Condition.chill, character.id, character.id);
-      final command2 =
-          AddConditionCommand(Condition.chill, character.id, character.id);
+      final command1 = AddConditionCommand(
+        Condition.chill,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
+      final command2 = AddConditionCommand(
+        Condition.chill,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command1.execute();
@@ -74,18 +106,27 @@ void main() {
       expect(character.characterState.chill.value, 2);
       // The list will contain two chill entries
       expect(
-          character.characterState.conditions.value
-              .where((c) => c == Condition.chill)
-              .length,
-          2);
+        character.characterState.conditions.value
+            .where((c) => c == Condition.chill)
+            .length,
+        2,
+      );
     });
 
     test('should not add a duplicate non-stacking condition', () {
       // Arrange
-      final command1 =
-          AddConditionCommand(Condition.poison, character.id, character.id);
-      final command2 =
-          AddConditionCommand(Condition.poison, character.id, character.id);
+      final command1 = AddConditionCommand(
+        Condition.poison,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
+      final command2 = AddConditionCommand(
+        Condition.poison,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command1.execute();
@@ -93,34 +134,21 @@ void main() {
 
       // Assert
       expect(
-          character.characterState.conditions.value
-              .where((c) => c == Condition.poison)
-              .length,
-          1);
-    });
-
-    test('undo should not revert adding a condition (as currently implemented)',
-        () {
-      // Arrange
-      final command =
-          AddConditionCommand(Condition.poison, character.id, character.id);
-      command.execute();
-      final conditionsAfterExecute =
-          List.from(character.characterState.conditions.value);
-
-      // Act
-      command.undo();
-
-      // Assert
-      // The undo method is empty, so no change is expected.
-      expect(character.characterState.conditions.value,
-          orderedEquals(conditionsAfterExecute));
+        character.characterState.conditions.value
+            .where((c) => c == Condition.poison)
+            .length,
+        1,
+      );
     });
 
     test('describe should return correct string for character', () {
       // Arrange
-      final command =
-          AddConditionCommand(Condition.muddle, character.id, character.id);
+      final command = AddConditionCommand(
+        Condition.muddle,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Add condition: muddle');
@@ -129,7 +157,11 @@ void main() {
     test('describe should return correct string for monster', () {
       // Arrange
       final command = AddConditionCommand(
-          Condition.stun, monster.id, monsterInstance.getId());
+        Condition.stun,
+        monster.id,
+        monsterInstance.getId(),
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Add condition: stun');

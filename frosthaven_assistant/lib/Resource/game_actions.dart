@@ -1,10 +1,13 @@
 import 'package:frosthaven_assistant/Resource/commands/draw_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/next_round_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
+import 'package:frosthaven_assistant/Resource/game_data.dart';
 import 'package:frosthaven_assistant/Resource/game_methods.dart';
+import 'package:frosthaven_assistant/Resource/settings.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
+import 'package:frosthaven_assistant/services/service_locator.dart';
 
-class DrawOrNextRoundResult {
+class DrawOrNextRoundResult { // ignore: prefer-match-file-name, file contains multiple game action types
   const DrawOrNextRoundResult._({this.blockedMessage});
 
   final String? blockedMessage;
@@ -18,10 +21,11 @@ class DrawOrNextRoundResult {
   }
 }
 
-DrawOrNextRoundResult runDrawOrNextRoundAction(GameState gameState) {
+DrawOrNextRoundResult runDrawOrNextRoundAction(GameState gameState,
+    {GameData? gameData, Settings? settings}) {
   if (gameState.roundState.value == RoundState.chooseInitiative) {
     if (GameMethods.canDraw()) {
-      gameState.action(DrawCommand());
+      gameState.action(DrawCommand(gameState: gameState));
       return DrawOrNextRoundResult.success;
     }
 
@@ -36,6 +40,9 @@ DrawOrNextRoundResult runDrawOrNextRoundAction(GameState gameState) {
     );
   }
 
-  gameState.action(NextRoundCommand());
+  gameState.action(NextRoundCommand(
+      gameState: gameState,
+      gameData: gameData ?? getIt<GameData>(),
+      settings: settings ?? getIt<Settings>()));
   return DrawOrNextRoundResult.success;
 }

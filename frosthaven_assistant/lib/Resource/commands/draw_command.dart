@@ -1,31 +1,26 @@
-import '../../Layout/main_list.dart';
-import '../../services/service_locator.dart';
+import '../../Layout/MainList/main_list.dart';
 import '../enums.dart';
 import '../state/game_state.dart';
 
 class DrawCommand extends Command {
-  final GameState _gameState = getIt<GameState>();
+  final GameState _gameState;
 
-  DrawCommand();
+  DrawCommand({required GameState gameState}) : _gameState = gameState;
 
   @override
   void execute() {
-    MutableGameMethods.drawAbilityCards(stateAccess);
-    MutableGameMethods.sortByInitiative(stateAccess);
-    MutableGameMethods.setRoundState(stateAccess, RoundState.playTurns);
+    DeckMethods.drawAbilityCards(stateAccess);
+    RoundMethods.sortByInitiative(stateAccess);
+    RoundMethods.setRoundState(stateAccess, RoundState.playTurns);
     if (_gameState.currentList.isNotEmpty) {
-      _gameState.currentList[0].setTurnState(stateAccess, TurnsState.current);
+      _gameState.currentList.first
+          .setTurnState(stateAccess, TurnsState.current);
     }
 
     Future.delayed(const Duration(milliseconds: 600), () {
-      _gameState.updateList.value++;
+      _gameState.updateList.notify();
       MainList.scrollToTop();
     });
-  }
-
-  @override
-  void undo() {
-    _gameState.updateList.value++;
   }
 
   @override

@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, no-empty-block
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_perk_command.dart';
@@ -21,10 +23,10 @@ void main() {
       // Arrange
       final monsterDeck = getIt<GameState>().modifierDeck;
       // Add imbuement first to ensure there is something to remove.
-      AMDImbue1Command().execute();
+      AMDImbue1Command(gameState: getIt<GameState>()).execute();
       expect(monsterDeck.imbuement.value, 1);
 
-      final command = AMDRemoveImbueCommand();
+      final command = AMDRemoveImbueCommand(gameState: getIt<GameState>());
 
       // Act
       command.execute();
@@ -39,10 +41,10 @@ void main() {
       // Arrange
       final monsterDeck = getIt<GameState>().modifierDeck;
       // Add imbuement first to ensure there is something to remove.
-      AMDImbue2Command().execute();
+      AMDImbue2Command(gameState: getIt<GameState>()).execute();
       expect(monsterDeck.imbuement.value, 2);
 
-      final command = AMDRemoveImbueCommand();
+      final command = AMDRemoveImbueCommand(gameState: getIt<GameState>());
 
       // Act
       command.execute();
@@ -57,11 +59,11 @@ void main() {
       // Arrange
       final monsterDeck = getIt<GameState>().modifierDeck;
       // Add imbuement first to ensure there is something to remove.
-      AMDImbue1Command().execute();
-      AMDImbue2Command().execute();
+      AMDImbue1Command(gameState: getIt<GameState>()).execute();
+      AMDImbue2Command(gameState: getIt<GameState>()).execute();
       expect(monsterDeck.imbuement.value, 2);
 
-      final command = AMDRemoveImbueCommand();
+      final command = AMDRemoveImbueCommand(gameState: getIt<GameState>());
 
       // Act
       command.execute();
@@ -78,10 +80,10 @@ void main() {
       // Add imbuement first to ensure there is something to remove.
       AddCharacterCommand("Hail", "Mercenary Packs", "Hail", 1).execute();
       AddPerkCommand("Hail", 17).execute();
-      AMDImbue2Command().execute();
+      AMDImbue2Command(gameState: getIt<GameState>()).execute();
       expect(monsterDeck.imbuement.value, 2);
 
-      final command = AMDRemoveImbueCommand();
+      final command = AMDRemoveImbueCommand(gameState: getIt<GameState>());
 
       // Act
       command.execute();
@@ -94,7 +96,7 @@ void main() {
 
     test('describe should return correct string', () {
       // Arrange
-      final command = AMDRemoveImbueCommand();
+      final command = AMDRemoveImbueCommand(gameState: getIt<GameState>());
 
       // Act & Assert
       expect(command.describe(), 'Remove Imbuement');

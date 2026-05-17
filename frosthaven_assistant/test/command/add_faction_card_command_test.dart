@@ -1,3 +1,5 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_faction_card_command.dart';
@@ -18,8 +20,9 @@ void main() {
   setUp(() {
     getIt<GameState>().clearList();
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
     // Get a valid faction card ID to use in tests
     factionCardId = GameMethods.getFactionCards('Military').first.gfx;
   });
@@ -27,7 +30,12 @@ void main() {
   group('AddFactionCardCommand', () {
     test('should add a faction card to a character deck', () {
       // Arrange
-      final command = AddFactionCardCommand(character.id, factionCardId, true);
+      final command = AddFactionCardCommand(
+        character.id,
+        factionCardId,
+        true,
+        gameState: getIt<GameState>(),
+      );
       final modifierDeck = character.characterState.modifierDeck;
 
       // Act
@@ -41,10 +49,20 @@ void main() {
       // Arrange
       final modifierDeck = character.characterState.modifierDeck;
       // Add the card first
-      AddFactionCardCommand(character.id, factionCardId, true).execute();
+      AddFactionCardCommand(
+        character.id,
+        factionCardId,
+        true,
+        gameState: getIt<GameState>(),
+      ).execute();
       expect(modifierDeck.hasCard(factionCardId), isTrue);
 
-      final command = AddFactionCardCommand(character.id, factionCardId, false);
+      final command = AddFactionCardCommand(
+        character.id,
+        factionCardId,
+        false,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -53,24 +71,14 @@ void main() {
       expect(modifierDeck.hasCard(factionCardId), isFalse);
     });
 
-    test('undo should not do anything (as currently implemented)', () {
-      // Arrange
-      final command = AddFactionCardCommand(character.id, factionCardId, true);
-      final modifierDeck = character.characterState.modifierDeck;
-      command.execute();
-      final hasCardAfterExecute = modifierDeck.hasCard(factionCardId);
-
-      // Act
-      command.undo();
-
-      // Assert
-      // The undo method is empty, so no change is expected.
-      expect(modifierDeck.hasCard(factionCardId), hasCardAfterExecute);
-    });
-
     test('describe should return correct string for adding a card', () {
       // Arrange
-      final command = AddFactionCardCommand('Blinkblade', factionCardId, true);
+      final command = AddFactionCardCommand(
+        'Blinkblade',
+        factionCardId,
+        true,
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Blinkblade add faction card');
@@ -78,7 +86,12 @@ void main() {
 
     test('describe should return correct string for removing a card', () {
       // Arrange
-      final command = AddFactionCardCommand('Blinkblade', factionCardId, false);
+      final command = AddFactionCardCommand(
+        'Blinkblade',
+        factionCardId,
+        false,
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Blinkblade remove faction card');

@@ -1,27 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/modifier_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_front.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_faction_card_command.dart';
 
-import '../../Layout/components/modal_background.dart';
+import '../../Layout/widgets/modal_background.dart';
+import '../../Resource/app_constants.dart';
 import '../../Resource/color_matrices.dart';
 import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
-import '../../Resource/app_constants.dart';
 import '../../Resource/ui_utils.dart';
 import '../../services/service_locator.dart';
 
 class GH2eFactionAMDCardMenu extends StatefulWidget {
   const GH2eFactionAMDCardMenu(
-      {super.key, required this.faction, required this.name});
+      {super.key, required this.faction, required this.name, this.gameState});
 
   final String faction;
   final String name;
+  final GameState? gameState;
 
   @override
   GH2eFactionAMDCardMenuState createState() => GH2eFactionAMDCardMenuState();
 }
 
 class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
+  static const double _kDefaultScale = 3.0;
+  static const double _kCardWidthFactor = 3.5;
+  static const int _kTwoColumns = 2;
+  static const double _kWrapSpacing = 2.0;
+  static const double _kModalHeight = 180.0;
+  static const double _kSpacerNoCard = 20.0;
+  static const double _kSpacerWithCard = 30.0;
+
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
   final List<ModifierCard> _factionCards = [];
 
   String? addedCard;
@@ -33,7 +43,7 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
     _factionCards.addAll(GameMethods.getFactionCards(widget.faction));
 
     //find if card added previously
-    final deck = GameMethods.getModifierDeck(widget.name, getIt<GameState>());
+    final deck = GameMethods.getModifierDeck(widget.name, _gameState);
     for (final item in _factionCards) {
       if (deck.hasCard(item.gfx)) {
         addedCard = item.gfx;
@@ -45,10 +55,10 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    double scale = 3;
-    final cardWidth = 3.5 * 58.6666;
-    if (screenSize.width < cardWidth * 2) {
-      scale = 3 * (screenSize.width / (cardWidth * 2));
+    double scale = _kDefaultScale;
+    final cardWidth = _kCardWidthFactor * kModifierCardBaseWidth;
+    if (screenSize.width < cardWidth * _kTwoColumns) {
+      scale = _kDefaultScale * (screenSize.width / (cardWidth * _kTwoColumns));
     }
 
     return Column(
@@ -57,16 +67,17 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
         children: [
           //add 4 cards in grid
           Wrap(
-            runSpacing: 2,
-            spacing: 2,
+            runSpacing: _kWrapSpacing,
+            spacing: _kWrapSpacing,
             children: [
-              for (var item in _factionCards)
+              for (final item in _factionCards)
                 InkWell(
                     onTap: () {
                       if (addedCard == null &&
                           !GameMethods.isCardInAnyCharacterDeck(item.gfx)) {
-                        getIt<GameState>().action(
-                            AddFactionCardCommand(widget.name, item.gfx, true));
+                        _gameState.action(AddFactionCardCommand(
+                            widget.name, item.gfx, true,
+                            gameState: _gameState));
                         setState(() {
                           addedCard = item.gfx;
                         });
@@ -77,19 +88,19 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
                             !GameMethods.isCardInAnyCharacterDeck(item.gfx)
                                 ? ColorFilter.matrix(identity)
                                 : ColorFilter.matrix(grayScale),
-                        child:
-                            ModifierCardWidget.buildFront(item, "", scale, 1))),
+                        child: ModifierCardFront(
+                            card: item, name: "", scale: scale))),
             ],
           ),
           const SizedBox(
-            height: 20,
+            height: _kSpacerNoCard,
           ),
           ModalBackground(
-              width: 300,
-              height: 180,
+              width: kMenuNarrowWidth,
+              height: _kModalHeight,
               child: Column(children: [
                 SizedBox(
-                  height: addedCard == null ? 20 : 30,
+                  height: addedCard == null ? _kSpacerNoCard : _kSpacerWithCard,
                 ),
                 if (addedCard == null)
                   Text("Tap Card to add to your deck",
@@ -99,8 +110,9 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
                       onPressed: () {
                         final cardToRemove = addedCard;
                         if (cardToRemove != null) {
-                          getIt<GameState>().action(AddFactionCardCommand(
-                              widget.name, cardToRemove, false));
+                          _gameState.action(AddFactionCardCommand(
+                              widget.name, cardToRemove, false,
+                              gameState: _gameState));
                         }
                         setState(() {
                           addedCard = null;
@@ -110,10 +122,10 @@ class GH2eFactionAMDCardMenuState extends State<GH2eFactionAMDCardMenu> {
                           textAlign: TextAlign.center,
                           style: kButtonLabelStyle)),
                 const SizedBox(
-                  height: 20,
+                  height: _kSpacerNoCard,
                 ),
                 const SizedBox(
-                  height: 20,
+                  height: _kSpacerNoCard,
                 ),
               ]))
         ]);

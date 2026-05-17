@@ -7,6 +7,7 @@ import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
 import '../Resource/game_methods.dart';
 import '../Resource/scaling.dart';
+import '../Resource/ui_utils.dart';
 import '../services/service_locator.dart';
 
 class SelectHealthWheel extends StatefulWidget {
@@ -15,6 +16,7 @@ class SelectHealthWheel extends StatefulWidget {
   final String? ownerId;
   final ValueNotifier<double> delta;
   final ValueNotifier<int> time;
+  final GameState? gameState;
 
   const SelectHealthWheel(
       {super.key,
@@ -22,22 +24,38 @@ class SelectHealthWheel extends StatefulWidget {
       required this.figureId,
       required this.ownerId,
       required this.delta,
-      required this.time});
+      required this.time,
+      this.gameState});
 
   @override
   SelectHealthWheelState createState() => SelectHealthWheelState();
 }
 
 class SelectHealthWheelState extends State<SelectHealthWheel> {
-  late int selected;
-  late final FixedExtentScrollController scrollController;
+  static const double _kScrollDeltaRatio = 0.4;
+  static const double _kScrollDeltaMax = 6.5;
+  static const double _kScrollDeltaMin = 2.5;
+  static const int _kIOSDivider = 2;
+  static const double _kShadowOffset = 0.4;
+  static const double _kWheelWidth = 140.0;
+  static const double _kWheelHeight = 10.0;
+  static const double _kSelectedWidth = 60.0;
+  static const double _kUnselectedWidth = 50.0;
+  static const double _kSelectedHeight = 30.0;
+  static const double _kUnselectedHeight = 20.0;
+  static const double _kSelectedFontSize = 18.0;
+  static const double _kUnselectedFontSize = 16.0;
+
+  int selected = 0;
+  FixedExtentScrollController? scrollController;
+  late final GameState _gameState;
   double currentScrollOffset = 0;
-  late int itemIndex;
   final double itemExtent = 25;
   bool scrollInited = false;
 
   @override
   void initState() {
+    _gameState = widget.gameState ?? getIt<GameState>();
     super.initState();
     int count = widget.data.maxHealth.value;
     selected = count - (widget.data.maxHealth.value - widget.data.health.value);
@@ -55,8 +73,9 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
     if (value != 0) {
       //in case figure killed by other device double check
       if (GameMethods.getFigure(widget.ownerId, widget.figureId) != null) {
-        getIt<GameState>().action(
-            ChangeHealthCommand(value, widget.figureId, widget.ownerId));
+        _gameState.action(ChangeHealthCommand(
+            value, widget.figureId, widget.ownerId,
+            gameState: _gameState));
       }
       selected = widget.data.maxHealth.value -
           (widget.data.maxHealth.value - widget.data.health.value);
@@ -65,22 +84,25 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
 
   void scrollTheWheel(double delta, int timeMicroSeconds, double scale) {
     int maxHealth = widget.data.maxHealth.value;
-    double deltaMod = min(widget.data.maxHealth.value * 0.4, 6.5);
-    deltaMod = max(deltaMod, 2.5);
+    double deltaMod =
+        min(widget.data.maxHealth.value * _kScrollDeltaRatio, _kScrollDeltaMax);
+    deltaMod = max(deltaMod, _kScrollDeltaMin);
 
     deltaMod *= delta;
     if (Platform.isIOS || Platform.isMacOS) {
-      deltaMod /= 2;
+      deltaMod /= _kIOSDivider;
     }
 
-    double initialPosition = scrollController.initialItem * itemExtent * scale;
+    final sc = scrollController;
+    if (sc == null) return;
+    double initialPosition = sc.initialItem * itemExtent * scale;
     if (currentScrollOffset == 0 && !scrollInited) {
       scrollInited = true;
       currentScrollOffset = initialPosition;
     }
-    if (scrollController.hasClients) {
+    if (sc.hasClients) {
       if (timeMicroSeconds > 0) {
-        scrollController.animateTo(currentScrollOffset - deltaMod,
+        sc.animateTo(currentScrollOffset - deltaMod,
             duration: Duration(microseconds: timeMicroSeconds),
             curve: Curves.linear);
         currentScrollOffset = currentScrollOffset - deltaMod;
@@ -107,8 +129,8 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
   Widget build(BuildContext context) {
     double scale = getScaleByReference(context);
 
-    var shadow = Shadow(
-      offset: Offset(0.4 * scale, 0.4 * scale),
+    final shadow = Shadow(
+      offset: Offset(_kShadowOffset * scale, _kShadowOffset * scale),
       color: Colors.black87,
       blurRadius: 1 * scale,
     );
@@ -117,16 +139,10 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
         quarterTurns: -1,
         child: Container(
             decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black45,
-                  blurRadius: 4 * scale,
-                  offset: Offset(2 * scale, 4 * scale), // Shadow position
-                ),
-              ],
+              boxShadow: [cardBoxShadow(scale)],
             ),
-            width: 140,
-            height: 10,
+            width: _kWheelWidth,
+            height: _kWheelHeight,
             child: ValueListenableBuilder<double>(
                 valueListenable: widget.delta,
                 builder: (context, value, child) {
@@ -150,8 +166,12 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
                             quarterTurns: 1,
                             child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                width: x == selected ? 60 * scale : 50 * scale,
-                                height: x == selected ? 30 * scale : 20 * scale,
+                                width: x == selected
+                                    ? _kSelectedWidth * scale
+                                    : _kUnselectedWidth * scale,
+                                height: x == selected
+                                    ? _kSelectedHeight * scale
+                                    : _kUnselectedHeight * scale,
                                 alignment: Alignment.center,
                                 child: Text(
                                   _buildNrString(x),
@@ -162,8 +182,8 @@ class SelectHealthWheelState extends State<SelectHealthWheel> {
                                           ? Colors.red
                                           : Colors.white,
                                       fontSize: x == selected
-                                          ? 18 * scale
-                                          : 16 * scale,
+                                          ? _kSelectedFontSize * scale
+                                          : _kUnselectedFontSize * scale,
                                       shadows: [shadow]),
                                 ))),
                       ));

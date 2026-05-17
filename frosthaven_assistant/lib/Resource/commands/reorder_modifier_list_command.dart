@@ -1,4 +1,3 @@
-import '../../services/service_locator.dart';
 import '../game_methods.dart';
 import '../state/game_state.dart';
 
@@ -6,10 +5,15 @@ class ReorderModifierListCommand extends Command {
   final int newIndex;
   final int oldIndex;
   final String name;
-  ReorderModifierListCommand(this.newIndex, this.oldIndex, this.name);
+  final GameState _gameState;
+
+  ReorderModifierListCommand(this.newIndex, this.oldIndex, this.name,
+      {required GameState gameState})
+      : _gameState = gameState;
+
   @override
   void execute() {
-    final deck = GameMethods.getModifierDeck(name, getIt<GameState>());
+    final deck = GameMethods.getModifierDeck(name, _gameState);
     deck.reorderCards(stateAccess, newIndex, oldIndex);
   }
 

@@ -3,7 +3,7 @@ import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/commands/change_name_command.dart';
 import 'package:frosthaven_assistant/Resource/ui_utils.dart';
 
-import '../../Layout/components/modal_background.dart';
+import '../../Layout/widgets/modal_background.dart';
 import '../../Resource/commands/change_stat_commands/change_max_health_command.dart';
 import '../../Resource/commands/set_character_level_command.dart';
 import '../../Resource/game_methods.dart';
@@ -13,24 +13,36 @@ import '../../services/service_locator.dart';
 import '../counter_button.dart';
 
 class SetCharacterLevelMenu extends StatefulWidget {
-  const SetCharacterLevelMenu({super.key, required this.character});
+  const SetCharacterLevelMenu(
+      {super.key, required this.character, this.gameState, this.settings});
 
   final Character character;
+
+  final GameState? gameState;
+  final Settings? settings;
 
   @override
   SetCharacterLevelMenuState createState() => SetCharacterLevelMenuState();
 }
 
 class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
-  final GameState _gameState = getIt<GameState>();
+  static const double _kMenuSize = 240.0;
+  static const int _kLevelRow1Count = 5;
+  static const int _kLevelRow2Count = 4;
+  static const int _kMaxHealth = 900;
+  static const double _kNameFieldWidth = 160.0;
+
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
+  Settings get _settings => widget.settings ?? getIt<Settings>();
   final TextEditingController nameController = TextEditingController();
   final FocusNode focusNode = FocusNode();
 
   void _focusNodeListener() {
     if (!focusNode.hasFocus) {
       if (nameController.text.isNotEmpty) {
-        _gameState.action(
-            ChangeNameCommand(nameController.text, widget.character.id));
+        _gameState.action(ChangeNameCommand(
+            nameController.text, widget.character.id,
+            gameState: _gameState));
       }
     }
   }
@@ -49,46 +61,6 @@ class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
     focusNode.addListener(_focusNodeListener);
   }
 
-  Widget buildLevelButton(int nr, double scale) {
-    return ValueListenableBuilder<int>(
-        valueListenable: _gameState.commandIndex,
-        builder: (context, value, child) {
-          bool isCurrentlySelected =
-              nr == widget.character.characterState.level.value;
-          String text = nr.toString();
-          bool darkMode = getIt<Settings>().darkMode.value;
-          return SizedBox(
-            width: 40 * scale,
-            height: 40 * scale,
-            child: TextButton(
-              child: Text(
-                text,
-                style: TextStyle(
-                    fontSize: kFontSizeTitle * scale,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(1 * scale, 1 * scale),
-                        color: isCurrentlySelected
-                            ? Colors.black54
-                            : Colors.black87,
-                        blurRadius: 1 * scale,
-                      ),
-                    ],
-                    color: isCurrentlySelected
-                        ? (darkMode ? Colors.white : Colors.black)
-                        : Colors.grey),
-              ),
-              onPressed: () {
-                if (!isCurrentlySelected) {
-                  _gameState.action(
-                      SetCharacterLevelCommand(nr, widget.character.id));
-                }
-              },
-            ),
-          );
-        });
-  }
-
   @override
   Widget build(BuildContext context) {
     double scale = getModalMenuScale(context);
@@ -96,15 +68,15 @@ class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
         GameMethods.isObjectiveOrEscort(widget.character.characterClass);
 
     return ModalBackground(
-        width: 240 * scale,
-        height: 240 * scale,
+        width: _kMenuSize * scale,
+        height: _kMenuSize * scale,
         child: Stack(children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                height: 20 * scale,
+                height: kMenuTopPadding * scale,
               ),
               ValueListenableBuilder<String>(
                   valueListenable: widget.character.characterState.display,
@@ -119,31 +91,38 @@ class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
               if (!isObjective)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildLevelButton(1, scale),
-                    buildLevelButton(2, scale),
-                    buildLevelButton(3, scale),
-                    buildLevelButton(4, scale),
-                    buildLevelButton(5, scale),
-                  ],
+                  children: List.generate(
+                    _kLevelRow1Count,
+                    (i) => _LevelButton(
+                        nr: i + 1,
+                        scale: scale,
+                        character: widget.character,
+                        settings: _settings,
+                        gameState: _gameState),
+                  ),
                 ),
               if (!isObjective &&
-                  widget.character.characterClass.healthByLevel.length > 5)
+                  widget.character.characterClass.healthByLevel.length >
+                      _kLevelRow1Count)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildLevelButton(6, scale),
-                    buildLevelButton(7, scale),
-                    buildLevelButton(8, scale),
-                    buildLevelButton(9, scale),
-                  ],
+                  children: List.generate(
+                    _kLevelRow2Count,
+                    (i) => _LevelButton(
+                        nr: _kLevelRow1Count + i + 1,
+                        scale: scale,
+                        character: widget.character,
+                        settings: _settings,
+                        gameState: _gameState),
+                  ),
                 ),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 CounterButton(
                     notifier: widget.character.characterState.maxHealth,
                     command: ChangeMaxHealthCommand(
-                        0, widget.character.id, widget.character.id),
-                    maxValue: 900,
+                        0, widget.character.id, widget.character.id,
+                        gameState: _gameState),
+                    maxValue: _kMaxHealth,
                     image: "assets/images/abilities/heal.png",
                     showTotalValue: true,
                     color: Colors.red,
@@ -153,7 +132,7 @@ class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
               ]),
               Text("Change name:", style: getTitleTextStyle(scale)),
               SizedBox(
-                  width: 160,
+                  width: _kNameFieldWidth,
                   child: TextField(
                     controller: nameController,
                     focusNode: focusNode,
@@ -162,12 +141,73 @@ class SetCharacterLevelMenuState extends State<SetCharacterLevelMenu> {
                       //set the name
                       if (nameController.text.isNotEmpty) {
                         _gameState.action(ChangeNameCommand(
-                            nameController.text, widget.character.id));
+                            nameController.text, widget.character.id,
+                            gameState: _gameState));
                       }
                     },
                   ))
             ],
           ),
         ]));
+  }
+}
+
+class _LevelButton extends StatelessWidget {
+  const _LevelButton({
+    required this.nr,
+    required this.scale,
+    required this.character,
+    required this.gameState,
+    required this.settings,
+  });
+
+  final int nr;
+  final double scale;
+  final Character character;
+  final GameState gameState;
+  final Settings? settings;
+
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveSettings = settings ?? getIt<Settings>();
+    return ListenableBuilder(
+        listenable: Listenable.merge(
+            [character.characterState.level, effectiveSettings.darkMode]),
+        builder: (context, child) {
+          bool isCurrentlySelected = nr == character.characterState.level.value;
+          String text = nr.toString();
+          bool darkMode = effectiveSettings.darkMode.value;
+          Color selectedTextColor = darkMode ? Colors.white : Colors.black;
+          Color textColor =
+              isCurrentlySelected ? selectedTextColor : Colors.grey;
+          return SizedBox(
+            width: kButtonSize * scale,
+            height: kButtonSize * scale,
+            child: TextButton(
+              child: Text(
+                text,
+                style: TextStyle(
+                    fontSize: kFontSizeTitle * scale,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(
+                            kShadowOffset * scale, kShadowOffset * scale),
+                        color: isCurrentlySelected
+                            ? Colors.black54
+                            : Colors.black87,
+                        blurRadius: kShadowOffset * scale,
+                      ),
+                    ],
+                    color: textColor),
+              ),
+              onPressed: () {
+                if (!isCurrentlySelected) {
+                  gameState.action(SetCharacterLevelCommand(nr, character.id));
+                }
+              },
+            ),
+          );
+        });
   }
 }

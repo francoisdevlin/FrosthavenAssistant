@@ -54,9 +54,9 @@ void main() {
     testWidgets('button is disabled after section is added via command',
         (WidgetTester tester) async {
       const sectionName = 'test-disabled-section';
-      // Add the section using SetScenarioCommand(name, true) — section=true path
+      // Add the section using SetScenarioCommand(name, true, gameState: getIt<GameState>()) — section=true path
       // does not crash for non-existent keys
-      SetScenarioCommand(sectionName, true).execute();
+      SetScenarioCommand(sectionName, true, gameState: getIt<GameState>()).execute();
 
       await pumpWidget(tester, sectionName);
       final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
@@ -97,6 +97,25 @@ void main() {
         (WidgetTester tester) async {
       await pumpWidget(tester, '3c section');
       expect(find.byType(RepaintBoundary), findsAtLeast(1));
+    });
+
+    testWidgets('button becomes disabled reactively after section is added',
+        (WidgetTester tester) async {
+      const sectionName = 'test-reactive-disable';
+      await pumpWidget(tester, sectionName);
+      // button starts enabled
+      expect(
+          tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+          isNotNull);
+
+      // add section via command (fires scenarioSectionsVersion notifier)
+      getIt<GameState>().action(
+          SetScenarioCommand(sectionName, true, gameState: getIt<GameState>()));
+      await tester.pump();
+
+      expect(
+          tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+          isNull);
     });
   });
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_level_command.dart';
@@ -70,7 +72,7 @@ void main() {
         final gs = getIt<GameState>();
         gs.action(SetLevelCommand(3, null));
         gs.action(SetLevelCommand(4, null));
-        final indexBefore = gs.commandIndex.value;
+        //final indexBefore = gs.commandIndex.value;
         gs.undo(); // undo SetLevel(4), now commandIndex = indexBefore - 1
         // Do a new action — should clear SetLevel(4) from the redo list
         gs.action(SetLevelCommand(5, null));
@@ -105,11 +107,50 @@ void main() {
       });
     });
 
+    group('getCurrent edge cases', () {
+      test('getCurrent throws when there is no valid command at current index',
+          () {
+        final gs = getIt<GameState>();
+        // Reset so commandIndex is -1 (no commands executed yet).
+        gs.commandIndex.value = -1;
+        gs.resetCommandHistory();
+        // getCurrent accesses _commands[commandIndex] — either a RangeError
+        // (negative index) or TypeError (null-check on a null entry). Either
+        // way it must throw an Error so callers know to guard the call site.
+        expect(() => gs.getCurrent(), throwsA(isA<Error>()));
+      });
+    });
+
+    group('redo after maxUndo eviction', () {
+      test('redo from the oldest valid position does not crash', () {
+        final gs = getIt<GameState>();
+        final maxUndo = gs.maxUndo;
+
+        // Execute maxUndo + 1 commands so the oldest save state is evicted.
+        for (int i = 0; i <= maxUndo; i++) {
+          gs.action(SetLevelCommand((i % 7) + 1, null));
+        }
+
+        // Undo all the way to the eviction boundary:
+        // only the last maxUndo states are guaranteed non-null.
+        for (int i = 0; i < maxUndo; i++) {
+          gs.undo();
+        }
+        // commandIndex is now at the boundary; gameSaveStates[commandIndex + 1]
+        // may be null (evicted). redo() must return early without crashing.
+        expect(() => gs.redo(), returnsNormally);
+
+        // Restore state for other tests.
+        gs.undo();
+      });
+    });
+
     group('add monster then undo', () {
       test('undo after adding a monster removes it from the list', () {
         final gs = getIt<GameState>();
         gs.clearList();
-        gs.action(AddMonsterCommand('Zealot', 1, false));
+        gs.action(AddMonsterCommand('Zealot', 1, false,
+            gameState: getIt<GameState>()));
         expect(gs.currentList.any((e) => e.id == 'Zealot'), isTrue);
         gs.undo();
         expect(gs.currentList.any((e) => e.id == 'Zealot'), isFalse);

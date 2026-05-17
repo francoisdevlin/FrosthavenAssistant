@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frosthaven_assistant/Layout/menus/perks_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/PerksMenu/perks_menu.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/add_perk_command.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
 
@@ -17,15 +18,16 @@ void main() {
     AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
   });
 
-  Character _getBlinkblade() {
-    return getIt<GameState>()
-        .currentList
-        .firstWhere((item) => item.id == 'Blinkblade') as Character;
+  Character getBlinkblade() {
+    return getIt<GameState>().currentList.firstWhere(
+          (item) => item.id == 'Blinkblade',
+        )
+        as Character;
   }
 
   Future<void> pumpMenu(WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
-    final character = _getBlinkblade();
+    final character = getBlinkblade();
     FlutterError.onError = ignoreOverflowErrors;
     await tester.pumpWidget(
       MaterialApp(
@@ -62,5 +64,34 @@ void main() {
       await pumpMenu(tester);
       expect(find.text('Close'), findsOneWidget);
     });
+
+    testWidgets(
+      'perk checkbox updates reactively when perk added via command',
+      (WidgetTester tester) async {
+        final character = getBlinkblade();
+        await pumpMenu(tester);
+
+        // Perk 0 starts unchecked
+        expect(character.characterState.perkList[0], isFalse);
+        final tilesBefore = tester.widgetList<CheckboxListTile>(
+          find.byType(CheckboxListTile),
+        );
+        final checkedBefore = tilesBefore.where((t) => t.value == true).length;
+
+        // Add perk 0 via command (fires perkListVersion)
+        getIt<GameState>().action(AddPerkCommand(character.id, 0));
+        await tester.pump();
+
+        expect(character.characterState.perkList[0], isTrue);
+        final tilesAfter = tester.widgetList<CheckboxListTile>(
+          find.byType(CheckboxListTile),
+        );
+        final checkedAfter = tilesAfter.where((t) => t.value == true).length;
+        expect(checkedAfter, greaterThan(checkedBefore));
+
+        // Restore
+        getIt<GameState>().action(AddPerkCommand(character.id, 0));
+      },
+    );
   });
 }

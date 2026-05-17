@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/amd_add_minus_one_command.dart';
@@ -7,7 +9,7 @@ import 'package:frosthaven_assistant/services/service_locator.dart';
 
 import 'test_helpers.dart';
 
-int getMinusOnes(ModifierDeck deck) {
+int _getMinusOnes(ModifierDeck deck) {
   int count = 0;
   for (var item in deck.drawPileContents.toList()) {
     if (item.gfx == "minus1") {
@@ -27,52 +29,68 @@ void main() {
   setUp(() {
     //getIt<GameState>().reset();
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   group('AMDRemoveMinus1Command', () {
     test('should remove a minus one card from a character deck', () {
       // Arrange
       final modifierDeck = character.characterState.modifierDeck;
-      int initialCount = getMinusOnes(modifierDeck);
+      int initialCount = _getMinusOnes(modifierDeck);
       expect(initialCount, 5);
 
-      final command = AMDRemoveMinus1Command(character.id);
+      final command = AMDRemoveMinus1Command(
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
 
       // Assert
-      final finalCount = getMinusOnes(modifierDeck);
+      final finalCount = _getMinusOnes(modifierDeck);
       expect(finalCount, initialCount - 1);
     });
 
     test('should remove a minus one card from a character deck', () {
       // Arrange
       final modifierDeck = character.characterState.modifierDeck;
-      AmdAddMinusOneCommand(character.id).execute(); // Add one first
-      int initialCount = getMinusOnes(modifierDeck);
+      AmdAddMinusOneCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute(); // Add one first
+      int initialCount = _getMinusOnes(modifierDeck);
       expect(initialCount, 6);
 
-      final command = AMDRemoveMinus1Command(character.id);
+      final command = AMDRemoveMinus1Command(
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
 
       // Assert
-      final finalCount = getMinusOnes(modifierDeck);
+      final finalCount = _getMinusOnes(modifierDeck);
       expect(finalCount, initialCount - 1);
     });
 
     test('should remove a minus one card from a character deck', () {
       // Arrange
       final modifierDeck = character.characterState.modifierDeck;
-      AmdAddMinusOneCommand(character.id).execute(); // Add one first
-      int initialCount = getMinusOnes(modifierDeck);
+      AmdAddMinusOneCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute(); // Add one first
+      int initialCount = _getMinusOnes(modifierDeck);
       expect(initialCount, 6);
 
-      final command = AMDRemoveMinus1Command(character.id);
+      final command = AMDRemoveMinus1Command(
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -87,43 +105,49 @@ void main() {
       command.execute();
 
       // Assert
-      final finalCount = getMinusOnes(modifierDeck);
+      final finalCount = _getMinusOnes(modifierDeck);
       expect(finalCount, 0);
     });
 
     test('should remove a minus one card from the monster deck', () {
       // Arrange
       final modifierDeck = getIt<GameState>().modifierDeck;
-      //AmdAddMinusOneCommand('').execute(); // Add one first
-      final initialCount = getMinusOnes(modifierDeck);
-      final command = AMDRemoveMinus1Command('');
+      //AmdAddMinusOneCommand('', gameState: getIt<GameState>()).execute(); // Add one first
+      final initialCount = _getMinusOnes(modifierDeck);
+      final command = AMDRemoveMinus1Command('', gameState: getIt<GameState>());
 
       // Act
       command.execute();
 
       // Assert
-      final finalCount = getMinusOnes(modifierDeck);
+      final finalCount = _getMinusOnes(modifierDeck);
       expect(finalCount, initialCount - 1);
     });
 
     test('should remove a minus one card from the allies deck', () {
       // Arrange
       final modifierDeck = getIt<GameState>().modifierDeckAllies;
-      //AmdAddMinusOneCommand('allies').execute(); // Add one first
-      final initialCount = getMinusOnes(modifierDeck);
-      final command = AMDRemoveMinus1Command('allies');
+      //AmdAddMinusOneCommand('allies', gameState: getIt<GameState>()).execute(); // Add one first
+      final initialCount = _getMinusOnes(modifierDeck);
+      final command = AMDRemoveMinus1Command(
+        'allies',
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
 
       // Assert
-      final finalCount = getMinusOnes(modifierDeck);
+      final finalCount = _getMinusOnes(modifierDeck);
       expect(finalCount, initialCount - 1);
     });
 
     test('describe should return correct string', () {
       // Arrange
-      final command = AMDRemoveMinus1Command('Blinkblade');
+      final command = AMDRemoveMinus1Command(
+        'Blinkblade',
+        gameState: getIt<GameState>(),
+      );
       command.execute();
 
       // Act & Assert

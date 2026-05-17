@@ -1,4 +1,5 @@
-import '../../Layout/menus/ability_cards_menu.dart';
+import 'package:collection/collection.dart';
+
 import '../game_methods.dart';
 import '../state/game_state.dart';
 
@@ -8,11 +9,12 @@ class ShuffleAbilityCardCommand extends Command {
 
   @override
   void execute() {
-    Monster monster = GameMethods.getCurrentMonsters()
-        .firstWhere((element) => element.id == ownerId);
-    MonsterAbilityState deck = GameMethods.getDeck(monster.type.deck)!;
+    final Monster? monster = GameMethods.getCurrentMonsters()
+        .firstWhereOrNull((element) => element.id == ownerId);
+    if (monster == null) return;
+    final MonsterAbilityState? deck = GameMethods.getDeck(monster.type.deck);
+    if (deck == null) return;
     deck.shuffle(stateAccess);
-    AbilityCardsMenuState.revealedList = [];
   }
 
   @override

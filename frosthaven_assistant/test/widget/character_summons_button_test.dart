@@ -19,8 +19,11 @@ void main() {
   group('CharacterSummonsButton', () {
     testWidgets('renders without error', (WidgetTester tester) async {
       AddCharacterCommand('Banner Spear', 'Frosthaven', null, 1).execute();
-      final character = getIt<GameState>().currentList
-          .firstWhere((e) => e.id == 'Banner Spear') as Character;
+      final character =
+          getIt<GameState>().currentList.firstWhere(
+                (e) => e.id == 'Banner Spear',
+              )
+              as Character;
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
       await tester.pumpWidget(
@@ -35,11 +38,15 @@ void main() {
       expect(find.byType(CharacterSummonsButton), findsOneWidget);
     });
 
-    testWidgets('tapping icon button opens AddSummonMenu',
-        (WidgetTester tester) async {
+    testWidgets('tapping icon button opens AddSummonMenu', (
+      WidgetTester tester,
+    ) async {
       AddCharacterCommand('Banner Spear', 'Frosthaven', null, 1).execute();
-      final character = getIt<GameState>().currentList
-          .firstWhere((e) => e.id == 'Banner Spear') as Character;
+      final character =
+          getIt<GameState>().currentList.firstWhere(
+                (e) => e.id == 'Banner Spear',
+              )
+              as Character;
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
       await tester.pumpWidget(
@@ -56,6 +63,7 @@ void main() {
       final iconButton = tester.widget<IconButton>(find.byType(IconButton));
       iconButton.onPressed?.call();
       await tester.pump();
+      expect(find.byType(CharacterSummonsButton), findsOneWidget);
     });
   });
 }

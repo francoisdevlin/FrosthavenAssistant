@@ -1,9 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Layout/menus/return_amd_card_menu.dart';
-import 'package:frosthaven_assistant/Layout/modifier_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_front.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_rear.dart';
+import 'package:frosthaven_assistant/Resource/app_constants.dart';
 
 import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
@@ -11,23 +12,36 @@ import '../../Resource/ui_utils.dart';
 import '../../services/service_locator.dart';
 
 class RemovedModifierCardMenu extends StatefulWidget {
-  const RemovedModifierCardMenu({super.key, required this.name});
+  const RemovedModifierCardMenu({
+    super.key,
+    required this.name,
+    this.gameState,
+  });
 
   final String name;
+
+  final GameState? gameState;
 
   @override
   RemovedModifierCardMenuState createState() => RemovedModifierCardMenuState();
 }
 
 class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
-  final GameState _gameState = getIt<GameState>();
+  static const double _kListWidthRatio = 0.3;
+  static const double _kHeaderPadding = 10.0;
+  static const double _kBottomBarHeight = 32.0;
+  static const double _kCloseButtonBottom = 4.0;
+  static const double _kCloseButtonLeft = 20.0;
+  static const double _kItemMargin = 2.0;
+
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
   final scrollController = ScrollController();
 
   List<Widget> generateList(List<ModifierCard> inputList, String name) {
     List<Widget> list = [];
     for (int index = 0; index < inputList.length; index++) {
       final key = index.toString();
-      var item = inputList[index];
+      final item = inputList[index];
       Item value = Item(key: Key(key), data: item, name: name, revealed: true);
       InkWell gestureDetector = InkWell(
         key: Key(index.toString()),
@@ -57,7 +71,7 @@ class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
           //other styles
         ),
         child: SizedBox(
-          width: screenWidth * 0.3,
+          width: screenWidth * _kListWidthRatio,
           child: ListView(
             controller: ScrollController(),
             children: generateList(list, widget.name).reversed.toList(),
@@ -74,26 +88,20 @@ class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
           ModifierDeck deck =
               GameMethods.getModifierDeck(widget.name, _gameState);
           final removedPile = deck.removedPileContents.toList();
-
-          bool isCharacter = widget.name.isNotEmpty && widget.name != "allies";
-          final character =
-              isCharacter ? GameMethods.getCharacterByName(widget.name) : null;
           final screenSize = MediaQuery.of(context).size;
-          final monsterDeck = widget.name.isEmpty;
-          final textStyle = kBodyBlackStyle;
 
           return Container(
               constraints: BoxConstraints(
                   maxWidth: screenSize.width,
-                  maxHeight: screenSize.height * 0.9),
+                  maxHeight: screenSize.height * kMenuMaxHeightRatio),
               child: Card(
                   color: Colors.transparent,
                   child: Stack(children: [
                     Column(mainAxisSize: MainAxisSize.max, children: [
                       Container(
                           width: screenSize.width, //need some width to fill out
-                          margin: const EdgeInsets.all(2),
-                          padding: EdgeInsets.all(10),
+                          margin: const EdgeInsets.all(_kItemMargin),
+                          padding: EdgeInsets.all(_kHeaderPadding),
                           decoration: const BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.only(
@@ -113,8 +121,8 @@ class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
                         children: [buildList(removedPile)],
                       )),
                       Container(
-                        height: 32,
-                        margin: const EdgeInsets.all(2),
+                        height: _kBottomBarHeight,
+                        margin: const EdgeInsets.all(_kItemMargin),
                         decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -136,8 +144,8 @@ class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
                               Navigator.pop(context);
                             })),
                     Positioned(
-                        bottom: 4,
-                        left: 20,
+                        bottom: _kCloseButtonBottom,
+                        left: _kCloseButtonLeft,
                         child: Text(
                           name,
                           style: kButtonLabelStyle,
@@ -148,6 +156,10 @@ class RemovedModifierCardMenuState extends State<RemovedModifierCardMenu> {
 }
 
 class Item extends StatelessWidget {
+  static const double _kScaleHeightBase = 40.0;
+  static const int _kScaleHeightRows = 12;
+  static const double _kItemMargin = 2.0;
+
   const Item(
       {super.key,
       required this.data,
@@ -160,12 +172,14 @@ class Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var screenSize = MediaQuery.of(context).size;
-    double scale = max((screenSize.height / (40 * 12)), 1);
+    final screenSize = MediaQuery.of(context).size;
+    double scale =
+        max((screenSize.height / (_kScaleHeightBase * _kScaleHeightRows)), 1);
     final Widget child = revealed
-        ? ModifierCardWidget.buildFront(data, name, scale, 2)
-        : ModifierCardWidget.buildRear(scale, name);
+        ? ModifierCardFront(card: data, name: name, scale: scale)
+        : ModifierCardRear(scale: scale, name: name);
 
-    return Container(margin: EdgeInsets.all(2 * scale), child: child);
+    return Container(
+        margin: EdgeInsets.all(_kItemMargin * scale), child: child);
   }
 }

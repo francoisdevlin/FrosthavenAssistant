@@ -1,4 +1,3 @@
-import '../../services/service_locator.dart';
 import '../enums.dart';
 import '../game_methods.dart';
 import '../state/game_state.dart';
@@ -6,14 +5,16 @@ import '../state/game_state.dart';
 class ActivateMonsterTypeCommand extends Command {
   final String name;
   final bool activate;
-  final GameState _gameState = getIt<GameState>();
+  final GameState _gameState;
 
-  ActivateMonsterTypeCommand(this.name, this.activate);
+  ActivateMonsterTypeCommand(this.name, this.activate,
+      {required GameState gameState})
+      : _gameState = gameState;
 
   @override
   void execute() {
     Monster? monster;
-    for (var item in _gameState.currentList) {
+    for (final item in _gameState.currentList) {
       if (item.id == name) {
         if (item is Monster) {
           item.setActive(stateAccess, activate);
@@ -24,25 +25,22 @@ class ActivateMonsterTypeCommand extends Command {
     if (activate) {
       final roundState = _gameState.roundState.value;
       if (roundState == RoundState.chooseInitiative) {
-        MutableGameMethods.sortCharactersFirst(stateAccess);
+        RoundMethods.sortCharactersFirst(stateAccess);
       } else if (roundState == RoundState.playTurns) {
-        MutableGameMethods.drawAbilityCardFromInactiveDeck(stateAccess);
-        MutableGameMethods.sortItemToPlace(
-            stateAccess, name, GameMethods.getInitiative(monster!));
+        DeckMethods.drawAbilityCardFromInactiveDeck(stateAccess);
+        if (monster != null) {
+          RoundMethods.sortItemToPlace(
+              stateAccess, name, GameMethods.getInitiative(monster));
+        }
       }
     }
-    if (getIt<GameState>().roundState.value == RoundState.playTurns) {
+    if (_gameState.roundState.value == RoundState.playTurns) {
       Future.delayed(const Duration(milliseconds: 600), () {
-        getIt<GameState>().updateList.value++;
+        _gameState.updateList.notify();
       });
     } else {
-      getIt<GameState>().updateList.value++;
+      _gameState.updateList.notify();
     }
-  }
-
-  @override
-  void undo() {
-    _gameState.updateList.value++;
   }
 
   @override

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/components/menu_card.dart';
+import 'package:frosthaven_assistant/Layout/widgets/menu_card.dart';
 import 'package:frosthaven_assistant/Layout/menus/save_modal_menu.dart';
 import 'package:frosthaven_assistant/Resource/app_constants.dart';
 
@@ -9,17 +9,27 @@ import '../../Resource/ui_utils.dart';
 import '../../services/service_locator.dart';
 
 class SaveMenu extends StatefulWidget {
-  const SaveMenu({super.key});
+  const SaveMenu({
+    super.key,
+    this.settings,
+    this.gameState,
+  });
+
+  final Settings? settings;
+  final GameState? gameState;
 
   @override
   SaveMenuState createState() => SaveMenuState();
 }
 
 class SaveMenuState extends State<SaveMenu> {
+  static const double _kMaxWidth = 400;
+  static const double _kTitleHeight = 40;
+
   // This list holds the data for the list view
   final List<String> _saves = [];
-  final Settings _settings = getIt<Settings>();
-  final GameState _gameState = getIt<GameState>();
+  Settings get _settings => widget.settings ?? getIt<Settings>();
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -45,7 +55,7 @@ class SaveMenuState extends State<SaveMenu> {
   Widget build(BuildContext context) {
     //edge insets if width not too small
     return MenuCard(
-        maxWidth: 400,
+        maxWidth: _kMaxWidth,
         cardMargin: const EdgeInsets.all(2),
         child: Column(
           children: [
@@ -53,12 +63,12 @@ class SaveMenuState extends State<SaveMenu> {
               height: 20,
             ),
             Container(
-                height: 40,
-                margin: const EdgeInsets.only(left: 10, right: 10),
+                height: _kTitleHeight,
+                margin: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text('Load, Add or Delete save states.',
                     style: getTitleTextStyle(1, forceBlack: true))),
             Container(
-                margin: const EdgeInsets.only(left: 10, right: 10),
+                margin: const EdgeInsets.symmetric(horizontal: 10),
                 child: const Text(
                   'Please note that the app automatically saves your progress after every action. These are for backups or multiple campaigns.',
                 )),

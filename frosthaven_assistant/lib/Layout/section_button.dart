@@ -7,15 +7,26 @@ import '../Resource/settings.dart';
 import '../services/service_locator.dart';
 
 class SectionButton extends StatelessWidget {
-  final String data;
+  static const double _kButtonWidth = 55.0;
+  static const double _kButtonHeight = 25.0;
+  static const double _kElevation = 4.0;
+  static const double _kTextScale = 0.8;
 
-  const SectionButton({super.key, required this.data});
+  final String data;
+  // injected for testing
+  final GameState? gameState;
+  final Settings? settings;
+
+  const SectionButton(
+      {super.key, required this.data, this.gameState, this.settings});
 
   @override
   Widget build(BuildContext context) {
-    double scale = getIt<Settings>().userScalingBars.value;
+    final gameState = this.gameState ?? getIt<GameState>();
+    final settings = this.settings ?? getIt<Settings>();
+    double scale = settings.userScalingBars.value;
     return ValueListenableBuilder<int>(
-        valueListenable: getIt<GameState>().commandIndex,
+        valueListenable: gameState.scenarioSectionsVersion,
         builder: (context, value, child) {
           return RepaintBoundary(
               child: OutlinedButton(
@@ -23,18 +34,19 @@ class SectionButton extends StatelessWidget {
               padding: EdgeInsets.zero,
               foregroundColor: Colors.black,
               disabledBackgroundColor: Colors.blueGrey,
-              fixedSize: Size(55 * scale, 25 * scale),
+              fixedSize: Size(_kButtonWidth * scale, _kButtonHeight * scale),
               backgroundColor: Colors.white70,
-              elevation: 4,
+              elevation: _kElevation,
             ),
-            onPressed: !getIt<GameState>().scenarioSectionsAdded.contains(data)
+            onPressed: !gameState.scenarioSectionsAdded.contains(data)
                 ? () {
-                    getIt<GameState>().action(SetScenarioCommand(data, true));
+                    gameState.action(
+                        SetScenarioCommand(data, true, gameState: gameState));
                   }
                 : null,
             child: Text(
-              data.split(" ")[0],
-              style: getTitleTextStyle(scale * 0.8, forceBlack: true),
+              data.split(" ").first,
+              style: getTitleTextStyle(scale * _kTextScale, forceBlack: true),
               maxLines: 1,
             ),
           ));

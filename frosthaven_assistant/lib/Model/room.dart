@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 @immutable
 class RoomMonsterData {
+  // ignore: prefer-match-file-name, file contains multiple room model types
   final String name;
   final List<int> normal;
   final List<int> elite;
@@ -9,18 +10,10 @@ class RoomMonsterData {
 
   factory RoomMonsterData.fromJson(Map<String, dynamic> data, String key) {
     String name = key;
-    List<int> normal = [];
-    if (data.containsKey('normal')) {
-      normal = data['normal'].cast<int>();
-    } else {
-      normal = [0, 0, 0];
-    }
-    List<int> elite = [];
-    if (data.containsKey('elite')) {
-      elite = data['elite'].cast<int>();
-    } else {
-      elite = [0, 0, 0];
-    }
+    List<int> normal =
+        data.containsKey('normal') ? data['normal'].cast<int>() : [0, 0, 0];
+    List<int> elite =
+        data.containsKey('elite') ? data['elite'].cast<int>() : [0, 0, 0];
 
     return RoomMonsterData(name, normal, elite);
   }
@@ -49,10 +42,10 @@ class RoomsModel {
   final List<RoomModel> roomData;
   const RoomsModel(this.scenarioName, this.roomData);
 
-  factory RoomsModel.fromJson(List<dynamic> sectionData, String scenarioName) {
+  factory RoomsModel.fromJson(List<Object?> sectionData, String scenarioName) {
     List<RoomModel> roomList = [];
-    for (var value in sectionData) {
-      roomList.add(RoomModel.fromJson(value));
+    for (final value in sectionData) {
+      roomList.add(RoomModel.fromJson(value as Map<String, dynamic>));
     }
 
     return RoomsModel(scenarioName, roomList);
@@ -66,7 +59,7 @@ class EditionRoomsModel {
 
   factory EditionRoomsModel.fromJson(Map<String, dynamic> data) {
     List<RoomsModel> roomList = [];
-    for (var entry in data.entries) {
+    for (final entry in data.entries) {
       roomList.add(RoomsModel.fromJson(entry.value, entry.key));
     }
 

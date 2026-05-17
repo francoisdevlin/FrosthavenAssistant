@@ -10,41 +10,56 @@ import '../services/service_locator.dart';
 import 'enums.dart';
 
 class GameMethods {
-  static int getTrapValue() {
-    final GameState gameState = getIt<GameState>();
-    return 2 + gameState.level.value;
+  static const int _kTrapBase = 2;
+  static const int _kHazardHalveDivisor = 2;
+  static const double _kHazardLevelDivisor = 3.0;
+  static const int _kXPBase = 4;
+  static const int _kXPMultiplier = 2;
+  static const int _kCoinMaxLevel = 7;
+  static const int _kCoinMaxValue = 6;
+  static const int _kCoinBase = 2;
+  static const double _kCoinLevelDivisor = 2.0;
+  static const double _kLevelDivisor = 2.0;
+  static const int _kInactiveInitiative = 99;
+  static const int _kPerkPairCount = 2;
+  static const int _kPolarBearStandees = 4;
+  static const int _kMaxOGSoloScenario = 100;
+
+  static int getTrapValue({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    return _kTrapBase + gs.level.value;
   }
 
-  static int getHazardValue() {
-    if (isOgGloomEdition() &&
-        !getIt<Settings>().fhHazTerrainCalcInOGGloom.value) {
-      return (getTrapValue() / 2).floor();
+  static int getHazardValue({GameState? gameState, Settings? settings}) {
+    final gs = gameState ?? getIt<GameState>();
+    final s = settings ?? getIt<Settings>();
+    if (isOgGloomEdition(gameState: gs) && !s.fhHazTerrainCalcInOGGloom.value) {
+      return (getTrapValue(gameState: gs) / _kHazardHalveDivisor).floor();
     }
 
-    final GameState gameState = getIt<GameState>();
-    return 1 + (gameState.level.value / 3.0).ceil();
+    return 1 + (gs.level.value / _kHazardLevelDivisor).ceil();
   }
 
-  static int getXPValue() {
-    final GameState gameState = getIt<GameState>();
-    return 4 + 2 * gameState.level.value;
+  static int getXPValue({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    return _kXPBase + _kXPMultiplier * gs.level.value;
   }
 
-  static int getCoinValue() {
-    final GameState gameState = getIt<GameState>();
-    int level = gameState.level.value;
-    if (level == 7) {
-      return 6;
+  static int getCoinValue({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    int level = gs.level.value;
+    if (level == _kCoinMaxLevel) {
+      return _kCoinMaxValue;
     }
 
-    return 2 + (level / 2.0).floor();
+    return _kCoinBase + (level / _kCoinLevelDivisor).floor();
   }
 
-  static int getRecommendedLevel() {
+  static int getRecommendedLevel({GameState? gameState}) {
     double totalLevels = 0;
     double nrOfCharacters = 0;
-    final GameState gameState = getIt<GameState>();
-    for (var item in gameState.currentList) {
+    final gs = gameState ?? getIt<GameState>();
+    for (final item in gs.currentList) {
       if (item is Character &&
           !GameMethods.isObjectiveOrEscort(item.characterClass)) {
         totalLevels += item.characterState.level.value;
@@ -54,28 +69,28 @@ class GameMethods {
     if (nrOfCharacters == 0) {
       return 1;
     }
-    if (gameState.solo.value) {
+    if (gs.solo.value) {
       //Take the average level of all characters in the
       // scenario, then add 1 before dividing by 2 and rounding
       // up.
-      return ((totalLevels / nrOfCharacters + 1.0) / 2.0).ceil();
+      return ((totalLevels / nrOfCharacters + 1.0) / _kLevelDivisor).ceil();
     }
     //scenario level is equal to
     //the average level of the characters divided by 2
     //(rounded up)
 
-    return (totalLevels / nrOfCharacters / 2.0).ceil();
+    return (totalLevels / nrOfCharacters / _kLevelDivisor).ceil();
   }
 
-  static bool canDraw() {
-    final GameState gameState = getIt<GameState>();
-    if (gameState.currentList.isEmpty) {
+  static bool canDraw({GameState? gameState, Settings? settings}) {
+    final gs = gameState ?? getIt<GameState>();
+    if (gs.currentList.isEmpty) {
       return false;
     }
-    if (getIt<Settings>().noInit.value) {
+    if ((settings ?? getIt<Settings>()).noInit.value) {
       return true;
     }
-    for (var item in gameState.currentList) {
+    for (final item in gs.currentList) {
       if (item is Character) {
         if (item.characterState.initiative.value == 0) {
           if (item.characterState.health.value > 0) {
@@ -88,19 +103,19 @@ class GameMethods {
     return true;
   }
 
-  static bool isInactiveForRule(String monsterId) {
-    final GameState gameState = getIt<GameState>();
-    final rule = gameState.scenarioSpecialRules.firstWhereOrNull(
+  static bool isInactiveForRule(String monsterId, {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    final rule = gs.scenarioSpecialRules.firstWhereOrNull(
         (rule) => rule.type == "InactiveMonster" && rule.name == monsterId);
-    if (rule != null && rule.list.contains(gameState.round.value)) {
+    if (rule != null && rule.list.contains(gs.round.value)) {
       return true;
     }
     return false;
   }
 
-  static MonsterAbilityState? getDeck(String name) {
-    final GameState gameState = getIt<GameState>();
-    for (MonsterAbilityState deck in gameState.currentAbilityDecks) {
+  static MonsterAbilityState? getDeck(String name, {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    for (MonsterAbilityState deck in gs.currentAbilityDecks) {
       if (deck.name == name) {
         return deck;
       }
@@ -109,15 +124,15 @@ class GameMethods {
     return null;
   }
 
-  static int getInitiative(ListItemData item) {
+  static int getInitiative(ListItemData item, {GameState? gameState}) {
     if (item is Character) {
       return item.characterState.initiative.value;
     } else if (item is Monster) {
       if (!item.isActive) {
-        return 99; //sorted last
+        return _kInactiveInitiative; //sorted last
       }
-      final GameState gameState = getIt<GameState>();
-      for (var deck in gameState.currentAbilityDecks) {
+      final gs = gameState ?? getIt<GameState>();
+      for (final deck in gs.currentAbilityDecks) {
         if (deck.name == item.type.deck) {
           if (deck.discardPileIsNotEmpty) {
             return deck.discardPileTop.initiative;
@@ -128,9 +143,9 @@ class GameMethods {
     return 0;
   }
 
-  static Character? getCharacterByName(String name) {
-    final GameState gameState = getIt<GameState>();
-    for (ListItemData data in gameState.currentList) {
+  static Character? getCharacterByName(String name, {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    for (ListItemData data in gs.currentList) {
       if (data is Character) {
         if (data.id == name) {
           return data;
@@ -140,9 +155,9 @@ class GameMethods {
     return null;
   }
 
-  static List<Character> getCurrentCharacters() {
-    final GameState gameState = getIt<GameState>();
-    return getCurrentCharactersForState(gameState);
+  static List<Character> getCurrentCharacters({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    return getCurrentCharactersForState(gs);
   }
 
   static List<Character> getCurrentCharactersForState(GameState state) {
@@ -157,9 +172,9 @@ class GameMethods {
     return characters;
   }
 
-  static Character? getCurrentCharacter() {
-    final GameState gameState = getIt<GameState>();
-    for (var item in gameState.currentList) {
+  static Character? getCurrentCharacter({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    for (final item in gs.currentList) {
       if (item.turnState.value == TurnsState.current) {
         if (item is Character) {
           if (!GameMethods.isObjectiveOrEscort(item.characterClass)) {
@@ -235,7 +250,7 @@ class GameMethods {
     for (final item in perk.add) {
       if (item.startsWith("perks/")) {
         String id = "P$index";
-        if (perk.add.last != perk.add.first && item == perk.add.last) {
+        if (perk.add.length >= _kPerkPairCount && item == perk.add.last) {
           id += "-2";
         }
         if (deck.hasCard(id)) {
@@ -252,21 +267,18 @@ class GameMethods {
   static String perkGfxIdToCardId(String gfx, PerkModel perk, int index) {
     if (gfx.startsWith("perks/")) {
       String id = "P$index";
-      final last = perk.add.last;
-      if (perk.add.first != last) {
-        if (gfx == last) {
-          id += "-2";
-        }
+      if (perk.add.length >= _kPerkPairCount && gfx == perk.add.last) {
+        id += "-2";
       }
       return id;
     }
     return gfx;
   }
 
-  static int getCurrentCharacterAmount() {
+  static int getCurrentCharacterAmount({GameState? gameState}) {
     int res = 0;
-    final GameState gameState = getIt<GameState>();
-    for (ListItemData data in gameState.currentList) {
+    final gs = gameState ?? getIt<GameState>();
+    for (ListItemData data in gs.currentList) {
       if (data is Character) {
         if (!GameMethods.isObjectiveOrEscort(data.characterClass)) {
           res++;
@@ -277,10 +289,10 @@ class GameMethods {
     return res;
   }
 
-  static List<Monster> getCurrentMonsters() {
+  static List<Monster> getCurrentMonsters({GameState? gameState}) {
     List<Monster> monsters = [];
-    final GameState gameState = getIt<GameState>();
-    for (ListItemData data in gameState.currentList) {
+    final gs = gameState ?? getIt<GameState>();
+    for (ListItemData data in gs.currentList) {
       if (data is Monster) {
         monsters.add(data);
       }
@@ -289,12 +301,12 @@ class GameMethods {
     return monsters;
   }
 
-  static int getNextAvailableBnBStandee(Monster data) {
-    final GameState gameState = getIt<GameState>();
+  static int getNextAvailableBnBStandee(Monster data, {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
     int nrOfStandees = data.type.count;
     for (int i = 0; i < nrOfStandees; i++) {
       bool isAvailable = true;
-      for (var item in data.monsterInstances) {
+      for (final item in data.monsterInstances) {
         if (item.standeeNr == i + 1) {
           isAvailable = false;
           break;
@@ -303,10 +315,10 @@ class GameMethods {
 
       if (isAvailable) {
         //check for other monsters with same standees
-        for (var item in gameState.currentList) {
+        for (final item in gs.currentList) {
           if (item is Monster) {
             if (item.id != data.id) {
-              for (var standee in item.monsterInstances) {
+              for (final standee in item.monsterInstances) {
                 if (standee.standeeNr == i + 1) {
                   isAvailable = false;
                   break;
@@ -326,17 +338,17 @@ class GameMethods {
     return 0;
   }
 
-  static int getRandomStandee(Monster data) {
-    final GameState gameState = getIt<GameState>();
+  static int getRandomStandee(Monster data, {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
     int nrOfStandees = data.type.count;
     if (data.type.name == "Polar Bear") {
       nrOfStandees =
-          4; //for the special case where there are only 4 standees in first printing
+          _kPolarBearStandees; //for the special case where there are only 4 standees in first printing
     }
     List<int> available = [];
     for (int i = 0; i < nrOfStandees; i++) {
       bool isAvailable = true;
-      for (var item in data.monsterInstances) {
+      for (final item in data.monsterInstances) {
         if (item.standeeNr == i + 1) {
           isAvailable = false;
           break;
@@ -344,11 +356,11 @@ class GameMethods {
       }
       if (isAvailable) {
         //check for special monsters with same standees
-        for (var item in gameState.currentList) {
+        for (final item in gs.currentList) {
           if (item is Monster) {
             if (item.id != data.id) {
               if (item.type.gfx == data.type.gfx) {
-                for (var standee in item.monsterInstances) {
+                for (final standee in item.monsterInstances) {
                   if (standee.standeeNr == i + 1) {
                     isAvailable = false;
                     break;
@@ -374,14 +386,16 @@ class GameMethods {
     return available[Random().nextInt(available.length)];
   }
 
-  static FigureState? getFigure(String? ownerId, String figureId) {
-    for (var item in getIt<GameState>().currentList) {
+  static FigureState? getFigure(String? ownerId, String figureId,
+      {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    for (final item in gs.currentList) {
       if (item.id == figureId) {
         return (item as Character).characterState;
       }
       if (item.id == ownerId) {
         if (item is Monster) {
-          for (var instance in item.monsterInstances) {
+          for (final instance in item.monsterInstances) {
             String id =
                 instance.name + instance.gfx + instance.standeeNr.toString();
             if (id == figureId) {
@@ -389,7 +403,7 @@ class GameMethods {
             }
           }
         } else if (item is Character) {
-          for (var instance in item.characterState.summonList) {
+          for (final instance in item.characterState.summonList) {
             String id =
                 instance.name + instance.gfx + instance.standeeNr.toString();
             if (id == figureId) {
@@ -402,11 +416,13 @@ class GameMethods {
     return null;
   }
 
-  static String getFigureIdFromNr(String ownerId, int nr) {
-    for (var item in getIt<GameState>().currentList) {
+  static String getFigureIdFromNr(String ownerId, int nr,
+      {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    for (final item in gs.currentList) {
       if (item.id == ownerId) {
         if (item is Monster) {
-          for (var instance in item.monsterInstances) {
+          for (final instance in item.monsterInstances) {
             if (instance.standeeNr == nr) {
               return instance.name +
                   instance.gfx +
@@ -423,18 +439,18 @@ class GameMethods {
     return character.id == "Escort" || character.id == "Objective";
   }
 
-  static bool shouldShowAlliesDeck() {
-    final GameState gameState = getIt<GameState>();
-    if (!getIt<Settings>().showAmdDeck.value) {
+  static bool shouldShowAlliesDeck({GameState? gameState, Settings? settings}) {
+    final gs = gameState ?? getIt<GameState>();
+    if (!(settings ?? getIt<Settings>()).showAmdDeck.value) {
       return false;
     }
-    if (gameState.showAllyDeck.value) {
+    if (gs.showAllyDeck.value) {
       return true;
     }
-    if (!gameState.allyDeckInOGGloom.value && isOgGloomEdition()) {
+    if (!gs.allyDeckInOGGloom.value && isOgGloomEdition(gameState: gs)) {
       return false;
     }
-    for (var item in gameState.currentList) {
+    for (final item in gs.currentList) {
       if (item is Monster) {
         if (item.isAlly) {
           return true;
@@ -460,15 +476,16 @@ class GameMethods {
     return false;
   }
 
-  static bool isFrosthavenStyledEdition(String edition) {
-    final GameState gameState = getIt<GameState>();
-    String scenario = gameState.scenario.value;
+  static bool isFrosthavenStyledEdition(String edition,
+      {GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    String scenario = gs.scenario.value;
     if (edition == "Solo") {
       if (scenario.contains("${"#19"} ")) {
         return false; //this is forgotten circles
       }
       //#100+ are og solo scenarios
-      for (int i = 1; i <= 100; i++) {
+      for (int i = 1; i <= _kMaxOGSoloScenario; i++) {
         if (scenario.contains("${"#$i"} ")) {
           return true;
         }
@@ -491,14 +508,16 @@ class GameMethods {
     return false;
   }
 
-  static bool isFrosthavenStyle(MonsterModel? monster) {
+  static bool isFrosthavenStyle(MonsterModel? monster,
+      {GameState? gameState, Settings? settings}) {
+    final gs = gameState ?? getIt<GameState>();
     //frosthaven monster
-    final monsterFrostHavenStyledEdition =
-        monster != null && isFrosthavenStyledEdition(monster.edition);
+    final monsterFrostHavenStyledEdition = monster != null &&
+        isFrosthavenStyledEdition(monster.edition, gameState: gs);
     if (monsterFrostHavenStyledEdition) {
       return true;
     }
-    final style = getIt<Settings>().style.value;
+    final style = (settings ?? getIt<Settings>()).style.value;
     //frosthaven monsters in other campaigns
     if (monster != null) {
       if (style != Style.frosthaven && !monsterFrostHavenStyledEdition) {
@@ -508,7 +527,7 @@ class GameMethods {
     //frosthaven style settings
     return style == Style.frosthaven ||
         style == Style.original &&
-            isFrosthavenStyledEdition(getIt<GameState>().currentCampaign.value);
+            isFrosthavenStyledEdition(gs.currentCampaign.value, gameState: gs);
   }
 
   static bool isCustomCampaign(String campaign) {
@@ -536,16 +555,15 @@ class GameMethods {
     return null;
   }
 
-  static bool isOgGloomEdition() {
-    final GameState gameState = getIt<GameState>();
-    return !isFrosthavenStyledEdition(gameState.currentCampaign.value);
+  static bool isOgGloomEdition({GameState? gameState}) {
+    final gs = gameState ?? getIt<GameState>();
+    return !isFrosthavenStyledEdition(gs.currentCampaign.value, gameState: gs);
   }
 
-  static bool hasLootDeck() {
-    GameState gameState = getIt<GameState>();
-    bool hasLootDeck = !getIt<Settings>().hideLootDeck.value;
-    if (gameState.lootDeck.discardPileIsEmpty &&
-        gameState.lootDeck.drawPileIsEmpty) {
+  static bool hasLootDeck({GameState? gameState, Settings? settings}) {
+    final gs = gameState ?? getIt<GameState>();
+    bool hasLootDeck = !(settings ?? getIt<Settings>()).hideLootDeck.value;
+    if (gs.lootDeck.discardPileIsEmpty && gs.lootDeck.drawPileIsEmpty) {
       hasLootDeck = false;
     }
     return hasLootDeck;
@@ -576,9 +594,9 @@ class GameMethods {
     return retVal;
   }
 
-  static bool isCardInAnyCharacterDeck(String gfx) {
-    final characters = getCurrentCharacters();
-    for (var item in characters) {
+  static bool isCardInAnyCharacterDeck(String gfx, {GameState? gameState}) {
+    final characters = getCurrentCharacters(gameState: gameState);
+    for (final item in characters) {
       if (item.characterState.modifierDeck.hasCard(gfx)) {
         return true;
       }
@@ -586,16 +604,21 @@ class GameMethods {
     return false;
   }
 
-  static bool hasRetaliate(Monster monster, MonsterInstance figure) {
-    return _monsterHasConditionOnCards(monster, figure, "%retaliate%");
+  static bool hasRetaliate(Monster monster, MonsterInstance figure,
+      {GameState? gameState}) {
+    return _monsterHasConditionOnCards(monster, figure, "%retaliate%",
+        gameState: gameState);
   }
 
-  static bool hasShield(Monster monster, MonsterInstance figure) {
-    return _monsterHasConditionOnCards(monster, figure, "%shield%");
+  static bool hasShield(Monster monster, MonsterInstance figure,
+      {GameState? gameState}) {
+    return _monsterHasConditionOnCards(monster, figure, "%shield%",
+        gameState: gameState);
   }
 
   static bool _monsterHasConditionOnCards(
-      Monster monster, MonsterInstance figure, String condition) {
+      Monster monster, MonsterInstance figure, String condition,
+      {GameState? gameState}) {
     bool hasCondition = false;
     //check innate value
 
@@ -613,7 +636,7 @@ class GameMethods {
           level.boss?.attributes.indexWhere((i) => i.contains(condition)) != -1;
     }
     //check ability card
-    var deck = GameMethods.getDeck(monster.type.deck);
+    final deck = GameMethods.getDeck(monster.type.deck, gameState: gameState);
     if (deck != null &&
         deck.discardPileIsNotEmpty &&
         monster.turnState.value != TurnsState.notDone) {

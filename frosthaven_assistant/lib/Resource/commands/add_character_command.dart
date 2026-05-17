@@ -1,37 +1,42 @@
-import '../../services/service_locator.dart';
 import '../game_methods.dart';
 import '../state/game_state.dart';
 
 class AddCharacterCommand extends Command {
-  final GameState _gameState = getIt<GameState>();
   final String _id;
   final String _edition;
   final int _level;
   final String? _display;
-  late Character character;
+  Character? character;
 
   AddCharacterCommand(this._id, this._edition, this._display, this._level) {
-    character = MutableGameMethods.createCharacter(
-        stateAccess, _id, _edition, _display, _level)!;
+    final created = CharacterMethods.createCharacter(
+      stateAccess,
+      _id,
+      _edition,
+      _display,
+      _level,
+    );
+    if (created == null) {
+      throw StateError(
+        'AddCharacterCommand: character class not found: $_id (edition: $_edition)',
+      );
+    }
+    character = created;
   }
 
   @override
   void execute() {
+    final char = character;
+    if (char == null) return;
     //add new character on top of list
-    MutableGameMethods.addToMainList(stateAccess, 0, character);
+    RoundMethods.addToMainList(stateAccess, 0, char);
 
-    if (!GameMethods.isObjectiveOrEscort(character.characterClass)) {
-      MutableGameMethods.applyDifficulty(stateAccess);
+    if (!GameMethods.isObjectiveOrEscort(char.characterClass)) {
+      ScenarioMethods.applyDifficulty(stateAccess);
     }
 
-    MutableGameMethods.updateForSpecialRules(stateAccess);
-    _gameState.updateList.value++;
-    MutableGameMethods.unlockClass(stateAccess, character.characterClass.id);
-  }
-
-  @override
-  void undo() {
-    _gameState.updateList.value++;
+    RoundMethods.updateForSpecialRules(stateAccess);
+    ScenarioMethods.unlockClass(stateAccess, char.characterClass.id);
   }
 
   @override

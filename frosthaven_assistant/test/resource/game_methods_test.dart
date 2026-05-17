@@ -1,13 +1,14 @@
+// ignore_for_file: avoid-late-keyword, no-empty-block, no-magic-number, avoid-non-null-assertion, prefer-first
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Model/character_class.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
-import 'package:frosthaven_assistant/Resource/commands/change_stat_commands/change_health_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_perk_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_standee_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/change_stat_commands/change_health_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/draw_command.dart';
-import 'package:frosthaven_assistant/Resource/commands/next_turn_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_character_level_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_init_command.dart';
@@ -15,6 +16,7 @@ import 'package:frosthaven_assistant/Resource/commands/set_level_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_scenario_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_solo_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/show_ally_deck_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/turn_done_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
 import 'package:frosthaven_assistant/Resource/game_methods.dart';
 import 'package:frosthaven_assistant/Resource/settings.dart';
@@ -67,7 +69,9 @@ void main() async {
 
       test('should bork when game level is out of bounds low', () {
         expect(
-            () => SetLevelCommand(-77, null).execute(), throwsAssertionError);
+          () => SetLevelCommand(-77, null).execute(),
+          throwsAssertionError,
+        );
       });
     });
 
@@ -156,10 +160,18 @@ void main() async {
 
       test('should calculate recommended level for multiple characters', () {
         //getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
-        AddCharacterCommand('Banner Spear', 'Frosthaven', 'Banner Spear', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
+        AddCharacterCommand(
+          'Banner Spear',
+          'Frosthaven',
+          'Banner Spear',
+          1,
+        ).execute();
         SetCharacterLevelCommand(3, 'Blinkblade').execute();
         SetCharacterLevelCommand(5, 'Banner Spear').execute();
 
@@ -168,8 +180,12 @@ void main() async {
 
       test('should calculate recommended level for solo', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         SetCharacterLevelCommand(3, 'Blinkblade').execute();
         SetSoloCommand(true).execute();
 
@@ -186,25 +202,41 @@ void main() async {
       test('should return true if noInit setting is true', () {
         getIt<Settings>().noInit.value = true;
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         expect(GameMethods.canDraw(), isTrue);
       });
 
       test('should return false if a character has no initiative', () {
         getIt<Settings>().noInit.value = false;
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         expect(GameMethods.canDraw(), isFalse);
       });
 
       test('should return true if all characters have initiative', () {
         getIt<Settings>().noInit.value = false;
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
-        SetInitCommand('Blinkblade', 25).execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
+        SetInitCommand(
+          'Blinkblade',
+          25,
+          gameState: getIt<GameState>(),
+        ).execute();
         expect(GameMethods.canDraw(), isTrue);
       });
     });
@@ -213,14 +245,14 @@ void main() async {
     /*group('isInactiveForRule', () {
       test('should return true if monster is inactive by rule', () {
       SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
         // In scenario 1, the Guard is inactive in round 1
         expect(GameMethods.isInactiveForRule('Guard'), isTrue);
       });
 
       test('should return false if monster is not inactive by rule', () {
       SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
         expect(GameMethods.isInactiveForRule('Guard'), isFalse);
       });
     });*/
@@ -229,7 +261,7 @@ void main() async {
     /*group('getDeck', () {
       test('should return the correct deck', () {
       SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
         final deck = GameMethods.getDeck('Guard');
         expect(deck, isNotNull);
         expect(deck!.name, 'Guard');
@@ -237,7 +269,7 @@ void main() async {
 
       test('should return null if deck does not exist', () {
       SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
         final deck = GameMethods.getDeck('NonExistentDeck');
         expect(deck, isNull);
       });
@@ -246,9 +278,17 @@ void main() async {
     group('getInitiative', () {
       test('should return character initiative', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
-        SetInitCommand('Blinkblade', 35).execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
+        SetInitCommand(
+          'Blinkblade',
+          35,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final character = getIt<GameState>().currentList.first as Character;
         expect(GameMethods.getInitiative(character), 35);
@@ -259,8 +299,8 @@ void main() async {
       /*test('should return monster initiative', () {
         //getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
-        AddMonsterCommand().execute();
+        SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
+        AddMonsterCommand(gameState: getIt<GameState>()).execute();
         DrawAbilityCardCommand().execute();
         final monster = getIt<GameState>()
             .currentList
@@ -285,8 +325,9 @@ void main() async {
         getIt<GameState>().clearList();
         AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
         String oldState = gameState.toString();
-        final character =
-            GameMethods.getCharacterByName('NonExistentCharacter');
+        final character = GameMethods.getCharacterByName(
+          'NonExistentCharacter',
+        );
         expect(character, isNull);
         checkNoSideEffects([], oldState);
       });
@@ -318,10 +359,17 @@ void main() async {
       test('should return the character whose turn it is', () {
         getIt<GameState>().clearList();
         AddCharacterCommand('Banner Spear', 'Frosthaven', "", 1).execute();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
-        DrawCommand().execute();
-        TurnDoneCommand('Blinkblade').execute(); // It's now Banner Spear's turn
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
+        DrawCommand(gameState: getIt<GameState>()).execute();
+        TurnDoneCommand(
+          'Blinkblade',
+          gameState: getIt<GameState>(),
+        ).execute(); // It's now Banner Spear's turn
         String oldState = gameState.toString();
         final character = GameMethods.getCurrentCharacter();
         expect(character, isNotNull);
@@ -332,10 +380,15 @@ void main() async {
       test('should return null if it is not a character turn', () {
         getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false)
-            .execute(); // Adds monsters
-        TurnDoneCommand(getIt<GameState>().currentList.first.id)
-            .execute(); // It's now a monster's turn
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Adds monsters
+        TurnDoneCommand(
+          getIt<GameState>().currentList.first.id,
+          gameState: getIt<GameState>(),
+        ).execute(); // It's now a monster's turn
         String oldState = gameState.toString();
         final character = GameMethods.getCurrentCharacter();
         expect(character, isNull);
@@ -360,11 +413,17 @@ void main() async {
 
       test('should return a character modifier deck', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         String oldState = gameState.toString();
-        final deck =
-            GameMethods.getModifierDeck('Blinkblade', getIt<GameState>());
+        final deck = GameMethods.getModifierDeck(
+          'Blinkblade',
+          getIt<GameState>(),
+        );
         final character = getIt<GameState>().currentList.first as Character;
         expect(deck, equals(character.characterState.modifierDeck));
         checkNoSideEffects([], oldState);
@@ -374,8 +433,12 @@ void main() async {
     group('canAddPerk', () {
       test('should return true if perk can be added', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         String oldState = gameState.toString();
         final character = getIt<GameState>().currentList.first as Character;
         expect(GameMethods.canAddPerk(character, 0), isTrue);
@@ -384,8 +447,12 @@ void main() async {
 
       test('should return false if perk cannot be added', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         final character = getIt<GameState>().currentList.first as Character;
         AddPerkCommand(character.id, 0).execute();
         String oldState = gameState.toString();
@@ -397,8 +464,12 @@ void main() async {
     group('canRemovePerk', () {
       test('should return true if perk can be removed', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         final character = getIt<GameState>().currentList.first as Character;
         AddPerkCommand(character.id, 0).execute();
         String oldState = gameState.toString();
@@ -408,8 +479,12 @@ void main() async {
 
       test('should return false if perk cannot be removed', () {
         getIt<GameState>().clearList();
-        AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinkblade', 1)
-            .execute();
+        AddCharacterCommand(
+          'Blinkblade',
+          'Frosthaven',
+          'Blinkblade',
+          1,
+        ).execute();
         final character = getIt<GameState>().currentList.first as Character;
         AddPerkCommand(character.id, 12).execute();
         AddPerkCommand(character.id, 13).execute();
@@ -423,7 +498,10 @@ void main() async {
       test('should return the original gfx id if it is not a perk', () {
         String oldState = gameState.toString();
         final id = GameMethods.perkGfxIdToCardId(
-            'test', PerkModel("", const [], const []), 0);
+          'test',
+          PerkModel("", const [], const []),
+          0,
+        );
         expect(id, 'test');
         checkNoSideEffects([], oldState);
       });
@@ -438,8 +516,10 @@ void main() async {
 
       test('should return the correct card id for a perk with two images', () {
         String oldState = gameState.toString();
-        final perk =
-            PerkModel("", const [], const ['perks/test', 'perks/test2']);
+        final perk = PerkModel("", const [], const [
+          'perks/test',
+          'perks/test2',
+        ]);
         final id = GameMethods.perkGfxIdToCardId('perks/test2', perk, 0);
         expect(id, 'P0-2');
         checkNoSideEffects([], oldState);
@@ -468,7 +548,11 @@ void main() async {
       test('should return a list of current monsters', () {
         getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monsters = GameMethods.getCurrentMonsters();
         expect(monsters.length, 3);
@@ -492,9 +576,9 @@ void main() async {
         getIt<GameState>().clearList();
         SetCampaignCommand('Buttons and Bugs').execute();
         //todo:
-        //SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        //SetScenarioCommand('#5 A Deeper Understanding', false, gameState: getIt<GameState>()).execute();
         final monster = getIt<GameState>().currentList.first as Monster;
-        AddStandeeCommand(1, null, monster.id, MonsterType.normal, false)
+        AddStandeeCommand(1, null, monster.id, MonsterType.normal, false, gameState: getIt<GameState>())
             .execute();
         final nextStandee = GameMethods.getNextAvailableBnBStandee(monster);
         expect(nextStandee, 2);
@@ -505,7 +589,11 @@ void main() async {
       test('should return a valid standee number', () {
         getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monster = getIt<GameState>().currentList.first as Monster;
         final standee = GameMethods.getRandomStandee(monster);
@@ -528,13 +616,25 @@ void main() async {
 
       test('should return a monster instance', () {
         getIt<GameState>().clearList();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         final monster = getIt<GameState>().currentList.first as Monster;
-        AddStandeeCommand(1, null, monster.id, MonsterType.normal, false)
-            .execute();
+        AddStandeeCommand(
+          1,
+          null,
+          monster.id,
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final figure = GameMethods.getFigure(
-            monster.id, monster.monsterInstances.first.getId());
+          monster.id,
+          monster.monsterInstances.first.getId(),
+        );
         expect(figure, isNotNull);
         expect(figure, isA<MonsterInstance>());
         checkNoSideEffects([], oldState);
@@ -545,10 +645,20 @@ void main() async {
       test('should return the figure id', () {
         getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         final monster = getIt<GameState>().currentList.first as Monster;
-        AddStandeeCommand(1, null, monster.id, MonsterType.normal, false)
-            .execute();
+        AddStandeeCommand(
+          1,
+          null,
+          monster.id,
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final id = GameMethods.getFigureIdFromNr(monster.id, 1);
         expect(id, isNotNull);
@@ -559,35 +669,37 @@ void main() async {
 
     group('isObjectiveOrEscort', () {
       test('should return true for Objective', () {
-        final characterClass =
-            AddCharacterCommand("Objective", "na", "whatever", 1);
+        final cmd = AddCharacterCommand("Objective", "na", "whatever", 1);
         String oldState = gameState.toString();
         expect(
-            GameMethods.isObjectiveOrEscort(
-                characterClass.character.characterClass),
-            isTrue);
+          GameMethods.isObjectiveOrEscort(cmd.character!.characterClass),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
       test('should return true for Escort', () {
-        final characterClass =
-            AddCharacterCommand("Escort", "na", "whatever", 1);
+        final cmd = AddCharacterCommand("Escort", "na", "whatever", 1);
         String oldState = gameState.toString();
         expect(
-            GameMethods.isObjectiveOrEscort(
-                characterClass.character.characterClass),
-            isTrue);
+          GameMethods.isObjectiveOrEscort(cmd.character!.characterClass),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
       test('should return false for other characters', () {
-        final characterClass =
-            AddCharacterCommand("Blinkblade", "Frosthaven", "whatever", 1);
+        final cmd = AddCharacterCommand(
+          "Blinkblade",
+          "Frosthaven",
+          "whatever",
+          1,
+        );
         String oldState = gameState.toString();
         expect(
-            GameMethods.isObjectiveOrEscort(
-                characterClass.character.characterClass),
-            isFalse);
+          GameMethods.isObjectiveOrEscort(cmd.character!.characterClass),
+          isFalse,
+        );
         checkNoSideEffects([], oldState);
       });
     });
@@ -612,9 +724,17 @@ void main() async {
         getIt<Settings>().showAmdDeck.value = true;
         getIt<GameState>().clearList();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false)
-            .execute(); // Adds monsters
-        AddMonsterCommand("Zealot", 1, true).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Adds monsters
+        AddMonsterCommand(
+          "Zealot",
+          1,
+          true,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         expect(GameMethods.shouldShowAlliesDeck(), isTrue);
         checkNoSideEffects([], oldState);
@@ -657,21 +777,27 @@ void main() async {
       test('should return true for Buttons and Bugs', () {
         String oldState = gameState.toString();
         expect(
-            GameMethods.isFrosthavenStyledEdition('Buttons and Bugs'), isTrue);
+          GameMethods.isFrosthavenStyledEdition('Buttons and Bugs'),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
       test('should return true for Gloomhaven 2nd Edition', () {
         String oldState = gameState.toString();
-        expect(GameMethods.isFrosthavenStyledEdition('Gloomhaven 2nd Edition'),
-            isTrue);
+        expect(
+          GameMethods.isFrosthavenStyledEdition('Gloomhaven 2nd Edition'),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
       test('should return true for Mercenary Packs', () {
         String oldState = gameState.toString();
         expect(
-            GameMethods.isFrosthavenStyledEdition('Mercenary Packs'), isTrue);
+          GameMethods.isFrosthavenStyledEdition('Mercenary Packs'),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
@@ -692,8 +818,11 @@ void main() async {
 
       test('should return false for Gloomhaven monster', () {
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false)
-            .execute(); // Adds monsters
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Adds monsters
         String oldState = gameState.toString();
         final monster = Monster('Zealot', 1, false);
         getIt<Settings>().style.value = Style.original;
@@ -740,7 +869,9 @@ void main() async {
         String oldState = gameState.toString();
         expect(GameMethods.findNrFromScenarioName('#1 '), 1);
         expect(
-            GameMethods.findNrFromScenarioName('#10.0 A Sticky Situation'), 10);
+          GameMethods.findNrFromScenarioName('#10.0 A Sticky Situation'),
+          10,
+        );
         expect(GameMethods.findNrFromScenarioName('#123 - Some Scenario'), 123);
         checkNoSideEffects([], oldState);
       });
@@ -772,9 +903,13 @@ void main() async {
       test('should return true if loot deck has cards', () {
         getIt<GameState>().clearList();
         SetCampaignCommand('Frosthaven').execute();
-        SetScenarioCommand('#0 Howling in the Snow', false).execute();
+        SetScenarioCommand(
+          '#0 Howling in the Snow',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
-        //DrawLootCardCommand().execute();
+        //DrawLootCardCommand(gameState: getIt<GameState>()).execute();
         expect(GameMethods.hasLootDeck(), isTrue);
         checkNoSideEffects([], oldState);
       });
@@ -782,7 +917,11 @@ void main() async {
       test('should return false if loot deck is empty', () {
         //getIt<GameState>().clearLootDeck();
         SetCampaignCommand('Jaws of the Lion').execute();
-        SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+        SetScenarioCommand(
+          '#5 A Deeper Understanding',
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         expect(GameMethods.hasLootDeck(), isFalse);
         checkNoSideEffects([], oldState);
@@ -845,10 +984,20 @@ void main() async {
     group('hasRetaliate', () {
       test('should return true if monster has retaliate', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand("Flame Demon (BnB)", 3, false)
-            .execute(); // Monster without shield
-        AddStandeeCommand(1, null, "Flame Demon (BnB)", MonsterType.boss, false)
-            .execute();
+        AddMonsterCommand(
+          "Flame Demon (BnB)",
+          3,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Monster without shield
+        AddStandeeCommand(
+          1,
+          null,
+          "Flame Demon (BnB)",
+          MonsterType.boss,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monster = getIt<GameState>().currentList.first as Monster;
         final instance = monster.monsterInstances.first;
@@ -858,10 +1007,20 @@ void main() async {
 
       test('should return false if monster does not have retaliate', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand("Black Sludge", 3, false)
-            .execute(); // Monster without shield
-        AddStandeeCommand(1, null, "Black Sludge", MonsterType.normal, false)
-            .execute();
+        AddMonsterCommand(
+          "Black Sludge",
+          3,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Monster without shield
+        AddStandeeCommand(
+          1,
+          null,
+          "Black Sludge",
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monster = getIt<GameState>().currentList.first as Monster;
         final instance = monster.monsterInstances.first;
@@ -873,10 +1032,20 @@ void main() async {
     group('hasShield', () {
       test('should return true if monster has shield', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand("Black Sludge", 3, false)
-            .execute(); // Monster without shield
-        AddStandeeCommand(1, null, "Black Sludge", MonsterType.normal, false)
-            .execute();
+        AddMonsterCommand(
+          "Black Sludge",
+          3,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Monster without shield
+        AddStandeeCommand(
+          1,
+          null,
+          "Black Sludge",
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monster = getIt<GameState>().currentList.first as Monster;
         final instance = monster.monsterInstances.first;
@@ -886,10 +1055,20 @@ void main() async {
 
       test('should return false if monster does not have shield', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand("Zealot", 1, false)
-            .execute(); // Monster without shield
-        AddStandeeCommand(1, null, "Zealot", MonsterType.normal, false)
-            .execute();
+        AddMonsterCommand(
+          "Zealot",
+          1,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute(); // Monster without shield
+        AddStandeeCommand(
+          1,
+          null,
+          "Zealot",
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final monster = getIt<GameState>().currentList.first as Monster;
         final instance = monster.monsterInstances.first;
@@ -899,28 +1078,38 @@ void main() async {
     });
 
     group('canDraw - dead character bypasses initiative check', () {
-      test('dead character (health=0) does not block draw even with no init',
-          () {
-        getIt<GameState>().clearList();
-        getIt<Settings>().noInit.value = false;
-        AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
-        // Kill the character so health = 0
-        final character =
-            getIt<GameState>().currentList.first as Character;
-        // Reduce health to 0 via ChangeHealthCommand
-        ChangeHealthCommand(-1000, 'Blinkblade', 'Blinkblade').execute();
-        expect(character.characterState.health.value, 0);
-        // Dead character with 0 initiative should NOT block the draw
-        expect(GameMethods.canDraw(), isTrue);
-      });
+      test(
+        'dead character (health=0) does not block draw even with no init',
+        () {
+          getIt<GameState>().clearList();
+          getIt<Settings>().noInit.value = false;
+          AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
+          // Kill the character so health = 0
+          final character = getIt<GameState>().currentList.first as Character;
+          // Reduce health to 0 via ChangeHealthCommand
+          ChangeHealthCommand(
+            -1000,
+            'Blinkblade',
+            'Blinkblade',
+            gameState: getIt<GameState>(),
+          ).execute();
+          expect(character.characterState.health.value, 0);
+          // Dead character with 0 initiative should NOT block the draw
+          expect(GameMethods.canDraw(), isTrue);
+        },
+      );
     });
 
     group('getInitiative - inactive monster', () {
       test('inactive monster returns initiative 99', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand('Zealot', 1, false).execute();
-        final monster =
-            getIt<GameState>().currentList.first as Monster;
+        AddMonsterCommand(
+          'Zealot',
+          1,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
+        final monster = getIt<GameState>().currentList.first as Monster;
         // Monster is inactive by default (isActive = false until ability drawn)
         expect(monster.isActive, isFalse);
         String oldState = gameState.toString();
@@ -933,7 +1122,9 @@ void main() async {
       test('Glacial Torrent Glacier does not die', () {
         String oldState = gameState.toString();
         expect(
-            GameMethods.summonDoesNotDie('Glacial Torrent', 'Glacier'), isTrue);
+          GameMethods.summonDoesNotDie('Glacial Torrent', 'Glacier'),
+          isTrue,
+        );
         checkNoSideEffects([], oldState);
       });
 
@@ -945,8 +1136,10 @@ void main() async {
 
       test('arbitrary owner and id returns false', () {
         String oldState = gameState.toString();
-        expect(GameMethods.summonDoesNotDie('Blinkblade', 'Jade Falcon'),
-            isFalse);
+        expect(
+          GameMethods.summonDoesNotDie('Blinkblade', 'Jade Falcon'),
+          isFalse,
+        );
         checkNoSideEffects([], oldState);
       });
     });
@@ -955,14 +1148,25 @@ void main() async {
       test('returns summon instance when found via character ownerId', () {
         getIt<GameState>().clearList();
         AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
-        final character =
-            getIt<GameState>().currentList.first as Character;
+        final character = getIt<GameState>().currentList.first as Character;
         // Add a summon to the character
-        final summonData = SummonData(1, 'Jade Falcon', 3, 2, 2, 0,
-            'Jade Falcon');
+        final summonData = SummonData(
+          1,
+          'Jade Falcon',
+          3,
+          2,
+          2,
+          0,
+          'Jade Falcon',
+        );
         AddStandeeCommand(
-                1, summonData, 'Blinkblade', MonsterType.normal, true)
-            .execute();
+          1,
+          summonData,
+          'Blinkblade',
+          MonsterType.normal,
+          true,
+          gameState: getIt<GameState>(),
+        ).execute();
 
         expect(character.characterState.summonList, isNotEmpty);
         final summon = character.characterState.summonList.first;
@@ -979,56 +1183,80 @@ void main() async {
     group('isFrosthavenStyledEdition - Solo edition', () {
       test('Solo with Frosthaven scenario number is frosthaven styled', () {
         // Directly set the scenario string to avoid SetScenarioCommand's loot-deck lookup
-        (gameState.scenario as ValueNotifier<String>).value = '#1 A Town Aflame';
+        (gameState.scenario as ValueNotifier<String>).value =
+            '#1 A Town Aflame';
         String oldState = gameState.toString();
         expect(GameMethods.isFrosthavenStyledEdition('Solo'), isTrue);
         checkNoSideEffects(['scenario'], oldState);
       });
 
-      test('Solo with #19 scenario is NOT frosthaven styled (Forgotten Circles)',
-          () {
-        (gameState.scenario as ValueNotifier<String>).value =
-            '#19 Forgotten Circles';
-        String oldState = gameState.toString();
-        expect(GameMethods.isFrosthavenStyledEdition('Solo'), isFalse);
-        checkNoSideEffects(['scenario'], oldState);
-      });
+      test(
+        'Solo with #19 scenario is NOT frosthaven styled (Forgotten Circles)',
+        () {
+          (gameState.scenario as ValueNotifier<String>).value =
+              '#19 Forgotten Circles';
+          String oldState = gameState.toString();
+          expect(GameMethods.isFrosthavenStyledEdition('Solo'), isFalse);
+          checkNoSideEffects(['scenario'], oldState);
+        },
+      );
 
-      test('Solo with scenario not in 1-100 range is not frosthaven styled',
-          () {
-        (gameState.scenario as ValueNotifier<String>).value =
-            '#200 Some Scenario';
-        String oldState = gameState.toString();
-        expect(GameMethods.isFrosthavenStyledEdition('Solo'), isFalse);
-        checkNoSideEffects(['scenario'], oldState);
-      });
+      test(
+        'Solo with scenario not in 1-100 range is not frosthaven styled',
+        () {
+          (gameState.scenario as ValueNotifier<String>).value =
+              '#200 Some Scenario';
+          String oldState = gameState.toString();
+          expect(GameMethods.isFrosthavenStyledEdition('Solo'), isFalse);
+          checkNoSideEffects(['scenario'], oldState);
+        },
+      );
     });
 
     group('hasShield - boss type', () {
       test('boss type standee checks boss attribute for shield', () {
         getIt<GameState>().clearList();
         // Flame Demon (BnB) is a boss with retaliate; use it to test boss path
-        AddMonsterCommand('Flame Demon (BnB)', 3, false).execute();
+        AddMonsterCommand(
+          'Flame Demon (BnB)',
+          3,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         AddStandeeCommand(
-                1, null, 'Flame Demon (BnB)', MonsterType.boss, false)
-            .execute();
-        final monster =
-            getIt<GameState>().currentList.first as Monster;
+          1,
+          null,
+          'Flame Demon (BnB)',
+          MonsterType.boss,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
+        final monster = getIt<GameState>().currentList.first as Monster;
         final instance = monster.monsterInstances.first;
         // Boss path is exercised; result depends on actual data, just verify no crash
-        final _ = GameMethods.hasShield(monster, instance);
-        final __ = GameMethods.hasRetaliate(monster, instance);
+        expect(GameMethods.hasShield(monster, instance), isA<bool>());
+        expect(GameMethods.hasRetaliate(monster, instance), isA<bool>());
       });
     });
 
     group('getNextAvailableBnBStandee', () {
       test('returns next available standee number when one is taken', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand('Zealot', 1, false).execute();
-        final monster =
-            getIt<GameState>().currentList.first as Monster;
-        AddStandeeCommand(1, null, 'Zealot', MonsterType.normal, false)
-            .execute();
+        AddMonsterCommand(
+          'Zealot',
+          1,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
+        final monster = getIt<GameState>().currentList.first as Monster;
+        AddStandeeCommand(
+          1,
+          null,
+          'Zealot',
+          MonsterType.normal,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
         String oldState = gameState.toString();
         final next = GameMethods.getNextAvailableBnBStandee(monster);
         // Standee 1 is taken; next available should be 2
@@ -1038,12 +1266,22 @@ void main() async {
 
       test('returns 0 when all standees are taken', () {
         getIt<GameState>().clearList();
-        AddMonsterCommand('Zealot', 1, false).execute();
-        final monster =
-            getIt<GameState>().currentList.first as Monster;
+        AddMonsterCommand(
+          'Zealot',
+          1,
+          false,
+          gameState: getIt<GameState>(),
+        ).execute();
+        final monster = getIt<GameState>().currentList.first as Monster;
         for (int i = 1; i <= monster.type.count; i++) {
-          AddStandeeCommand(i, null, 'Zealot', MonsterType.normal, false)
-              .execute();
+          AddStandeeCommand(
+            i,
+            null,
+            'Zealot',
+            MonsterType.normal,
+            false,
+            gameState: getIt<GameState>(),
+          ).execute();
         }
         String oldState = gameState.toString();
         final next = GameMethods.getNextAvailableBnBStandee(monster);

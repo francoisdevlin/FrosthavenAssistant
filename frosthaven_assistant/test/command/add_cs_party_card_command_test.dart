@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_cs_party_card_command.dart';
@@ -17,22 +19,27 @@ void main() {
     getIt<GameState>().clearList();
     // Using a non-CS character is fine for testing the command's logic
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   group('AddCSPartyCardCommand', () {
     test('should add a CS party card to a character deck', () {
       // Arrange
-      final command = AddCSPartyCardCommand(character.id, 1);
+      final command = AddCSPartyCardCommand(
+        character.id,
+        1,
+        gameState: getIt<GameState>(),
+      );
       final modifierDeck = character.characterState.modifierDeck;
-      final initialCardCount = modifierDeck.cardCount.value;
+      final initialCardCount = modifierDeck.drawPileSize;
 
       // Act
       command.execute();
 
       // Assert
-      final finalCardCount = modifierDeck.cardCount.value;
+      final finalCardCount = modifierDeck.drawPileSize;
       expect(finalCardCount, initialCardCount + 1);
       expect(modifierDeck.hasCard('party/1'), isTrue);
       checkSaveState();
@@ -40,38 +47,31 @@ void main() {
 
     test('should add a different CS party card to a character deck', () {
       // Arrange
-      final command = AddCSPartyCardCommand(character.id, 2);
+      final command = AddCSPartyCardCommand(
+        character.id,
+        2,
+        gameState: getIt<GameState>(),
+      );
       final modifierDeck = character.characterState.modifierDeck;
-      final initialCardCount = modifierDeck.cardCount.value;
+      final initialCardCount = modifierDeck.drawPileSize;
 
       // Act
       command.execute();
 
       // Assert
-      final finalCardCount = modifierDeck.cardCount.value;
+      final finalCardCount = modifierDeck.drawPileSize;
       expect(finalCardCount, initialCardCount + 1);
       expect(modifierDeck.hasCard('party/2'), isTrue);
       checkSaveState();
     });
 
-    test('undo should not do anything (as currently implemented)', () {
-      // Arrange
-      final command = AddCSPartyCardCommand(character.id, 1);
-      final modifierDeck = character.characterState.modifierDeck;
-      command.execute();
-      final cardCountAfterExecute = modifierDeck.cardCount.value;
-
-      // Act
-      command.undo();
-
-      // Assert
-      // The undo method is empty, so no change is expected.
-      expect(modifierDeck.cardCount.value, cardCountAfterExecute);
-    });
-
     test('describe should return correct string', () {
       // Arrange
-      final command = AddCSPartyCardCommand('Blinkblade', 1);
+      final command = AddCSPartyCardCommand(
+        'Blinkblade',
+        1,
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Blinkblade add party card 1');

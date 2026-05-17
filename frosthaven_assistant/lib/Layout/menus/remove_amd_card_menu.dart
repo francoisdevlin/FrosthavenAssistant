@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/modifier_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_front.dart';
 
-import '../../Layout/components/modal_background.dart';
+import '../../Layout/widgets/modal_background.dart';
 import '../../Resource/app_constants.dart';
 import '../../Resource/commands/remove_amd_card_command.dart';
 import '../../Resource/commands/return_modifier_card_command.dart';
@@ -9,78 +9,74 @@ import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
 import '../../services/service_locator.dart';
 
-class RemoveAMDCardMenu extends StatefulWidget {
-  const RemoveAMDCardMenu({super.key, required this.index, required this.name});
+class RemoveAMDCardMenu extends StatelessWidget {
+  const RemoveAMDCardMenu({
+    super.key,
+    required this.index,
+    required this.name,
+    this.gameState,
+  });
 
   final int index;
   final String name;
 
-  @override
-  RemoveAMDCardMenuState createState() => RemoveAMDCardMenuState();
-}
+  final GameState? gameState;
 
-class RemoveAMDCardMenuState extends State<RemoveAMDCardMenu> {
-  final GameState _gameState = getIt<GameState>();
+  static const double _kModalHeight = 180.0;
 
-  @override
-  initState() {
-    super.initState();
-  }
+  GameState get _gameState => gameState ?? getIt<GameState>();
 
   @override
   Widget build(BuildContext context) {
-    final deck = GameMethods.getModifierDeck(widget.name, _gameState);
-    final card = deck.discardPileContents[widget.index];
+    final deck = GameMethods.getModifierDeck(name, _gameState);
+    final card = deck.discardPileContents[index];
     final screenSize = MediaQuery.of(context).size;
-    double scale = 6;
-    final cardWidth = 7 * 58.6666;
+    double scale = kCardZoomDefaultScale;
+    final cardWidth = kCardZoomWidthFactor * kModifierCardBaseWidth;
     if (screenSize.width < cardWidth) {
-      scale = 6 * (screenSize.width / cardWidth);
+      scale = kCardZoomDefaultScale * (screenSize.width / cardWidth);
     }
     return Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ModifierCardWidget.buildFront(card, widget.name, scale, 1),
+          ModifierCardFront(card: card, name: name, scale: scale),
           const SizedBox(
-            height: 20,
+            height: kMenuTopPadding,
           ),
           ModalBackground(
-              width: 300,
-              height: 180,
+              width: kMenuNarrowWidth,
+              height: _kModalHeight,
               child: Column(children: [
                 const SizedBox(
-                  height: 20,
+                  height: kMenuTopPadding,
                 ),
                 TextButton(
                     onPressed: () {
-                      _gameState.action(
-                          RemoveAMDCardCommand(widget.index, widget.name));
+                      _gameState.action(RemoveAMDCardCommand(index, name,
+                          gameState: _gameState));
 
                       Navigator.pop(context);
                     },
                     child: const Text("Remove card?",
-                        textAlign: TextAlign.center,
-                        style: kButtonLabelStyle)),
+                        textAlign: TextAlign.center, style: kButtonLabelStyle)),
                 const SizedBox(
-                  height: 20,
+                  height: kMenuTopPadding,
                 ),
                 TextButton(
                   onPressed: () {
-                    _gameState.action(ReturnModifierCardCommand(widget.name));
-                    final deck =
-                        GameMethods.getModifierDeck(widget.name, _gameState);
+                    _gameState.action(ReturnModifierCardCommand(name));
+                    final deck = GameMethods.getModifierDeck(name, _gameState);
                     //if last card, remove modal
                     if (deck.discardPileIsEmpty) {
                       Navigator.pop(context);
                     }
                   },
                   child: const Text("Return top card",
-                      textAlign: TextAlign.center,
-                      style: kButtonLabelStyle),
+                      textAlign: TextAlign.center, style: kButtonLabelStyle),
                 ),
                 const SizedBox(
-                  height: 20,
+                  height: kMenuTopPadding,
                 ),
               ]))
         ]);

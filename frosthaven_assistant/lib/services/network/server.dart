@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:frosthaven_assistant/Resource/game_event.dart';
 import 'package:frosthaven_assistant/Resource/settings.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant_server/game_server.dart';
@@ -13,18 +14,31 @@ import 'connection.dart';
 import 'network.dart';
 
 class Server extends GameServer {
-  final GameState _gameState = getIt<GameState>();
-  final _communication = getIt<Communication>();
-  final _connection = getIt<Connection>();
+  final GameState _gameState;
+  final Communication _communication;
+  final Connection _connection;
+  final Settings? _settingsOverride;
+
+  Server(
+      {GameState? gameState,
+      Communication? communication,
+      Connection? connection,
+      Settings? settings})
+      : _gameState = gameState ?? getIt<GameState>(),
+        _communication = communication ?? getIt<Communication>(),
+        _connection = connection ?? getIt<Connection>(),
+        _settingsOverride = settings;
+
+  Settings get _settings => _settingsOverride ?? getIt<Settings>();
 
   @override
   bool get serverEnabled {
-    return getIt<Settings>().server.value;
+    return _settings.server.value;
   }
 
   @override
   set serverEnabled(bool value) {
-    getIt<Settings>().server.value = value;
+    _settings.server.value = value;
     super.serverEnabled = value;
   }
 
@@ -44,10 +58,8 @@ class Server extends GameServer {
   @override
   void resetState() {
     _gameState.commandIndex.value = -1;
-    _gameState.commands.clear();
-    _gameState.commandDescriptions.clear();
-    _gameState.gameSaveStates
-        .removeRange(0, _gameState.gameSaveStates.length - 1);
+    _gameState.resetCommandHistory();
+    _pinging = false;
   }
 
   @override
@@ -60,6 +72,14 @@ class Server extends GameServer {
     _gameState.redo();
   }
 
+  static const String _noEventJson = '{"type":"none"}';
+
+  String _lastSavedState() {
+    return _gameState.gameSaveStates.isNotEmpty
+        ? (_gameState.gameSaveStates.last?.getState() ?? _gameState.toString())
+        : _gameState.toString();
+  }
+
   @override
   void updateStateFromMessage(StateUpdateMessage message, Socket client) {
     if (message.index > _gameState.commandDescriptions.length) {
@@ -68,26 +88,45 @@ class Server extends GameServer {
       if (_gameState.commandDescriptions.isNotEmpty) {
         commandDescription = _gameState.commandDescriptions.last;
       }
-      send(
-          "Index:${_gameState.commandIndex.value}Description:${commandDescription}GameState:${_gameState.gameSaveStates.last!.getState()}");
+      send(StateEnvelope(
+        index: _gameState.commandIndex.value,
+        description: commandDescription,
+        eventJson: _noEventJson,
+        state: _lastSavedState(),
+      ).encode());
     } else if (message.index > _gameState.commandIndex.value) {
-      _gameState.commandIndex.value = message.index;
       if (message.index >= 0) {
-        _gameState.commandDescriptions
-            .insert(_gameState.commandIndex.value, message.description);
+        _gameState.insertReceivedDescription(message.index, message.description);
       }
       _gameState.loadFromData(message.data);
+      // Set event before commandIndex fires so VLB callbacks see it.
+      _gameState.lastEvent.value = GameEvent.fromJsonString(message.eventJson);
+      _gameState.commandIndex.value = message.index;
       _gameState.save();
       _gameState.updateAllUI();
       sendToOthers(
-          "Index:${_gameState.commandIndex.value}Description:${_gameState.commandDescriptions.last}GameState:${_gameState.gameSaveStates.last!.getState()}",
+          StateEnvelope(
+            index: _gameState.commandIndex.value,
+            description: _gameState.commandDescriptions.last,
+            eventJson: message.eventJson,
+            state: _lastSavedState(),
+          ).encode(),
           client);
     } else {
       log('Got same or lower index. ignoring: received index: ${message.indexString} current index ${_gameState.commandIndex.value}');
 
       //overwrite client state with current server state.
+      final idx = _gameState.commandIndex.value;
+      final mismatchDesc = (idx >= 0 && idx < _gameState.commandDescriptions.length)
+          ? _gameState.commandDescriptions[idx]
+          : '';
       sendToOnly(
-          "Mismatch:Index:${_gameState.commandIndex.value}Description:${_gameState.commandDescriptions[_gameState.commandIndex.value]}GameState:${_gameState.gameSaveStates.last!.getState()}",
+          "Mismatch:${StateEnvelope(
+            index: idx,
+            description: mismatchDesc,
+            eventJson: _noEventJson,
+            state: _lastSavedState(),
+          ).encode()}",
           client);
       //ignore if same index from server
     }
@@ -100,22 +139,27 @@ class Server extends GameServer {
 
   @override
   String currentStateMessage(String commandDescription) {
-    return "Index:${_gameState.commandIndex.value}Description:${commandDescription}GameState:${_gameState.gameSaveStates.last!.getState()}";
+    return StateEnvelope(
+      index: _gameState.commandIndex.value,
+      description: commandDescription,
+      eventJson: _noEventJson,
+      state: _lastSavedState(),
+    ).encode();
   }
 
-  //to not restart this ping sub process, if one is running
-  static bool pinging = false;
+  bool _pinging = false; //to not restart this ping sub process, if one is running
   @override
   void sendPing() {
     if (serverSocket != null &&
-        getIt<Settings>().server.value != false &&
-        pinging == false) {
+        _settings.server.value &&
+        !_pinging) {
+      _pinging = true;
       Future.delayed(const Duration(seconds: 20), () {
-        if (serverSocket == null || getIt<Settings>().server.value == false) {
-          pinging = false;
+        if (serverSocket == null || !_settings.server.value) {
+          _pinging = false;
         } else {
-          pinging = true;
           send("ping");
+          _pinging = false;
           sendPing();
         }
       });
@@ -137,9 +181,12 @@ class Server extends GameServer {
     _connection.removeAll();
   }
 
-  Future<void> startServer() async {
-    startServerInternal(InternetAddress.anyIPv6.address,
-        int.parse(getIt<Settings>().lastKnownPort));
+  static const int _defaultPort = 4567;
+
+  void startServer() {
+    final int port =
+        int.tryParse(_settings.lastKnownPort) ?? _defaultPort;
+    startServerInternal(InternetAddress.anyIPv6.address, port);
   }
 
   @override
@@ -172,7 +219,12 @@ class Server extends GameServer {
     }
     log('Server sends init response: "S3nD:Index:${_gameState.commandIndex.value}Description:$commandDescription');
     sendToOnly(
-        "Index:${_gameState.commandIndex.value}Description:${commandDescription}GameState:${_gameState.gameSaveStates.last!.getState()}",
+        StateEnvelope(
+          index: _gameState.commandIndex.value,
+          description: commandDescription,
+          eventJson: _noEventJson,
+          state: _lastSavedState(),
+        ).encode(),
         client);
   }
 }

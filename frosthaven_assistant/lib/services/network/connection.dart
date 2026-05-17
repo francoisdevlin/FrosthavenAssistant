@@ -13,7 +13,7 @@ class Connection {
 
   Future<Socket> connect(String address, int port) async {
     final resolvedAddresses = await _resolveAddress(address);
-    var socket = await Socket.connect(resolvedAddresses.first, port);
+    final socket = await Socket.connect(resolvedAddresses.first, port);
     add(socket);
 
     return socket;
@@ -37,7 +37,7 @@ class Connection {
   void remove(Socket socket) {
     _cleanUpClosedConnections();
     if (!_isClosed(socket)) {
-      var toDisconnect = _find(socket);
+      final toDisconnect = _find(socket);
       _destroy(toDisconnect);
     }
   }
@@ -56,15 +56,25 @@ class Connection {
     return resolvedAddresses;
   }
 
-  Iterable<Socket> _find(Socket socket) {
-    return _sockets.where((x) =>
-        x.remoteAddress == socket.remoteAddress &&
-        x.remotePort == socket.remotePort);
+  /// Returns all live sockets that match [socket] by remote address and port.
+  ///
+  /// Closed sockets are silently skipped — accessing `remoteAddress` on a
+  /// remotely-closed socket throws [SocketException].  Results are eagerly
+  /// materialised into a [List] so that [_destroy] can safely mutate
+  /// [_sockets] while iterating the returned collection.
+  List<Socket> _find(Socket socket) {
+    if (_isClosed(socket)) return const [];
+    return _sockets.where((x) {
+      if (_isClosed(x)) return false;
+      return x.remoteAddress == socket.remoteAddress &&
+          x.remotePort == socket.remotePort;
+    }).toList();
   }
 
   void _destroy(Iterable<Socket> sockets) {
-    while (sockets.isNotEmpty) {
-      var socket = sockets.first;
+    // Copy to a list first: callers like removeAll() pass _sockets directly,
+    // so mutating it inside the loop would cause concurrent-modification errors.
+    for (final socket in List.of(sockets)) {
       socket.destroy();
       _sockets.remove(socket);
     }
@@ -88,9 +98,9 @@ class Connection {
   }
 
   void _cleanUpClosedConnections() {
-    var toDisconnect = _sockets.where((x) => _isClosed(x));
+    final toDisconnect = _sockets.where((x) => _isClosed(x));
     while (toDisconnect.isNotEmpty) {
-      var socket = toDisconnect.first;
+      final socket = toDisconnect.first;
       socket.destroy();
       _sockets.remove(socket);
     }

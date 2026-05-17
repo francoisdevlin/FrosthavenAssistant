@@ -1,3 +1,5 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/donate_cs_sanctuary_command.dart';
@@ -16,43 +18,59 @@ void main() {
 
   setUp(() {
     getIt<GameState>().clearList();
-    AddCharacterCommand('Blinkblade', 'Frosthaven', '', 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   group('DonateCSSanctuaryCommand', () {
     test('should add sanctuary cards to character modifier deck', () {
       final deck = character.characterState.modifierDeck;
-      final countBefore = deck.cardCount.value;
+      final countBefore = deck.drawPileSize;
 
-      DonateCSSanctuaryCommand(character.id).execute();
+      DonateCSSanctuaryCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute();
 
       expect(deck.hasCSSanctuary(), isTrue);
-      expect(deck.cardCount.value, greaterThan(countBefore));
+      expect(deck.drawPileSize, greaterThan(countBefore));
       checkSaveState();
     });
 
     test('describe includes character id', () {
-      final command = DonateCSSanctuaryCommand(character.id);
+      final command = DonateCSSanctuaryCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      );
       expect(command.describe(), '${character.id} donate to sanctuary');
     });
   });
 
   group('RemoveCSSanctuaryDonationCommand', () {
     test('should remove sanctuary cards from character modifier deck', () {
-      DonateCSSanctuaryCommand(character.id).execute();
+      DonateCSSanctuaryCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute();
       final deck = character.characterState.modifierDeck;
       expect(deck.hasCSSanctuary(), isTrue);
 
-      RemoveCSSanctuaryDonationCommand(character.id).execute();
+      RemoveCSSanctuaryDonationCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute();
 
       expect(deck.hasCSSanctuary(), isFalse);
       checkSaveState();
     });
 
     test('describe includes character id', () {
-      final command = RemoveCSSanctuaryDonationCommand(character.id);
+      final command = RemoveCSSanctuaryDonationCommand(
+        character.id,
+        gameState: getIt<GameState>(),
+      );
       expect(command.describe(), "remove ${character.id}'s donation");
     });
   });

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Layout/menus/add_monster_menu.dart';
-import 'package:frosthaven_assistant/Resource/state/game_state.dart';
-import 'package:frosthaven_assistant/services/service_locator.dart';
 
 import '../../command/test_helpers.dart';
 
@@ -88,7 +86,7 @@ void main() {
       await tester.tap(find.widgetWithText(
           CheckboxListTile, 'Show Scenario Special Monsters'));
       await tester.pump();
-      // Just verify it doesn't throw
+      expect(find.byType(AddMonsterMenu), findsOneWidget);
     });
 
     testWidgets('tapping Add as Ally checkbox works',
@@ -96,7 +94,7 @@ void main() {
       await pumpMenu(tester);
       await tester.tap(find.widgetWithText(CheckboxListTile, 'Add as Ally'));
       await tester.pump();
-      // Just verify it doesn't throw
+      expect(find.byType(AddMonsterMenu), findsOneWidget);
     });
 
     testWidgets('monster list shows results after typing filter',

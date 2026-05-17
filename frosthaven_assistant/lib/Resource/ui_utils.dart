@@ -9,20 +9,22 @@ void openDialogOld(BuildContext context, Widget widget) {
   showDialog(context: context, builder: (BuildContext context) => widget);
 }
 
-TextStyle getTitleTextStyle(double scale, {bool forceBlack = false}) {
+TextStyle getTitleTextStyle(double scale,
+    {bool forceBlack = false, Settings? settings}) {
   //note force black since non modal menus are all white even in dark mode.
   return TextStyle(
       fontSize: kFontSizeTitle * scale,
-      color: forceBlack || !getIt<Settings>().darkMode.value
+      color: forceBlack || !(settings ?? getIt<Settings>()).darkMode.value
           ? Colors.black
           : Colors.white);
 }
 
-TextStyle getSmallTextStyle(double scale, {bool forceBlack = false}) {
+TextStyle getSmallTextStyle(double scale,
+    {bool forceBlack = false, Settings? settings}) {
   //note force black since non modal menus are all white even in dark mode.
   return TextStyle(
       fontSize: kFontSizeSmall * scale,
-      color: forceBlack || !getIt<Settings>().darkMode.value
+      color: forceBlack || !(settings ?? getIt<Settings>()).darkMode.value
           ? Colors.black
           : Colors.white);
 }
@@ -30,6 +32,49 @@ TextStyle getSmallTextStyle(double scale, {bool forceBlack = false}) {
 TextStyle getButtonTextStyle(double scale) {
   return TextStyle(fontSize: kFontSizeSmall * scale, color: Colors.blue);
 }
+
+TextStyle getCardTitleStyle(double fontSize, Shadow shadow, bool frosthavenStyle,
+    {Color color = Colors.white, double? height}) {
+  return TextStyle(
+    fontFamily: frosthavenStyle ? 'GermaniaOne' : 'Pirata',
+    color: color,
+    fontSize: fontSize,
+    height: height,
+    shadows: [shadow],
+  );
+}
+
+TextStyle getCardNumberStyle(double fontSize, Shadow shadow, bool frosthavenStyle,
+    {Color color = Colors.white, double? height}) {
+  return TextStyle(
+    fontFamily: frosthavenStyle ? 'Markazi' : 'Majalla',
+    color: color,
+    fontSize: fontSize,
+    height: height,
+    shadows: [shadow],
+  );
+}
+
+TextStyle getWhiteShadowStyle(double fontSize, Shadow shadow, {double? height}) {
+  return TextStyle(
+    fontSize: fontSize,
+    color: Colors.white,
+    shadows: [shadow],
+    height: height,
+  );
+}
+
+Shadow textShadow(double scale) => Shadow(
+  offset: Offset(kShadowOffset * scale, kShadowOffset * scale),
+  color: Colors.black87,
+  blurRadius: kShadowOffset * scale,
+);
+
+BoxShadow cardBoxShadow(double scale) => BoxShadow(
+  color: Colors.black45,
+  blurRadius: kCardShadowBlur * scale,
+  offset: Offset(kCardShadowOffsetX * scale, kCardShadowOffsetY * scale),
+);
 
 bool isLargeTablet(BuildContext context) {
   double screenWidth = MediaQuery.of(context).size.width;
@@ -87,13 +132,7 @@ void openDialogWithDismissOption(
       child: Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(kDialogInsetPadding),
-          child: ValueListenableBuilder<int>(
-              valueListenable: getIt<GameState>().updateForUndo,
-              builder: (context, value, child) {
-                rebuildAllChildren(
-                    context); //only way to remake the value listenable builders with broken references
-                return widget;
-              })),
+          child: widget),
     )
   ]);
   showDialog(
@@ -103,13 +142,15 @@ void openDialogWithDismissOption(
 }
 
 //used to get transparent background when dragging in re-orderable widgets
-Widget defaultBuildDraggableFeedback(
-    BuildContext context, BoxConstraints constraints, Widget child) {
+const double _kDraggableElevation = 6.0;
+
+Widget defaultBuildDraggableFeedback( // ignore: avoid-returning-widgets, top-level utility function for draggable feedback
+    BuildContext _, BoxConstraints constraints, Widget child) {
   return Transform(
     transform: Matrix4.rotationZ(0),
     alignment: FractionalOffset.topLeft,
     child: Material(
-      elevation: 6.0,
+      elevation: _kDraggableElevation,
       color: Colors.transparent,
       borderRadius: BorderRadius.zero,
       child: Card(
@@ -151,7 +192,7 @@ bool hasGHVersion(String name) {
 
 const TextStyle toastTextStyle =
     TextStyle(fontFamily: "markazi", fontSize: kFontSizeToast);
-createToastContent(BuildContext context, String text) {
+GestureDetector createToastContent(BuildContext context, String text) { // ignore: avoid-returning-widgets, top-level utility function for toast content
   return GestureDetector(
     onTap: () {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -160,7 +201,7 @@ createToastContent(BuildContext context, String text) {
   );
 }
 
-showToast(BuildContext context, String text) {
+void showToast(BuildContext context, String text) {
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: Colors.teal,
@@ -169,27 +210,27 @@ showToast(BuildContext context, String text) {
   }
 }
 
-showToastSticky(BuildContext context, String text) {
+Future<void> showToastSticky(BuildContext context, String text,
+    {GameState? gameState}) async {
   if (context.mounted) {
-    ScaffoldMessenger.of(context)
+    await ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(
           duration: const Duration(days: 1),
           backgroundColor: Colors.teal,
           content: createToastContent(context, text),
         ))
-        .closed
-        .then((value) {
-      if (getIt<GameState>().toastMessage.value == text) {
-        MutableGameMethods.setToastMessage("");
-      }
-    });
+        .closed;
+    if ((gameState ?? getIt<GameState>()).toastMessage.value == text) {
+      GameUtilMethods.setToastMessage("");
+    }
   }
 }
 
-showErrorToastStickyWithRetry(
-    BuildContext context, String text, Function() retry) {
+Future<void> showErrorToastStickyWithRetry(
+    BuildContext context, String text, Function() retry,
+    {GameState? gameState}) async {
   ScaffoldMessenger.of(context).clearSnackBars();
-  ScaffoldMessenger.of(context)
+  await ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(
         duration: const Duration(days: 1),
         backgroundColor: Colors.redAccent,
@@ -210,10 +251,8 @@ showErrorToastStickyWithRetry(
           ],
         ),
       ))
-      .closed
-      .then((value) {
-    if (getIt<GameState>().toastMessage.value == text) {
-      MutableGameMethods.setToastMessage("");
-    }
-  });
+      .closed;
+  if ((gameState ?? getIt<GameState>()).toastMessage.value == text) {
+    GameUtilMethods.setToastMessage("");
+  }
 }

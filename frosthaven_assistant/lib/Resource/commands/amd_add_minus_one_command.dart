@@ -1,14 +1,16 @@
-import '../../services/service_locator.dart';
 import '../game_methods.dart';
 import '../state/game_state.dart';
 
 class AmdAddMinusOneCommand extends Command {
   String name;
-  AmdAddMinusOneCommand(this.name);
+  final GameState _gameState;
+
+  AmdAddMinusOneCommand(this.name, {required GameState gameState})
+      : _gameState = gameState;
 
   @override
   void execute() {
-    final deck = GameMethods.getModifierDeck(name, getIt<GameState>());
+    final deck = GameMethods.getModifierDeck(name, _gameState);
     deck.addMinusOne(stateAccess);
   }
 

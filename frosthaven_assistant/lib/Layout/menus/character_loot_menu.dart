@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Layout/widgets/scrollable_menu_card.dart';
 import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
@@ -6,34 +7,129 @@ import '../../Resource/game_methods.dart';
 import '../../services/service_locator.dart';
 
 class CharacterLootMenu extends StatefulWidget {
-  const CharacterLootMenu({super.key});
+  const CharacterLootMenu({super.key, this.gameState});
+
+  final GameState? gameState;
 
   @override
   CharacterLootMenuState createState() => CharacterLootMenuState();
 }
 
 class CharacterLootMenuState extends State<CharacterLootMenu> {
+  static const int _kCoinValue3 = 3;
+  static const int _kCoinValue2 = 2;
+  static const List<String> _kLootNames = [
+    "coin",
+    "hide",
+    "lumber",
+    "metal",
+    "arrowvine",
+    "axenut",
+    "corpsecap",
+    "flamefruit",
+    "rockroot",
+    "snowthistle",
+  ];
+
+  late final GameState _gameState;
+
   @override
-  initState() {
-    // at the beginning, all items are shown
+  void initState() {
+    _gameState = widget.gameState ?? getIt<GameState>();
     super.initState();
   }
 
-  int getLootAmount(String characterId, String lootName) {
+  @override
+  Widget build(BuildContext context) {
+    List<Character> characters = GameMethods.getCurrentCharacters();
+
+    return ScrollableMenuCard(
+      child: Column(
+        children: [
+          for (Character character in characters)
+            _CharacterLootWidget(
+                characterId: character.characterClass.id,
+                characterName: character.characterState.display.value,
+                gameState: _gameState),
+        ],
+      ),
+    );
+  }
+}
+
+class _CharacterLootWidget extends StatelessWidget {
+  const _CharacterLootWidget({
+    required this.characterId,
+    required this.characterName,
+    required this.gameState,
+  });
+
+  final String characterId;
+  final String characterName;
+  final GameState gameState;
+
+  static const double _kCharIconSpacing = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: kMenuNarrowWidth),
+      child: Column(children: [
+        const Divider(),
+        Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Image(
+                filterQuality: FilterQuality.medium,
+                height: kIconSize,
+                width: kIconSize,
+                fit: BoxFit.contain,
+                image: AssetImage("assets/images/class-icons/$characterId.png"),
+              ),
+              const SizedBox(width: _kCharIconSpacing),
+              Text(
+                "$characterName's loot:",
+                style: kTitleStyle,
+              )
+            ]),
+        ...CharacterLootMenuState._kLootNames.map((name) => _LootListTile(
+            lootName: name, characterId: characterId, gameState: gameState)),
+      ]),
+    );
+  }
+}
+
+class _LootListTile extends StatelessWidget {
+  const _LootListTile({
+    required this.lootName,
+    required this.characterId,
+    required this.gameState,
+  });
+
+  final String lootName;
+  final String characterId;
+  final GameState gameState;
+
+  static const double _kContentPaddingLeft = 14.0;
+  static const double _kHorizontalTitleGap = 6.0;
+  static const double _kTrailingPaddingRight = 16.0;
+
+  int _getLootAmount() {
     int value = 0;
-    for (var item in getIt<GameState>().lootDeck.discardPileContents) {
+    for (final item in gameState.lootDeck.discardPileContents) {
       if (item.owner == characterId && item.gfx.contains(lootName)) {
         if (lootName == "coin") {
           if (item.gfx.endsWith("3")) {
-            value += 3;
+            value += CharacterLootMenuState._kCoinValue3;
           } else if (item.gfx.endsWith("2")) {
-            value += 2;
+            value += CharacterLootMenuState._kCoinValue2;
           } else {
             value += 1;
           }
           value += item.enhanced;
         } else {
-          var itemValue = item.getValue();
+          final itemValue = item.getValue();
           if (itemValue != null) {
             value += itemValue;
           }
@@ -43,20 +139,21 @@ class CharacterLootMenuState extends State<CharacterLootMenu> {
     return value;
   }
 
-  Widget createListTile(String lootName, String characterId) {
-    int amount = getLootAmount(characterId, lootName);
+  @override
+  Widget build(BuildContext context) {
+    int amount = _getLootAmount();
     if (amount == 0) {
       return Container();
     }
-    ListTile listTile = ListTile(
-        contentPadding: const EdgeInsets.only(left: 14),
+    return ListTile(
+        contentPadding: const EdgeInsets.only(left: _kContentPaddingLeft),
         minVerticalPadding: 0,
         minLeadingWidth: 0,
-        horizontalTitleGap: 6,
+        horizontalTitleGap: _kHorizontalTitleGap,
         leading: Image(
           filterQuality: FilterQuality.medium,
-          height: 30,
-          width: 30,
+          height: kIconSize,
+          width: kIconSize,
           fit: BoxFit.contain,
           image: AssetImage("assets/images/loot/${lootName}_icon.png"),
         ),
@@ -66,91 +163,10 @@ class CharacterLootMenuState extends State<CharacterLootMenu> {
           maxLines: 1,
         ),
         trailing: Container(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: _kTrailingPaddingRight),
             child: Text(
               "$amount",
               style: kHeadingStyle,
             )));
-
-    return listTile;
-  }
-
-  Widget buildCharacterLootWidget(String characterId, String characterName) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: Column(children: [
-        const Divider(),
-        Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Image(
-                filterQuality: FilterQuality.medium,
-                height: 30,
-                width: 30,
-                fit: BoxFit.contain,
-                image: AssetImage("assets/images/class-icons/$characterId.png"),
-              ),
-              const SizedBox(
-                width: 10,
-              ),
-              Text(
-                "$characterName's loot:",
-                style: kTitleStyle,
-              )
-            ]),
-        createListTile("coin", characterId),
-        createListTile("hide", characterId),
-        createListTile("lumber", characterId),
-        createListTile("metal", characterId),
-        createListTile("arrowvine", characterId),
-        createListTile("axenut", characterId),
-        createListTile("corpsecap", characterId),
-        createListTile("flamefruit", characterId),
-        createListTile("rockroot", characterId),
-        createListTile("snowthistle", characterId),
-      ]),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ScrollController scrollController = ScrollController();
-
-    List<Character> characters = GameMethods.getCurrentCharacters();
-
-    return Card(
-        child: Scrollbar(
-            controller: scrollController,
-            child: SingleChildScrollView(
-                controller: scrollController,
-                child: Stack(children: [
-                  Column(
-                    children: [
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      for (Character character in characters)
-                        buildCharacterLootWidget(character.characterClass.id,
-                            character.characterState.display.value),
-                      const SizedBox(
-                        height: kMenuCloseButtonSpacing,
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                      width: kCloseButtonWidth,
-                      height: kButtonSize,
-                      right: 0,
-                      bottom: 0,
-                      child: TextButton(
-                          child: const Text(
-                            'Close',
-                            style: kButtonLabelStyle,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          }))
-                ]))));
   }
 }

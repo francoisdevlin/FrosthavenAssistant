@@ -3,24 +3,27 @@ import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/settings.dart';
 
 import '../Resource/enums.dart';
+import '../Resource/ui_utils.dart';
 import '../services/service_locator.dart';
 import 'element_button.dart';
 
 class TopBar extends StatelessWidget {
-  const TopBar({super.key});
+  static const double _kMenuIconSize = 24.0;
+  static const double _kTitlePaddingLeft = 2.0;
+  static const double _kFlexibleHeight = 42.0;
+
+  const TopBar({super.key, this.settings});
+
+  final Settings? settings;
 
   @override
   Widget build(BuildContext context) {
-    Settings settings = getIt<Settings>();
+    final settings = this.settings ?? getIt<Settings>();
     return ValueListenableBuilder<double>(
-        valueListenable: getIt<Settings>().userScalingBars,
+        valueListenable: settings.userScalingBars,
         builder: (context, value, child) {
           final userScaling = settings.userScalingBars.value;
-          var shadow = Shadow(
-            offset: Offset(1 * userScaling, 1 * userScaling),
-            color: Colors.black87,
-            blurRadius: 1 * userScaling,
-          );
+          final shadow = textShadow(userScaling);
           return AppBar(
             iconTheme: const IconThemeData(color: Colors.white),
             leading: Listener(
@@ -33,40 +36,37 @@ class TopBar extends StatelessWidget {
               },
               child: Container(
                 alignment: Alignment.center,
-                child:
-                    Icon(Icons.menu, shadows: [shadow], size: 24 * userScaling),
+                child: Icon(Icons.menu,
+                    shadows: [shadow], size: _kMenuIconSize * userScaling),
               ),
             ),
             title: Container(
-              padding: EdgeInsets.only(left: 2.0 * userScaling),
+              padding: EdgeInsets.only(left: _kTitlePaddingLeft * userScaling),
               child: Text(
                 "X-haven\nAssistant",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: kFontSizeBody * userScaling,
-                  shadows: [shadow],
-                ),
+                style: getWhiteShadowStyle(kFontSizeBody * userScaling, shadow),
               ),
             ),
-            toolbarHeight: 40 * settings.userScalingBars.value,
+            toolbarHeight: kBarHeight * settings.userScalingBars.value,
             flexibleSpace: ValueListenableBuilder<bool>(
-                valueListenable: getIt<Settings>().darkMode,
+                valueListenable: settings.darkMode,
                 builder: (context, value, child) {
-                  final darkMode = getIt<Settings>().darkMode.value;
+                  final darkMode = settings.darkMode.value;
                   return Container(
-                    height: 42 * userScaling,
+                    height: _kFlexibleHeight * userScaling,
                     decoration: BoxDecoration(
                       color: darkMode ? Colors.black : Colors.transparent,
                       image: DecorationImage(
-                        opacity: darkMode ? 0.4 : 1,
+                        opacity: darkMode ? kDarkModeOpacity : 1,
                         fit: BoxFit.cover,
                         repeat: ImageRepeat.repeatX,
                         image: ResizeImage(
                             AssetImage(darkMode
                                 ? 'assets/images/psd/gloomhaven-bar.png'
                                 : 'assets/images/psd/frosthaven-bar.png'),
-                            height:
-                                (40 * settings.userScalingBars.value).toInt()),
+                            height: (kBarHeight *
+                                    settings.userScalingBars.value)
+                                .toInt()),
                       ),
                     ),
                   );

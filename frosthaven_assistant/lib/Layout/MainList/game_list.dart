@@ -1,0 +1,256 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Resource/scaling.dart';
+import 'package:reorderables/reorderables.dart';
+
+import '../../Resource/ui_utils.dart';
+import '../view_models/main_list_view_model.dart';
+import 'main_list_item.dart';
+
+/// Wraps a list item and plays a FLIP translation animation when [animateFrom]
+/// is called with the item's previous global position.
+///
+/// Uses [ValueKey] (not GlobalKey) so that [ReorderableWrap] can safely
+/// duplicate this widget into the drag-feedback overlay without triggering
+/// the "multiple widgets used the same GlobalKey" error. State registration
+/// with the parent [_GameListState] uses the [onRegister]/[onUnregister]
+/// callbacks; the feedback copy is ignored because the original state is
+/// still mounted when the copy registers.
+class _FlipItem extends StatefulWidget {
+  const _FlipItem({
+    required super.key, // ValueKey(itemId)
+    required this.itemId,
+    required this.onRegister,
+    required this.onUnregister,
+    required this.child,
+  });
+
+  final String itemId;
+  final void Function(String id, _FlipItemState state) onRegister;
+  final void Function(String id, _FlipItemState state) onUnregister;
+  final Widget child;
+
+  @override
+  State<_FlipItem> createState() => _FlipItemState();
+}
+
+class _FlipItemState extends State<_FlipItem>
+    with SingleTickerProviderStateMixin {
+  static const Duration _kDuration = Duration(milliseconds: 500);
+
+  late final AnimationController _controller;
+  late final CurvedAnimation _curved;
+  Offset _startOffset = Offset.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: _kDuration);
+    _curved =
+        CurvedAnimation(parent: _controller, curve: Curves.linearToEaseOut);
+    widget.onRegister(widget.itemId, this);
+  }
+
+  @override
+  void didUpdateWidget(_FlipItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.itemId != widget.itemId) {
+      oldWidget.onUnregister(oldWidget.itemId, this);
+    }
+    widget.onRegister(widget.itemId, this);
+  }
+
+  @override
+  void dispose() {
+    widget.onUnregister(widget.itemId, this);
+    _curved.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Called after the new layout has settled. [globalFrom] is the item's
+  /// screen position before the list changed (the "First" in FLIP). Measures
+  /// the current "Last" position, computes the invert offset, and plays.
+  void animateFrom(Offset globalFrom) {
+    if (!mounted) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return;
+    final globalTo = box.localToGlobal(Offset.zero);
+    _startOffset = globalFrom - globalTo;
+    if (_startOffset == Offset.zero) return;
+    _controller.forward(from: 0.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _curved,
+        builder: (context, child) => Transform.translate(
+          offset: _startOffset * (1 - _curved.value),
+          child: child,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class GameList extends StatefulWidget {
+  const GameList({super.key, required this.vm});
+
+  final MainListViewModel vm;
+
+  @override
+  State<GameList> createState() => _GameListState();
+}
+
+class _GameListState extends State<GameList> {
+  static const int _kTwoColumns = 2;
+  static const double _kTopBarHeight = 80.0;
+  static const double _kHalfHeightFactor = 0.5;
+
+  final Map<String, _FlipItemState> _flipStates = {};
+  List<Widget> _cachedChildren = const [];
+  bool _skipNextAnimation = false;
+
+  void _registerFlipState(String id, _FlipItemState state) {
+    _flipStates[id] = state;
+  }
+
+  void _unregisterFlipState(String id, _FlipItemState state) {
+    if (_flipStates[id] == state) _flipStates.remove(id);
+  }
+
+  Map<String, Offset> _capturePositions() {
+    final result = <String, Offset>{};
+    for (final entry in _flipStates.entries) {
+      if (!entry.value.mounted) continue;
+      final box = entry.value.context.findRenderObject() as RenderBox?;
+      if (box != null && box.attached) {
+        result[entry.key] = box.localToGlobal(Offset.zero);
+      }
+    }
+    return result;
+  }
+
+  void _playFlipAnimations(Map<String, Offset> fromPositions) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final entry in fromPositions.entries) {
+        _flipStates[entry.key]?.animateFrom(entry.value);
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.vm.updateList.addListener(_onUpdateList);
+    _cachedChildren = _buildChildren();
+  }
+
+  @override
+  void didUpdateWidget(GameList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.vm, widget.vm)) {
+      oldWidget.vm.updateList.removeListener(_onUpdateList);
+      widget.vm.updateList.addListener(_onUpdateList);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.vm.updateList.removeListener(_onUpdateList);
+    super.dispose();
+  }
+
+  void _onUpdateList() {
+    final skipAnimation = _skipNextAnimation;
+    _skipNextAnimation = false;
+    final fromPositions = skipAnimation ? null : _capturePositions();
+    setState(() {
+      _cachedChildren = _buildChildren();
+    });
+    if (fromPositions != null) {
+      _playFlipAnimations(fromPositions);
+    }
+  }
+
+  List<Widget> _buildChildren() {
+    final vm = widget.vm;
+    final currentIds = <String>{};
+    final children = List<Widget>.generate(
+      vm.currentListLength,
+      (i) {
+        final id = vm.itemIdAt(i);
+        currentIds.add(id);
+        return RepaintBoundary(
+          child: _FlipItem(
+            key: ValueKey(id),
+            itemId: id,
+            onRegister: _registerFlipState,
+            onUnregister: _unregisterFlipState,
+            child: MainListItem(key: Key(id), data: vm.itemAt(i)),
+          ),
+        );
+      },
+    );
+    _flipStates
+        .removeWhere((id, state) => !currentIds.contains(id) && !state.mounted);
+    return children;
+  }
+
+  int _getItemsForHalfTotalHeight(
+      List<double> widgetPositions, Size screenSize) {
+    double listWidth = getMainListWidth(context);
+    bool canFit2Columns = screenSize.width >= listWidth * _kTwoColumns;
+    if (!canFit2Columns) {
+      return widget.vm.currentListLength;
+    }
+    double screenHeight =
+        screenSize.height - _kTopBarHeight * widget.vm.userScalingBars;
+
+    if (widgetPositions.isNotEmpty) {
+      bool allFitInView = widgetPositions.last < screenHeight * _kTwoColumns;
+
+      for (int i = 0; i < widgetPositions.length; i++) {
+        if (widgetPositions[i] > widgetPositions.last / _kTwoColumns) {
+          if (allFitInView) {
+            if (widgetPositions[i] > screenHeight) {
+              return i;
+            }
+          }
+          return i + 1;
+        }
+      }
+    }
+    return widgetPositions.length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    List<double> itemHeights = widget.vm.getItemHeights(context);
+    int itemsPerColumn = _getItemsForHalfTotalHeight(itemHeights, screenSize);
+    int itemsColumn2 = itemHeights.length - itemsPerColumn;
+    itemsPerColumn = max(itemsPerColumn, itemsColumn2);
+    double paddingBottom = _kHalfHeightFactor * screenSize.height;
+
+    return ReorderableWrap(
+      padding: EdgeInsets.only(bottom: paddingBottom),
+      scrollAnimationDuration: const Duration(milliseconds: 400),
+      reorderAnimationDuration: const Duration(milliseconds: 400),
+      maxMainAxisCount: itemsPerColumn,
+      ignorePrimaryScrollController: false,
+      direction: Axis.vertical,
+      buildDraggableFeedback: defaultBuildDraggableFeedback,
+      needsLongPressDraggable: true,
+      onReorder: (int oldIndex, int newIndex) {
+        _skipNextAnimation = true;
+        widget.vm.reorderItem(oldIndex, newIndex);
+      },
+      children: _cachedChildren,
+    );
+  }
+}

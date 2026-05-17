@@ -3,6 +3,12 @@ part of 'game_state.dart';
 // ignore_for_file: library_private_types_in_public_api
 
 class ModifierDeck {
+  static const int _kImbuementLevel1 = 1;
+  static const int _kImbuementLevel2 = 2;
+  static const int _kPlusMinus1Count = 5;
+  static const int _kPlus0Count = 6;
+  static const int _kCursePosition = 5;
+
   final String name;
   final CardStack<ModifierCard> _drawPile = CardStack<ModifierCard>();
   final CardStack<ModifierCard> _discardPile = CardStack<ModifierCard>();
@@ -20,8 +26,6 @@ class ModifierDeck {
     "vi-gr-empower": ValueNotifier<int>(0),
   };
 
-  final _cardCount = ValueNotifier<int>(
-      0); //TODO: everything is a hammer - use maybe change notifier instead?
   final _badOmen = ValueNotifier<int>(0);
   final _corrosiveSpew = ValueNotifier<bool>(false);
   final _addedMinusOnes = ValueNotifier<int>(0);
@@ -49,7 +53,7 @@ class ModifierDeck {
   ModifierCard get discardPileTop => _discardPile.peek;
   ModifierCard get drawPileTop => _drawPile.peek;
 
-  ValueListenable<int> get cardCount => _cardCount;
+  Listenable get drawPileNotifier => _drawPile;
   ValueListenable<int> get badOmen => _badOmen;
   ValueListenable<bool> get corrosiveSpew => _corrosiveSpew;
   ValueListenable<int> get addedMinusOnes => _addedMinusOnes;
@@ -66,17 +70,35 @@ class ModifierDeck {
   ModifierDeck.fromJson(this.name, Map<String, dynamic> modifierDeckData) {
     _initDeck();
     _initListeners();
+    updateFromJson(modifierDeckData);
+  }
 
-    for (var item in modifierDeckData["drawPile"] as List) {
+  /// Resets this deck to the default 20-card state, firing all notifiers.
+  void resetToDefault() {
+    _initDeck();
+    _cassandraSpecial.value = false;
+  }
+
+  /// Updates this deck in-place from [modifierDeckData], firing all relevant
+  /// [ValueNotifier] listeners so subscribed widgets rebuild automatically.
+  void updateFromJson(Map<String, dynamic> modifierDeckData) {
+    // Reset removable counts first (fires _handleRemovableCards on the current
+    // pile, but the piles are fully replaced below anyway).
+    for (final key in _removables.keys) {
+      _removables[key]?.value = 0;
+    }
+    _needsShuffle = false;
+
+    for (final item in modifierDeckData["drawPile"] as List) {
       String gfx = item["gfx"];
       if (gfx == "curse" ||
           gfx.contains("empower") ||
           gfx.contains("enfeeble") ||
           gfx == "bless") {
-        addRemovableValue(gfx, 1);
+        addRemovableValue(_StateModifier(), gfx, 1);
       }
     }
-    for (var item in modifierDeckData["discardPile"] as List) {
+    for (final item in modifierDeckData["discardPile"] as List) {
       String gfx = item["gfx"];
       if (_isMultiplyType(gfx)) {
         _needsShuffle = true;
@@ -91,43 +113,38 @@ class ModifierDeck {
     if (modifierDeckData.containsKey('removedPile')) {
       _removedPile.setList(_getCardsFromJson(modifierDeckData, "removedPile"));
     }
-    _cardCount.value = _drawPile.size();
 
-    if (modifierDeckData.containsKey("imbuement")) {
-      int imbuement = modifierDeckData['imbuement'];
-      _imbuement.value = imbuement;
-    }
-
-    if (modifierDeckData.containsKey('badOmen')) {
-      _badOmen.value = modifierDeckData["badOmen"] as int;
-    }
-    if (modifierDeckData.containsKey('corrosiveSpew')) {
-      _corrosiveSpew.value = modifierDeckData["corrosiveSpew"] as bool;
-    }
-    if (modifierDeckData.containsKey('revealed')) {
-      _revealedCount.value = modifierDeckData["revealed"] as int;
-    }
-    if (modifierDeckData.containsKey('cassandra')) {
-      _cassandraSpecial.value = modifierDeckData["cassandra"] as bool;
-    }
-    if (modifierDeckData.containsKey('addedMinusOnes')) {
-      _addedMinusOnes.value = modifierDeckData["addedMinusOnes"] as int;
-    }
+    _imbuement.value = modifierDeckData.containsKey("imbuement")
+        ? modifierDeckData['imbuement'] as int
+        : 0;
+    _badOmen.value = modifierDeckData.containsKey('badOmen')
+        ? modifierDeckData["badOmen"] as int
+        : 0;
+    _corrosiveSpew.value = modifierDeckData.containsKey('corrosiveSpew')
+        ? modifierDeckData["corrosiveSpew"] as bool
+        : false;
+    _revealedCount.value = modifierDeckData.containsKey('revealed')
+        ? modifierDeckData["revealed"] as int
+        : 0;
+    _cassandraSpecial.value = modifierDeckData.containsKey('cassandra')
+        ? modifierDeckData["cassandra"] as bool
+        : false;
+    _addedMinusOnes.value = modifierDeckData.containsKey('addedMinusOnes')
+        ? modifierDeckData["addedMinusOnes"] as int
+        : 0;
   }
 
-  void setRemovableValue(String id, int value) {
+  void setRemovableValue(_StateModifier _, String id, int value) {
     _removables[id]?.value = value;
   }
 
-  void addRemovableValue(String id, int value) {
+  void addRemovableValue(_StateModifier _, String id, int value) {
     _removables[id]?.value += value;
   }
 
   ValueListenable<int> getRemovable(String id) {
-    if (_removables[id] == null) {
-      _removables[id] = ValueNotifier<int>(0);
-    }
-    return _removables[id]!;
+    _removables[id] ??= ValueNotifier<int>(0);
+    return _removables[id] ?? ValueNotifier<int>(0);
   }
 
   void moveCardToRemovedPile(_StateModifier s, String gfx) {
@@ -150,32 +167,30 @@ class ModifierDeck {
     _corrosiveSpew.value = true;
   }
 
-  void addCSSanctuary(_StateModifier s) {
+  void addCSSanctuary(_StateModifier s, {GameState? gameState}) {
     //adds one of each
-    final GameState gameState = getIt<GameState>();
-    _drawPile.add(gameState._sanctuaryDeck.drawFlip(s));
-    _drawPile.add(gameState._sanctuaryDeck.drawMult(s));
+    final gs = gameState ?? getIt<GameState>();
+    _drawPile.add(gs._sanctuaryDeck.drawFlip(s));
+    _drawPile.add(gs._sanctuaryDeck.drawMult(s));
     _drawPile.shuffle();
-    _cardCount.value = _drawPile.size();
   }
 
-  void removeCSSanctuary(_StateModifier _) {
+  void removeCSSanctuary(_StateModifier _, {GameState? gameState}) {
     var list = _drawPile.getList();
-    final GameState gameState = getIt<GameState>();
+    final gs = gameState ?? getIt<GameState>();
     for (int i = list.length - 1; i >= 0; i--) {
       if (list[i].gfx.startsWith("sanctuary")) {
-        gameState._sanctuaryDeck.returnCard(list[i].gfx);
+        gs._sanctuaryDeck.returnCard(list[i].gfx);
         _drawPile.removeAt(i);
       }
     }
     list = _discardPile.getList();
     for (int i = list.length - 1; i >= 0; i--) {
       if (list[i].gfx.startsWith("sanctuary")) {
-        gameState._sanctuaryDeck.returnCard(list[i].gfx);
+        gs._sanctuaryDeck.returnCard(list[i].gfx);
         _discardPile.removeAt(i);
       }
     }
-    _cardCount.value = _drawPile.size();
   }
 
   bool hasCSSanctuary() {
@@ -203,7 +218,6 @@ class ModifierDeck {
     _discardPile.removeWhere((test) {
       return test.gfx.startsWith("party/");
     });
-    _cardCount.value = _drawPile.size();
   }
 
   bool hasPartyCard() {
@@ -257,7 +271,6 @@ class ModifierDeck {
     _drawPile.add(ModifierCard(CardType.add, "minus1"));
     _drawPile.shuffle();
     _revealedCount.value = 0;
-    _cardCount.value++;
     if (_addedMinusOnes.value < 0) {
       //do not add/remove extra minus ones to removed pile
       _removedPile.removeFirstWhere((item) => item.gfx == "minus1");
@@ -335,7 +348,7 @@ class ModifierDeck {
   }
 
   void removeCardFromDiscard(_StateModifier _, int index) {
-    var card = _discardPile.removeAt(index);
+    final card = _discardPile.removeAt(index);
     _removedPile.add(card);
     if (card.gfx == "minus1") {
       _addedMinusOnes.value--;
@@ -343,7 +356,7 @@ class ModifierDeck {
   }
 
   void returnCardToDiscard(_StateModifier _, int index) {
-    var card = _removedPile.removeAt(index);
+    final card = _removedPile.removeAt(index);
     _discardPile.add(card);
     if (card.gfx == "minus1") {
       _addedMinusOnes.value++;
@@ -351,9 +364,8 @@ class ModifierDeck {
   }
 
   void returnCardToDrawPile(_StateModifier _) {
-    var card = _discardPile.pop();
+    final card = _discardPile.pop();
     _drawPile.push(card);
-    _cardCount.value = _drawPile.size();
     //todo: how to tell if revealed should change? if it is over 0?
   }
 
@@ -389,7 +401,7 @@ class ModifierDeck {
     _drawPile.add(ModifierCard(CardType.add, "imbue-plus2muddle"));
     _drawPile.add(ModifierCard(CardType.add, "imbue-plus0poison"));
     _shuffle();
-    _imbuement.value = 1;
+    _imbuement.value = _kImbuementLevel1;
   }
 
   void setImbue2(_StateModifier m) {
@@ -410,7 +422,7 @@ class ModifierDeck {
     _drawPile.add(ModifierCard(CardType.add, "imbue2-plus1curse"));
     _drawPile.add(ModifierCard(CardType.add, "imbue2-plus0wound"));
     _shuffle();
-    _imbuement.value = 2;
+    _imbuement.value = _kImbuementLevel2;
   }
 
   void resetImbue(_StateModifier _) {
@@ -423,7 +435,7 @@ class ModifierDeck {
       _drawPile.add(ModifierCard(CardType.add, "minus1"));
       _drawPile.add(ModifierCard(CardType.add, "minus1"));
       _drawPile.add(ModifierCard(CardType.add, "minus1"));
-      if (_imbuement.value == 2) {
+      if (_imbuement.value == _kImbuementLevel2) {
         if (hasMinus2()) {
           //if minus2 has not been separately removed
           _drawPile.add(ModifierCard(CardType.add, "minus2"));
@@ -465,15 +477,14 @@ class ModifierDeck {
     }
 
     if (_removables[card.gfx] != null) {
-      addRemovableValue(card.gfx, -1);
+      addRemovableValue(_StateModifier(), card.gfx, -1);
     }
     _discardPile.push(card);
-    _cardCount.value = _drawPile.size();
   }
 
   void reorderCards(_StateModifier s, int newIndex, int oldIndex) {
     List<ModifierCard> list = List.of(_drawPile.getList());
-    var item = list.removeAt(oldIndex);
+    final item = list.removeAt(oldIndex);
     list.insert(newIndex, item);
     _drawPile.setList(list);
 
@@ -492,28 +503,30 @@ class ModifierDeck {
     }
   }
 
+  Map<String, dynamic> toJson() => {
+        'addedMinusOnes': _addedMinusOnes.value,
+        'imbuement': _imbuement.value,
+        'badOmen': _badOmen.value,
+        'corrosiveSpew': _corrosiveSpew.value,
+        'revealed': _revealedCount.value,
+        'cassandra': _cassandraSpecial.value,
+        'drawPile': _drawPile.getList().map((c) => c.toJson()).toList(),
+        'removedPile': _removedPile.getList().map((c) => c.toJson()).toList(),
+        'discardPile': _discardPile.getList().map((c) => c.toJson()).toList(),
+      };
+
   @override
-  String toString() {
-    return '{'
-        '"addedMinusOnes": ${_addedMinusOnes.value.toString()}, '
-        '"imbuement": ${_imbuement.value.toString()}, '
-        '"badOmen": ${_badOmen.value.toString()}, '
-        '"corrosiveSpew": ${_corrosiveSpew.value.toString()}, '
-        '"revealed": ${_revealedCount.value.toString()}, '
-        '"cassandra": ${_cassandraSpecial.value.toString()}, '
-        '"drawPile": ${_drawPile.toString()}, '
-        '"removedPile": ${_removedPile.toString()}, '
-        '"discardPile": ${_discardPile.toString()} '
-        '}';
-  }
+  String toString() => json.encode(toJson());
 
   void _initListeners() {
-    for (var item in _removables.keys) {
+    for (final item in _removables.keys) {
       _removables[item]?.removeListener(() {
-        _handleRemovableCards(_removables[item]!, item);
+        final r = _removables[item];
+        if (r != null) _handleRemovableCards(r, item);
       });
       _removables[item]?.addListener(() {
-        _handleRemovableCards(_removables[item]!, item);
+        final r = _removables[item];
+        if (r != null) _handleRemovableCards(r, item);
       });
     }
   }
@@ -521,7 +534,7 @@ class ModifierDeck {
   List<ModifierCard> _getCardsFromJson(
       Map<String, dynamic> modifierDeckData, String deckId) {
     List<ModifierCard> newList = [];
-    for (var item in modifierDeckData[deckId] as List) {
+    for (final item in modifierDeckData[deckId] as List) {
       String gfx = item["gfx"];
       gfx = gfx.replaceAll("-allies", "");
       if (gfx == "curse") {
@@ -551,35 +564,33 @@ class ModifierDeck {
     cards.add(ModifierCard(CardType.add, "plus2"));
     cards.add(ModifierCard(CardType.multiply, "doubleAttack"));
     cards.add(ModifierCard(CardType.multiply, "nullAttack"));
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < _kPlusMinus1Count; i++) {
       cards.add(ModifierCard(CardType.add, "minus1"));
       cards.add(ModifierCard(CardType.add, "plus1"));
     }
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < _kPlus0Count; i++) {
       cards.add(ModifierCard(CardType.add, "plus0"));
     }
     _drawPile.setList(cards);
     _discardPile.setList([]);
     _removedPile.setList([]);
     _shuffle();
-    _cardCount.value = _drawPile.size();
     _badOmen.value = 0;
     _corrosiveSpew.value = false;
     _addedMinusOnes.value = 0;
     _imbuement.value = 0;
     _needsShuffle = false;
-    for (var item in _removables.keys) {
+    for (final item in _removables.keys) {
       _removables[item]?.value = 0;
     }
   }
 
   ModifierCard? _removeCardFromDrawPile(String gfx) {
-    var card =
+    final card =
         _drawPile.getList().lastWhereOrNull((element) => element.gfx == gfx);
     if (card != null) {
       _drawPile.remove(card);
       _drawPile.shuffle();
-      _cardCount.value--;
     }
     return card;
   }
@@ -588,7 +599,7 @@ class ModifierDeck {
     //count and add or remove, then shuffle
     int count = 0;
     bool shuffle = true;
-    for (var item in _drawPile.getList()) {
+    for (final item in _drawPile.getList()) {
       if (item.gfx == gfx) {
         count++;
       }
@@ -606,9 +617,9 @@ class ModifierDeck {
           _badOmen.value--;
           shuffle = false;
           //put in sixth or as far down as it goes.
-          int position = 5;
+          int position = _kCursePosition;
           final size = _drawPile.getList().length;
-          if (size < 6) {
+          if (size < _kPlus0Count) {
             position = size;
           }
           _drawPile.insert(size - position, ModifierCard(CardType.remove, gfx));
@@ -618,20 +629,13 @@ class ModifierDeck {
       }
     } else {
       int toRemove = count - notifier.value;
-      final list = _drawPile.getList();
       for (int i = 0; i < toRemove; i++) {
-        for (int j = list.length - 1; j >= 0; j--) {
-          if (list[j].gfx == gfx) {
-            _drawPile.removeAt(j);
-            break;
-          }
-        }
+        _drawPile.removeFirstWhere((card) => card.gfx == gfx);
       }
     }
     if (shuffle) {
       _drawPile.shuffle();
     }
-    _cardCount.value = _drawPile.size();
   }
 
   void _shuffle() {
@@ -645,7 +649,6 @@ class ModifierDeck {
     _drawPile.shuffle();
 
     _needsShuffle = false;
-    _cardCount.value = _drawPile.size();
     _revealedCount.value = 0;
   }
 
@@ -686,10 +689,8 @@ class ModifierCard {
 
   ModifierCard(this.type, this.gfx);
 
+  Map<String, dynamic> toJson() => {'gfx': gfx};
+
   @override
-  String toString() {
-    return '{'
-        '"gfx": "$gfx" '
-        '}';
-  }
+  String toString() => '{"gfx": "$gfx" }';
 }

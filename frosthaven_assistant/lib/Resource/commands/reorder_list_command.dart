@@ -1,19 +1,18 @@
-import '../../services/service_locator.dart';
 import '../state/game_state.dart';
 
 class ReorderListCommand extends Command {
-  late final int newIndex;
-  late final int oldIndex;
-  ReorderListCommand(this.newIndex, this.oldIndex);
+  final int newIndex;
+  final int oldIndex;
+
+  ReorderListCommand(
+    this.newIndex,
+    this.oldIndex, {
+    required GameState gameState,
+  });
 
   @override
   void execute() {
-    MutableGameMethods.reorderMainList(stateAccess, newIndex, oldIndex);
-  }
-
-  @override
-  void undo() {
-    getIt<GameState>().updateList.value++;
+    RoundMethods.reorderMainList(stateAccess, newIndex, oldIndex);
   }
 
   @override

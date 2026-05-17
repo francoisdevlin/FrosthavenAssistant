@@ -1,67 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/modifier_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_front.dart';
 
-import '../../Layout/components/modal_background.dart';
+import '../../Layout/widgets/modal_background.dart';
 import '../../Resource/app_constants.dart';
 import '../../Resource/commands/return_removed_amd_card_command.dart';
 import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
 import '../../services/service_locator.dart';
 
-class ReturnAMDCardMenu extends StatefulWidget {
-  const ReturnAMDCardMenu({super.key, required this.index, required this.name});
+class ReturnAMDCardMenu extends StatelessWidget {
+  const ReturnAMDCardMenu({
+    super.key,
+    required this.index,
+    required this.name,
+    this.gameState,
+  });
 
   final int index;
   final String name;
 
-  @override
-  RemoveAMDCardMenuState createState() => RemoveAMDCardMenuState();
-}
+  final GameState? gameState;
 
-class RemoveAMDCardMenuState extends State<ReturnAMDCardMenu> {
-  final GameState _gameState = getIt<GameState>();
+  static const double _kModalHeight = 120.0;
+  static const double _kInnerSpacing = 35.0;
 
-  @override
-  initState() {
-    super.initState();
-  }
+  GameState get _gameState => gameState ?? getIt<GameState>();
 
   @override
   Widget build(BuildContext context) {
-    final deck = GameMethods.getModifierDeck(widget.name, _gameState);
-    final card = deck.removedPileContents[widget.index];
+    final deck = GameMethods.getModifierDeck(name, _gameState);
+    final card = deck.removedPileContents[index];
     final screenSize = MediaQuery.of(context).size;
-    double scale = 6;
-    final cardWidth = 7 * 58.6666;
+    double scale = kCardZoomDefaultScale;
+    final cardWidth = kCardZoomWidthFactor * kModifierCardBaseWidth;
     if (screenSize.width < cardWidth) {
-      scale = 6 * (screenSize.width / cardWidth);
+      scale = kCardZoomDefaultScale * (screenSize.width / cardWidth);
     }
     return Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ModifierCardWidget.buildFront(card, widget.name, scale, 1),
+          ModifierCardFront(card: card, name: name, scale: scale),
           const SizedBox(
-            height: 20,
+            height: kMenuTopPadding,
           ),
           ModalBackground(
-              width: 300,
-              height: 120,
+              width: kMenuNarrowWidth,
+              height: _kModalHeight,
               child: Column(children: [
                 const SizedBox(
-                  height: 35,
+                  height: _kInnerSpacing,
                 ),
                 TextButton(
                     onPressed: () {
-                      _gameState.action(ReturnRemovedAMDCardCommand(
-                          widget.index, widget.name));
+                      _gameState.action(ReturnRemovedAMDCardCommand(index, name,
+                          gameState: _gameState));
                       Navigator.pop(context);
                     },
                     child: const Text("Return card to discard pile",
-                        textAlign: TextAlign.center,
-                        style: kButtonLabelStyle)),
+                        textAlign: TextAlign.center, style: kButtonLabelStyle)),
                 const SizedBox(
-                  height: 20,
+                  height: kMenuTopPadding,
                 ),
               ]))
         ]);

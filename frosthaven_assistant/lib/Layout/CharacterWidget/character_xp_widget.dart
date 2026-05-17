@@ -4,34 +4,40 @@ import 'package:frosthaven_assistant/Resource/commands/change_stat_commands/chan
 
 import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
+import '../../Resource/ui_utils.dart';
 import '../../services/service_locator.dart';
 
 class CharacterXPWidget extends StatelessWidget {
-  CharacterXPWidget(
+  static const double _kImageHeight = 16.0;
+
+  const CharacterXPWidget(
       {super.key,
       required this.character,
       required this.scale,
-      required this.shadow});
+      required this.shadow,
+      this.gameState});
   final Character character;
   final double scale;
   final Shadow shadow;
-  final GameState _gameState = getIt<GameState>();
-
+  final GameState? gameState;
   @override
   Widget build(BuildContext context) {
+    final gameState = this.gameState ?? getIt<GameState>();
     return GestureDetector(
         onTap: () {
-          _gameState.action(ChangeXPCommand(1, character.id, character.id));
+          gameState.action(ChangeXPCommand(1, character.id, character.id,
+              gameState: gameState));
         },
         onDoubleTap: () {
           if (character.characterState.xp.value > 0) {
-            _gameState.action(ChangeXPCommand(-1, character.id, character.id));
+            gameState.action(ChangeXPCommand(-1, character.id, character.id,
+                gameState: gameState));
           }
         },
         child: Row(
           children: [
             Image(
-              height: 16 * scale,
+              height: CharacterXPWidget._kImageHeight * scale,
               color: Colors.blue,
               colorBlendMode: BlendMode.modulate,
               image: const AssetImage("assets/images/psd/xp.png"),
@@ -41,13 +47,7 @@ class CharacterXPWidget extends StatelessWidget {
                 builder: (context, value, child) {
                   return Text(
                     character.characterState.xp.value.toString(),
-                    style: TextStyle(
-                        fontFamily: GameMethods.isFrosthavenStyle(null)
-                            ? 'GermaniaOne'
-                            : 'Pirata',
-                        color: Colors.blue,
-                        fontSize: kFontSizeSmall * scale,
-                        shadows: [shadow]),
+                    style: getCardTitleStyle(kFontSizeSmall * scale, shadow, GameMethods.isFrosthavenStyle(null), color: Colors.blue),
                   );
                 }),
           ],

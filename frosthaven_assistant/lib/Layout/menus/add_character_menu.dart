@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/components/menu_card.dart';
-import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Layout/menus/save_character_menu.dart';
 import 'package:frosthaven_assistant/Layout/menus/set_character_level_menu.dart';
+import 'package:frosthaven_assistant/Layout/widgets/filtered_list_view.dart';
+import 'package:frosthaven_assistant/Layout/widgets/menu_card.dart';
+import 'package:frosthaven_assistant/Resource/app_constants.dart';
 
 import '../../Model/character_class.dart';
 import '../../Resource/commands/add_character_command.dart';
@@ -15,21 +16,32 @@ import '../../services/service_locator.dart';
 import 'character_tile.dart';
 
 class AddCharacterMenu extends StatefulWidget {
-  const AddCharacterMenu({super.key});
+  const AddCharacterMenu({
+    super.key,
+    this.gameState,
+    this.settings,
+    this.gameData,
+  });
+
+  final GameState? gameState;
+  // injected for testing
+  final Settings? settings;
+  final GameData? gameData;
 
   @override
   AddCharacterMenuState createState() => AddCharacterMenuState();
 }
 
 class AddCharacterMenuState extends State<AddCharacterMenu> {
+  static const double _kMaxWidth = 400;
   // This list holds the data for the list view
   List<CharacterClass> _foundCharacters = [];
   final List<CharacterClass> _allCharacters = [];
-  late CharacterClass bs;
-  late CharacterClass vq;
-  final GameState _gameState = getIt<GameState>();
-  final GameData _gameData = getIt<GameData>();
-  final ScrollController _scrollController = ScrollController();
+  CharacterClass? bs;
+  CharacterClass? vq;
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
+  Settings get _settings => widget.settings ?? getIt<Settings>();
+  GameData get _gameData => widget.gameData ?? getIt<GameData>();
 
   int compareEditions(String a, String b) {
     //sort current edition to top
@@ -62,14 +74,14 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
       _allCharacters.addAll(data[key]!.characters);
     }
 
-    for (var item in _allCharacters) {
+    for (final item in _allCharacters) {
       if (item.name == "Bladeswarm" && item.edition == "Gloomhaven") {
         _allCharacters.remove(item);
         bs = item;
         break;
       }
     }
-    for (var item in _allCharacters) {
+    for (final item in _allCharacters) {
       if (item.name == "Vanquisher") {
         _allCharacters.remove(item);
         vq = item;
@@ -77,9 +89,10 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
       }
     }
 
-    if (!getIt<Settings>().showCustomContent.value) {
+    if (!_settings.showCustomContent.value) {
       _allCharacters.removeWhere(
-          (character) => GameMethods.isCustomCampaign(character.edition));
+        (character) => GameMethods.isCustomCampaign(character.edition),
+      );
     }
 
     _foundCharacters = _allCharacters;
@@ -107,17 +120,21 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
       results = _allCharacters;
     } else {
       results = _allCharacters
-          .where((user) =>
-              user.name.toLowerCase().contains(enteredKeyword.toLowerCase()))
+          .where(
+            (user) =>
+                user.name.toLowerCase().contains(enteredKeyword.toLowerCase()),
+          )
           .toList();
       final keyWord = enteredKeyword.toLowerCase();
-      if (keyWord == "bladeswarm") {
+      final bsLocal = bs;
+      if (keyWord == "bladeswarm" && bsLocal != null) {
         //unlocked it!
-        results = [bs];
+        results = [bsLocal];
       }
-      if (keyWord == "vanquisher") {
+      final vqLocal = vq;
+      if (keyWord == "vanquisher" && vqLocal != null) {
         //unlocked it!
-        results = [vq];
+        results = [vqLocal];
       }
       // we use the toLowerCase() method to make it case-insensitive
     }
@@ -134,7 +151,7 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
 
     if (GameMethods.isObjectiveOrEscort(character)) {
       //add a number to name if already exists
-      for (var item in _gameState.currentList) {
+      for (final item in _gameState.currentList) {
         if (item is Character && item.characterClass.name == character.name) {
           count++;
         }
@@ -144,23 +161,30 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
       }
     }
 
-    AddCharacterCommand command =
-        AddCharacterCommand(character.id, character.edition, display, 1);
+    AddCharacterCommand command = AddCharacterCommand(
+      character.id,
+      character.edition,
+      display,
+      1,
+    );
     _gameState.action(command);
 
     //open level menu
-    openDialog(context, SetCharacterLevelMenu(character: command.character));
+    final addedChar = command.character;
+    if (addedChar != null) {
+      openDialog(context, SetCharacterLevelMenu(character: addedChar));
+    }
 
     //update UI to disable added character
-    setState(() {});
+    setState(() => _foundCharacters = _foundCharacters);
   }
 
   bool _characterAlreadyAdded(CharacterClass newCharacter) {
     if (GameMethods.isObjectiveOrEscort(newCharacter)) {
       return false;
     }
-    var characters = GameMethods.getCurrentCharacters();
-    for (var character in characters) {
+    final characters = GameMethods.getCurrentCharacters();
+    for (final character in characters) {
       if (character.characterClass.id == newCharacter.id) {
         return true;
       }
@@ -172,61 +196,41 @@ class AddCharacterMenuState extends State<AddCharacterMenu> {
   @override
   Widget build(BuildContext context) {
     return MenuCard(
-        maxWidth: 400,
-        cardMargin: const EdgeInsets.all(2),
-        child: Column(
-          children: [
-            const SizedBox(
-              height: 10,
-            ),
-            TextButton(
-              onPressed: () {
-                //open remove card menu
-                openDialog(context, SaveCharacterMenu());
-              },
-              child: Text(
-                "Load or Save Characters",
-                style: kTitleStyle,
+      maxWidth: _kMaxWidth,
+      cardMargin: const EdgeInsets.all(2),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: () {
+              //open remove card menu
+              openDialog(context, SaveCharacterMenu());
+            },
+            child: Text("Load or Save Characters", style: kTitleStyle),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            child: TextField(
+              onChanged: (value) => _runFilter(value),
+              decoration: const InputDecoration(
+                labelText:
+                    'Add Character (type name for hidden character classes)',
+                suffixIcon: Icon(Icons.search),
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(left: 10, right: 10),
-              child: TextField(
-                onChanged: (value) => _runFilter(value),
-                decoration: const InputDecoration(
-                    labelText:
-                        'Add Character (type name for hidden character classes)',
-                    suffixIcon: Icon(Icons.search)),
-              ),
+          ),
+          const SizedBox(height: 20),
+          FilteredListView(
+            items: _foundCharacters,
+            itemBuilder: (context, index) => CharacterTile(
+              character: _foundCharacters[index],
+              onSelect: _addCharacter,
+              disabled: _characterAlreadyAdded(_foundCharacters[index]),
             ),
-            const SizedBox(
-              height: 20,
-            ),
-            Expanded(
-              child: _foundCharacters.isNotEmpty
-                  ? Scrollbar(
-                      controller: _scrollController,
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        itemCount: _foundCharacters.length,
-                        itemBuilder: (context, index) {
-                          return CharacterTile(
-                            character: _foundCharacters[index],
-                            onSelect: _addCharacter,
-                            disabled: _characterAlreadyAdded(
-                                _foundCharacters[index]),
-                          );
-                        },
-                      ))
-                  : const Text(
-                      'No results found',
-                      style: kHeadingStyle,
-                    ),
-            ),
-            const SizedBox(
-              height: kMenuCloseButtonSpacing,
-            ),
-          ],
-        ));
+          ),
+          const SizedBox(height: kMenuCloseButtonSpacing),
+        ],
+      ),
+    );
   }
 }

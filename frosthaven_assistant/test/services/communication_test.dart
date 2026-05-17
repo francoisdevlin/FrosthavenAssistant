@@ -1,3 +1,5 @@
+// ignore_for_file: missing-test-assertion
+
 import 'dart:io';
 
 import 'package:fluent_assertions/fluent_assertions.dart';
@@ -14,20 +16,20 @@ final _sut = Communication();
 final _socket = MockSocket();
 const _randomPortNumber = 5647382;
 final _getIt = GetIt.instance;
-final stubConnection = MockConnection();
+final _stubConnection = MockConnection();
 
 @GenerateNiceMocks([MockSpec<Socket>(), MockSpec<Connection>()])
 void main() {
   setUpAll(() {
-    _getIt.registerFactory<Connection>(() => stubConnection);
-    when(stubConnection.getAll())
+    _getIt.registerFactory<Connection>(() => _stubConnection);
+    when(_stubConnection.getAll())
         .thenReturn([MockSocket(), MockSocket(), MockSocket()]);
   });
   group('Message data', () {
     test('dataFrom data is extracted from message', () {
       // arrange
       const expectedData = "TestMessage";
-      final message = createValidMessage(data: expectedData);
+      final message = _createValidMessage(data: expectedData);
 
       // act
       final result = _sut.dataFrom(message);
@@ -38,7 +40,7 @@ void main() {
 
     test('isValid message should be valid', () {
       // arrange
-      final validMessage = createValidMessage();
+      final validMessage = _createValidMessage();
 
       // act
       final result = _sut.isValid(validMessage);
@@ -63,18 +65,18 @@ void main() {
     test('SendToAllExcept sends data to all sockets except one', () {
       // arrange
       const data = 'TestMessage';
-      List<Socket> sockets = stubConnection.getAll();
+      List<Socket> sockets = _stubConnection.getAll();
       final excludedSocket = sockets.first;
       final includedSockets =
           sockets.where((socket) => socket != excludedSocket);
       when(excludedSocket.remoteAddress).thenReturn(InternetAddress.anyIPv6);
-      when(excludedSocket.port).thenReturn(_randomPortNumber);
+      when(excludedSocket.remotePort).thenReturn(_randomPortNumber);
 
       // act
       _sut.sendToAllExcept(excludedSocket, data);
 
       //assert
-      for (var socket in includedSockets) {
+      for (final socket in includedSockets) {
         verify(socket.write(any));
       }
       verifyNever(excludedSocket.write(any));
@@ -83,14 +85,14 @@ void main() {
     test('sendToAll sends message to all sockets', () {
       // arrange
       const data = 'Data';
-      final message = createValidMessage(data: data);
-      List<Socket> sockets = stubConnection.getAll();
+      final message = _createValidMessage(data: data);
+      List<Socket> sockets = _stubConnection.getAll();
 
       // act
       _sut.sendToAll(data);
 
       // assert
-      for (var socket in sockets) {
+      for (final socket in sockets) {
         verify(socket.write(message));
       }
     });
@@ -98,7 +100,7 @@ void main() {
     test('sendTo sends message to a socket', () {
       // arrange
       const data = 'Data';
-      final message = createValidMessage(data: data);
+      final message = _createValidMessage(data: data);
 
       // act
       _sut.sendTo(_socket, data);
@@ -107,18 +109,17 @@ void main() {
       verify(_socket.write(message));
     });
 
-    test('sendTo does not send message for no socket', () {
+    test('sendTo asserts on null socket', () {
       // arrange
       const data = 'Data';
 
-      // act
-      _sut.sendTo(null, data);
-
-      // assert
+      // act & assert — null socket is a programming error and triggers an
+      // AssertionError in debug builds (logged + no-op in release builds)
+      expect(() => _sut.sendTo(null, data), throwsAssertionError);
     });
   });
 }
 
-String createValidMessage({String data = "Message"}) {
+String _createValidMessage({String data = "Message"}) {
   return "S3nD:$data[EOM]";
 }

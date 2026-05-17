@@ -9,10 +9,10 @@ import '../Model/room.dart';
 import '../Model/summon_model.dart';
 
 class GameData {
-  late final BuiltList<String> editions;
+  BuiltList<String> editions = BuiltList();
   final modelData =
       ValueNotifier<Map<String, CampaignModel>>({}); //todo: make map immutable
-  late final BuiltList<SummonModel> itemSummonData;
+  BuiltList<SummonModel> itemSummonData = BuiltList();
 
   Future<void> loadData(String root) async {
     rootBundle.evict('${root}summon.json');
@@ -41,9 +41,8 @@ class GameData {
       editionList.add(item);
 
       List<RoomsModel> roomData = [];
-      await fetchRoomData(item, root).then((value) {
-        if (value != null) roomData.addAll(value.roomData);
-      });
+      final roomDataResult = await fetchRoomData(item, root);
+      if (roomDataResult != null) roomData.addAll(roomDataResult.roomData);
 
       await fetchCampaignData(item, root, map, roomData);
     }
@@ -66,7 +65,7 @@ class GameData {
     }
   }
 
-  fetchCampaignData(String campaign, String root,
+  Future<void> fetchCampaignData(String campaign, String root,
       Map<String, CampaignModel> map, List<RoomsModel> roomsData) async {
     rootBundle.evict('${root}editions/$campaign.json');
     final String response = await rootBundle

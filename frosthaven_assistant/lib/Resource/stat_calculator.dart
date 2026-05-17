@@ -1,19 +1,33 @@
+// ignore_for_file: avoid-non-null-assertion
+
 import 'package:flutter/foundation.dart';
+import 'package:frosthaven_assistant/Model/monster.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
 
 import 'game_methods.dart';
 
 class StatCalculator {
-  static int? calculateFormula(final dynamic str) {
-    if (str is int) {
-      return str;
+  static int? calculateFormula(final Object stat, [GameState? gameState]) {
+    if (stat is IntStatValue) return stat.value;
+    if (stat is int) return stat;
+
+    final String str;
+    if (stat is FormulaStatValue) {
+      str = stat.formula;
+    } else if (stat is String) {
+      str = stat;
+    } else {
+      return null;
     }
-    int C = GameMethods.getCurrentCharacterAmount();
-    if (C < 2) {
-      C = 2;
+
+    final gs = gameState ?? getIt<GameState>();
+    int C = GameMethods.getCurrentCharacterAmount(gameState: gs);
+    final int minNrCharacters = 2;
+    if (C < minNrCharacters) {
+      C = minNrCharacters;
     }
-    int L = getIt<GameState>().level.value;
+    int L = gs.level.value;
     String formula = str.replaceAll("C", C.toString());
     formula = formula.replaceAll("L", L.toString());
     return eval(formula);
@@ -23,14 +37,14 @@ class StatCalculator {
     return Parser(str).parse();
   }
 
-  static bool evaluateCondition(final dynamic str) {
+  static bool evaluateCondition(final Object str) {
     return calculateFormula(str) == 1;
   }
 }
 
 class Parser {
   int pos = -1;
-  late String ch;
+  String ch = '';
   String str;
 
   Parser(this.str);
@@ -53,15 +67,14 @@ class Parser {
   int? parse() {
     try {
       nextChar();
-      int x = parseCondition()!;
+      int? result = parseCondition();
       if (pos < str.length) {
         if (kDebugMode) {
           print("Unexpected: $ch");
         }
         return null;
-        //throw Exception("Unexpected: $ch");
       }
-      return x;
+      return result;
     } catch (_) {
       return null;
     }
@@ -77,16 +90,16 @@ class Parser {
 
   int? parseCondition() {
     try {
-      int x = parseExpression()!;
+      int result = parseExpression()!;
       for (;;) {
         if (eat('<')) {
-          x = x < parseExpression()! ? 1 : 0;
+          result = result < parseExpression()! ? 1 : 0;
         } else if (eat('>')) {
-          x = x > parseExpression()! ? 1 : 0;
+          result = result > parseExpression()! ? 1 : 0;
         } else if (eat('=')) {
-          x = x == parseExpression()! ? 1 : 0;
+          result = result == parseExpression()! ? 1 : 0;
         } else {
-          return x;
+          return result;
         }
       }
     } catch (_) {
@@ -96,14 +109,14 @@ class Parser {
 
   int? parseExpression() {
     try {
-      int x = parseTerm()!;
+      int result = parseTerm()!;
       for (;;) {
         if (eat('+')) {
-          x += parseTerm()!;
+          result += parseTerm()!;
         } else if (eat('-')) {
-          x -= parseTerm()!;
+          result -= parseTerm()!;
         } else {
-          return x;
+          return result;
         }
       }
     } catch (_) {
@@ -113,17 +126,17 @@ class Parser {
 
   int? parseTerm() {
     try {
-      int x = parseFactor()!;
+      int result = parseFactor()!;
       for (;;) {
-        if (eat('*')) x *= parseFactor()!; // multiplication
+        if (eat('*')) result *= parseFactor()!; // multiplication
         if (eat('x')) {
-          x *= parseFactor()!; // multiplication
+          result *= parseFactor()!; // multiplication
         } else if (eat('/')) {
-          x = (x / parseFactor()!).ceil();
+          result = (result / parseFactor()!).ceil();
         } else if (eat('d')) {
-          x = (x / parseFactor()!).floor();
+          result = (result / parseFactor()!).floor();
         } else {
-          return x;
+          return result;
         }
       }
     } catch (_) {
@@ -136,26 +149,26 @@ class Parser {
       if (eat('+')) return parseFactor(); // unary plus
       if (eat('-')) return -parseFactor()!; // unary minus
 
-      int x;
+      int? result;
       int startPos = pos;
-      int asciiValue = ch.codeUnits[0];
+      int asciiValue = ch.codeUnits.first;
       if (eat('(')) {
         // parentheses
-        x = parseExpression()!;
+        result = parseExpression();
         if (!eat(')')) throw Exception("Missing ')'");
-      } else if (asciiValue >= '0'.codeUnits[0] &&
-          asciiValue <= '9'.codeUnits[0]) {
+      } else if (asciiValue >= '0'.codeUnits.first &&
+          asciiValue <= '9'.codeUnits.first) {
         // numbers
-        while ((asciiValue >= '0'.codeUnits[0] &&
-            asciiValue <= '9'.codeUnits[0])) {
+        while ((asciiValue >= '0'.codeUnits.first &&
+            asciiValue <= '9'.codeUnits.first)) {
           nextChar();
-          asciiValue = ch.codeUnits[0];
+          asciiValue = ch.codeUnits.first;
         }
-        x = int.parse(str.substring(startPos, pos));
+        result = int.parse(str.substring(startPos, pos));
       } else {
         throw Exception("Unexpected: $ch");
       }
-      return x;
+      return result;
     } catch (_) {
       return null;
     }

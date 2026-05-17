@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/line_builder/frosthaven_converter.dart';
@@ -7,8 +9,7 @@ void main() {
 
   group('FrosthavenConverter.convertLinesToFH – keyword replacements', () {
     test('"Affect" is replaced by "%target%"', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['Affect 2'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['Affect 2'], false);
       expect(result, contains('%target% 2'));
     });
 
@@ -26,8 +27,7 @@ void main() {
     });
 
     test('"Target" is replaced by "%target%"', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['Target 2'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['Target 2'], false);
       expect(result.first, '%target% 2');
     });
 
@@ -48,8 +48,7 @@ void main() {
     });
 
     test('lines that have no special keywords are preserved', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['Move 3'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['Move 3'], false);
       expect(result, contains('Move 3'));
     });
   });
@@ -58,26 +57,22 @@ void main() {
 
   group('FrosthavenConverter.convertLinesToFH – applyStats flag', () {
     test('applyStats=false collapses " + " to "+"', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['3 + 1'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['3 + 1'], false);
       expect(result.first, '3+1');
     });
 
     test('applyStats=false collapses " - " to "-"', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['3 - 1'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['3 - 1'], false);
       expect(result.first, '3-1');
     });
 
     test('applyStats=true preserves " + " spacing', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['3 + 1'], true);
+      final result = FrosthavenConverter.convertLinesToFH(['3 + 1'], true);
       expect(result.first, '3 + 1');
     });
 
     test('applyStats=true preserves " - " spacing', () {
-      final result =
-          FrosthavenConverter.convertLinesToFH(['3 - 1'], true);
+      final result = FrosthavenConverter.convertLinesToFH(['3 - 1'], true);
       expect(result.first, '3 - 1');
     });
   });
@@ -96,8 +91,8 @@ void main() {
 
   group('FrosthavenConverter.convertLinesToFH – * lines', () {
     test('* line is passed through', () {
-      final result = FrosthavenConverter.convertLinesToFH(
-          ['*Move 3', '^%poison%'], false);
+      final result =
+          FrosthavenConverter.convertLinesToFH(['*Move 3', '^%poison%'], false);
       expect(result.any((l) => l.startsWith('*')), isTrue);
     });
 
@@ -110,8 +105,7 @@ void main() {
 
     test('after a * line no trailing [subLineEnd] is added', () {
       // * line resets isReallySubLine, so no trailing marker
-      final result =
-          FrosthavenConverter.convertLinesToFH(['*Move 3'], false);
+      final result = FrosthavenConverter.convertLinesToFH(['*Move 3'], false);
       expect(result.last, isNot('[subLineEnd]'));
     });
   });
@@ -121,20 +115,20 @@ void main() {
   group('FrosthavenConverter.convertLinesToFH – subline markers', () {
     test('^%token% after a normal line inserts ![subLineStart]', () {
       // "Move 3" sets isSubLine=true; "^%poison%" triggers subLineStart
-      final result = FrosthavenConverter.convertLinesToFH(
-          ['Move 3', '^%poison%'], false);
+      final result =
+          FrosthavenConverter.convertLinesToFH(['Move 3', '^%poison%'], false);
       expect(result, contains('![subLineStart]'));
     });
 
     test('trailing [subLineEnd] is added when subline is open at end', () {
-      final result = FrosthavenConverter.convertLinesToFH(
-          ['Move 3', '^%poison%'], false);
+      final result =
+          FrosthavenConverter.convertLinesToFH(['Move 3', '^%poison%'], false);
       expect(result.last, '[subLineEnd]');
     });
 
     test('^ line matching subline pattern gets "!" prefix', () {
-      final result = FrosthavenConverter.convertLinesToFH(
-          ['Move 3', '^%poison%'], false);
+      final result =
+          FrosthavenConverter.convertLinesToFH(['Move 3', '^%poison%'], false);
       expect(result.any((l) => l.startsWith('!^')), isTrue);
     });
 
@@ -145,13 +139,14 @@ void main() {
     });
 
     test('^Self after a normal line triggers subline', () {
-      final result = FrosthavenConverter.convertLinesToFH(
-          ['Heal 2', '^Self'], false);
+      final result =
+          FrosthavenConverter.convertLinesToFH(['Heal 2', '^Self'], false);
       // "^Self" starts a subline and gets "!" prefix
       expect(result, contains('![subLineStart]'));
     });
 
-    test('^ line that does NOT match subline pattern keeps isSubLine false', () {
+    test('^ line that does NOT match subline pattern keeps isSubLine false',
+        () {
       // "^Target all attacks" explicitly excluded from subline trigger
       final result = FrosthavenConverter.convertLinesToFH(
           ['Move 3', '^All attacks on you'], false);
@@ -205,39 +200,52 @@ void main() {
 
   group('FrosthavenConverter.shouldOverflow', () {
     const knownOverflowTokens = [
-      'pierce', 'brittle', 'curse', 'enfeeble', 'bless',
-      'invisible', 'strengthen', 'bane', 'push', 'pull',
-      'poison', 'wound', 'infect', 'chill', 'disarm',
-      'immobilize', 'stun', 'impair', 'safeguard', 'muddle',
+      'pierce',
+      'brittle',
+      'curse',
+      'enfeeble',
+      'bless',
+      'invisible',
+      'strengthen',
+      'bane',
+      'push',
+      'pull',
+      'poison',
+      'wound',
+      'infect',
+      'chill',
+      'disarm',
+      'immobilize',
+      'stun',
+      'impair',
+      'safeguard',
+      'muddle',
     ];
 
     for (final token in knownOverflowTokens) {
       test('frosthavenStyle=true, token="$token" → true', () {
-        expect(FrosthavenConverter.shouldOverflow(true, token, true), isTrue);
-        expect(FrosthavenConverter.shouldOverflow(true, token, false), isTrue);
+        expect(FrosthavenConverter.shouldOverflow(true, token), isTrue);
       });
     }
 
     test('frosthavenStyle=false always returns false', () {
       for (final token in knownOverflowTokens) {
-        expect(FrosthavenConverter.shouldOverflow(false, token, true), isFalse);
+        expect(FrosthavenConverter.shouldOverflow(false, token), isFalse);
       }
     });
 
     test('unknown token returns false even in frosthavenStyle=true', () {
-      expect(FrosthavenConverter.shouldOverflow(true, 'attack', true), isFalse);
-      expect(FrosthavenConverter.shouldOverflow(true, 'move', true), isFalse);
-      expect(FrosthavenConverter.shouldOverflow(true, '', true), isFalse);
+      expect(FrosthavenConverter.shouldOverflow(true, 'attack'), isFalse);
+      expect(FrosthavenConverter.shouldOverflow(true, 'move'), isFalse);
+      expect(FrosthavenConverter.shouldOverflow(true, ''), isFalse);
     });
 
     test('token containing "poison" returns true (contains check)', () {
-      expect(
-          FrosthavenConverter.shouldOverflow(true, 'acid-poison', true), isTrue);
+      expect(FrosthavenConverter.shouldOverflow(true, 'acid-poison'), isTrue);
     });
 
     test('token containing "wound" returns true (contains check)', () {
-      expect(
-          FrosthavenConverter.shouldOverflow(true, 'wound-infect', true), isTrue);
+      expect(FrosthavenConverter.shouldOverflow(true, 'wound-infect'), isTrue);
     });
   });
 
@@ -245,7 +253,8 @@ void main() {
 
   group('FrosthavenConverter.getAllTextInWidget', () {
     test('Text widget returns its data', () {
-      final result = FrosthavenConverter.getAllTextInWidget(const Text('hello'));
+      final result =
+          FrosthavenConverter.getAllTextInWidget(const Text('hello'));
       expect(result, 'hello');
     });
 
@@ -274,8 +283,7 @@ void main() {
     });
 
     test('non-text non-container widget returns empty string', () {
-      final result =
-          FrosthavenConverter.getAllTextInWidget(const SizedBox());
+      final result = FrosthavenConverter.getAllTextInWidget(const SizedBox());
       expect(result, '');
     });
 
@@ -309,26 +317,22 @@ void main() {
     });
 
     test('Row with two Image widgets returns both labels', () {
-      const img1 = Image(
-          image: AssetImage('a.png'), semanticLabel: 'fire');
-      const img2 = Image(
-          image: AssetImage('b.png'), semanticLabel: 'ice');
+      const img1 = Image(image: AssetImage('a.png'), semanticLabel: 'fire');
+      const img2 = Image(image: AssetImage('b.png'), semanticLabel: 'ice');
       final widget = Row(children: [img1, img2]);
       final result = FrosthavenConverter.getAllImagesInWidget(widget);
       expect(result, ['fire', 'ice']);
     });
 
     test('Column with Image child returns the label', () {
-      const img = Image(
-          image: AssetImage('a.png'), semanticLabel: 'earth');
+      const img = Image(image: AssetImage('a.png'), semanticLabel: 'earth');
       final widget = Column(children: [img]);
       final result = FrosthavenConverter.getAllImagesInWidget(widget);
       expect(result, ['earth']);
     });
 
     test('Container with Image child returns the label', () {
-      const img = Image(
-          image: AssetImage('a.png'), semanticLabel: 'dark');
+      const img = Image(image: AssetImage('a.png'), semanticLabel: 'dark');
       final widget = Container(child: img);
       final result = FrosthavenConverter.getAllImagesInWidget(widget);
       expect(result, ['dark']);
@@ -341,18 +345,15 @@ void main() {
     });
 
     test('Stack with Image children returns all labels', () {
-      const img1 = Image(
-          image: AssetImage('a.png'), semanticLabel: 'light');
-      const img2 = Image(
-          image: AssetImage('b.png'), semanticLabel: 'any');
+      const img1 = Image(image: AssetImage('a.png'), semanticLabel: 'light');
+      const img2 = Image(image: AssetImage('b.png'), semanticLabel: 'any');
       final widget = Stack(children: [img1, img2]);
       final result = FrosthavenConverter.getAllImagesInWidget(widget);
       expect(result, ['light', 'any']);
     });
 
     test('nested Row → Container → Image collects label', () {
-      const img = Image(
-          image: AssetImage('a.png'), semanticLabel: 'wind');
+      const img = Image(image: AssetImage('a.png'), semanticLabel: 'wind');
       final widget = Row(children: [Container(child: img)]);
       final result = FrosthavenConverter.getAllImagesInWidget(widget);
       expect(result, ['wind']);
@@ -401,7 +402,8 @@ void main() {
       expect(result.contains('[subLineEnd]'), isFalse);
     });
 
-    test('second non-special line while isReallySubLine=true adds [subLineEnd]', () {
+    test('second non-special line while isReallySubLine=true adds [subLineEnd]',
+        () {
       // After a subline block, starting a new main line closes the subline
       final result = FrosthavenConverter.convertLinesToFH(
           ['Move 3', '^%poison%', 'Attack 2'], false);

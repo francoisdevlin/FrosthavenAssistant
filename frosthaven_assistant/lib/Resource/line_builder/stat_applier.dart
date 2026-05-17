@@ -9,10 +9,17 @@ import '../stat_calculator.dart';
 import '../state/game_state.dart';
 
 class StatApplier {
+  static const int _kLookback2 = 2;
+  static const int _kMinFormulaLength = 1;
+  static const int _kMinFormulaLengthLong = 2;
+  static const int _kTokenEndOffset = 2;
+  static const int _kRangeZero = 0;
+  static const int _kResultFloor = 0;
   static List<String> applyMonsterStats(final String lineInput,
-      String sizeToken, Monster monster, bool forceShowAll) {
+      String sizeToken, Monster monster, bool forceShowAll,
+      [Settings? settings]) {
     bool showElite = false;
-    final noStandees = getIt<Settings>().noStandees.value;
+    final noStandees = (settings ?? getIt<Settings>()).noStandees.value;
     if ((noStandees && monster.isActive) ||
         monster.monsterInstances.firstWhereOrNull(
                 (element) => element.type == MonsterType.elite) !=
@@ -34,8 +41,8 @@ class StatApplier {
     List<String> retVal = [];
 
     //get the data
-    var normalTokens = _getStatTokens(monster, false);
-    var eliteTokens = _getStatTokens(monster, true);
+    final normalTokens = _getStatTokens(monster, false);
+    final eliteTokens = _getStatTokens(monster, true);
 
     RegExp regExpNumbers = RegExp(r'^[\d ()xCL/*+-]+$');
     //first pass fix values only
@@ -88,7 +95,7 @@ class StatApplier {
               i = j - 1; //restore any skipped (
               endIndex = endIndex - 1;
               formula = formula.substring(0, formula.length - 1);
-              if (i > 1 && lineInput[i - 2] == ' ') {
+              if (i > _kMinFormulaLength && lineInput[i - _kLookback2] == ' ') {
                 i = j - 1; //restore any skipped whitespace
                 endIndex = endIndex - 1;
               }
@@ -96,7 +103,8 @@ class StatApplier {
             break;
           }
         }
-        if (formula.length > 1 && lastToken.isNotEmpty || formula.length > 2) {
+        if (formula.length > _kMinFormulaLength && lastToken.isNotEmpty ||
+            formula.length > _kMinFormulaLengthLong) {
           //this disallows a single digit or C,L. single C or L could be part of regular text
           //for a formula to work (outside of plain C or L) it must either be modifying a token value or be 3+ chars long
 
@@ -137,7 +145,7 @@ class StatApplier {
   }
 
   static Map<String, int> _getStatTokens(Monster monster, bool isElite) {
-    var map = <String, int>{};
+    final map = <String, int>{};
     MonsterStatsModel data;
     final level = monster.type.levels[monster.level.value];
     final boss = level.boss;
@@ -150,7 +158,9 @@ class StatApplier {
       }
       data = boss;
     } else {
-      data = isElite ? elite! : normal!;
+      final effectiveData = isElite ? elite : normal;
+      if (effectiveData == null) return map;
+      data = effectiveData;
     }
     for (String item in data.attributes) {
       //remove size modifiers (only used for immobilize since it's so long it overflows.)
@@ -166,7 +176,7 @@ class StatApplier {
             String token = item.substring(1, i);
             int number = 0;
             if (i != item.length - 1) {
-              for (int j = i + 2; j < item.length; j++) {
+              for (int j = i + _kTokenEndOffset; j < item.length; j++) {
                 if (item[j] == ' ' || j == item.length - 1) {
                   //need to find end of nr and ignore the rest
                   String nr = item.substring(i + 1, j + 1);
@@ -223,7 +233,8 @@ class StatApplier {
     MonsterStatsModel? normal = level.boss ?? level.normal;
     MonsterStatsModel? elite = level.elite;
     if (lastToken == "attack") {
-      int? calc = StatCalculator.calculateFormula(normal!.attack);
+      if (normal == null) return [];
+      int? calc = StatCalculator.calculateFormula(normal.attack);
       if (calc != null) {
         normalValue = calc;
       } else {
@@ -238,7 +249,7 @@ class StatApplier {
 
       RegExp regEx =
           RegExp(r"(?=.*[a-z])"); //not sure why I do this. only letters?
-      for (var item in normalTokens.keys) {
+      for (final item in normalTokens.keys) {
         if (regEx.hasMatch(item)) {
           if (item != "shield" &&
               item != "retaliate" &&
@@ -249,7 +260,7 @@ class StatApplier {
           }
         }
       }
-      for (var item in eliteTokens.keys) {
+      for (final item in eliteTokens.keys) {
         if (regEx.hasMatch(item)) {
           if (item != "shield" &&
               item != "retaliate" &&
@@ -261,16 +272,17 @@ class StatApplier {
         }
       }
     } else if (lastToken == "range") {
-      if (normal?.range != 0) {
-        normalValue = normal!.range;
+      if (normal?.range != _kRangeZero) {
+        normalValue = normal?.range ?? 0;
         if (elite != null) {
           eliteValue = elite.range;
         }
       }
     } else if (lastToken == "move") {
-      normalValue = StatCalculator.calculateFormula(normal!.move)!;
+      normalValue =
+          StatCalculator.calculateFormula(normal?.move ?? StatValue.zero) ?? 0;
       if (elite != null) {
-        eliteValue = eliteValue = StatCalculator.calculateFormula(elite.move)!;
+        eliteValue = StatCalculator.calculateFormula(elite.move) ?? 0;
       }
     } else if (lastToken == "shield") {
       int? value = normalTokens["shield"];
@@ -310,11 +322,11 @@ class StatApplier {
     if (showNormal) {
       newStartOfLine += normalResult;
       if (!skipCalculation) {
-        for (var item in tokens) {
+        for (final item in tokens) {
           newStartOfLine += "|$item";
           //add nr if applicable
           String key = item.substring(1, item.length - 1);
-          int value = normalTokens[key]!;
+          int value = normalTokens[key] ?? 0;
           if (value > 0) {
             newStartOfLine += "$value";
           }
@@ -334,12 +346,12 @@ class StatApplier {
       retVal.add(newStartOfLine);
 
       int eliteResult =
-          StatCalculator.calculateFormula("$formula+$eliteValue")!;
-      if (eliteResult < 0) {
-        eliteResult = 0;
+          StatCalculator.calculateFormula("$formula+$eliteValue") ?? 0;
+      if (eliteResult < _kResultFloor) {
+        eliteResult = _kResultFloor;
       }
       String eliteString = "!$sizeModifier£$eliteResult";
-      for (var item in eTokens) {
+      for (final item in eTokens) {
         eliteString += "|$item";
 
         //add nr if applicable

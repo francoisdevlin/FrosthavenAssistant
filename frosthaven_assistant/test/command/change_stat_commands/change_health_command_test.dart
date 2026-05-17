@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
@@ -21,13 +23,27 @@ void main() {
   setUp(() {
     getIt<GameState>().clearList();
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    AddMonsterCommand("Zealot", 1, false).execute();
-    AddStandeeCommand(1, null, "Zealot", MonsterType.normal, false).execute();
+    AddMonsterCommand(
+      "Zealot",
+      1,
+      false,
+      gameState: getIt<GameState>(),
+    ).execute();
+    AddStandeeCommand(
+      1,
+      null,
+      "Zealot",
+      MonsterType.normal,
+      false,
+      gameState: getIt<GameState>(),
+    ).execute();
 
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
-    monster = getIt<GameState>().currentList.firstWhere((e) => e is Monster)
-        as Monster;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
+    monster =
+        getIt<GameState>().currentList.firstWhere((e) => e is Monster)
+            as Monster;
     monsterInstance = monster.monsterInstances.first;
   });
 
@@ -35,7 +51,12 @@ void main() {
     test('should increase a character\'s health', () {
       // Arrange
       final initialHealth = character.characterState.health.value;
-      final command = ChangeHealthCommand(5, character.id, character.id);
+      final command = ChangeHealthCommand(
+        5,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -47,7 +68,12 @@ void main() {
     test('should decrease a character\'s health', () {
       // Arrange
       final initialHealth = character.characterState.health.value;
-      final command = ChangeHealthCommand(-5, character.id, character.id);
+      final command = ChangeHealthCommand(
+        -5,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -58,7 +84,12 @@ void main() {
 
     test('should kill a character when health reaches 0', () {
       // Arrange
-      final command = ChangeHealthCommand(-100, character.id, character.id);
+      final command = ChangeHealthCommand(
+        -100,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -72,8 +103,12 @@ void main() {
     test('should increase a monster instance\'s health', () {
       // Arrange
       final initialHealth = monsterInstance.health.value;
-      final command =
-          ChangeHealthCommand(3, monsterInstance.getId(), monster.id);
+      final command = ChangeHealthCommand(
+        3,
+        monsterInstance.getId(),
+        monster.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -84,8 +119,12 @@ void main() {
 
     test('should kill a monster instance when health reaches 0', () {
       // Arrange
-      final command =
-          ChangeHealthCommand(-100, monsterInstance.getId(), monster.id);
+      final command = ChangeHealthCommand(
+        -100,
+        monsterInstance.getId(),
+        monster.id,
+        gameState: getIt<GameState>(),
+      );
       final initialInstanceCount = monster.monsterInstances.length;
 
       // Act
@@ -97,7 +136,12 @@ void main() {
 
     test('should not decrease health below 0', () {
       // Arrange
-      final command = ChangeHealthCommand(-100, character.id, character.id);
+      final command = ChangeHealthCommand(
+        -100,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act
       command.execute();
@@ -106,36 +150,41 @@ void main() {
       expect(character.characterState.health.value, 0);
     });
 
-    test('undo should not revert health change (as currently implemented)', () {
-      // Arrange
-      final initialHealth = character.characterState.health.value;
-      final command = ChangeHealthCommand(5, character.id, character.id);
-      command.execute();
-
-      // Act
-      command.undo();
-
-      // Assert
-      // The undo method is incomplete and does not revert the health.
-      // This test verifies the current behavior.
-      expect(character.characterState.health.value, initialHealth + 5);
-    });
-
     test('describe should return correct string for increasing health', () {
-      final command = ChangeHealthCommand(5, 'Blinkblade', 'Blinkblade');
+      final command = ChangeHealthCommand(
+        5,
+        'Blinkblade',
+        'Blinkblade',
+        gameState: getIt<GameState>(),
+      );
       expect(command.describe(), "Increase Blinkblade's health by 5");
     });
 
     test('describe should return correct string for decreasing health', () {
-      final command = ChangeHealthCommand(-5, 'Blinkblade', 'Blinkblade');
+      final command = ChangeHealthCommand(
+        -5,
+        'Blinkblade',
+        'Blinkblade',
+        gameState: getIt<GameState>(),
+      );
       expect(command.describe(), "Decrease Blinkblade's health by 5");
     });
 
     test('describe should return kill string if health is already 0', () {
       // Arrange
       //character.characterState.setHealth(StateModifier(), 0);
-      ChangeHealthCommand(-100, character.id, character.id).execute();
-      final command = ChangeHealthCommand(-1, character.id, character.id);
+      ChangeHealthCommand(
+        -100,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      ).execute();
+      final command = ChangeHealthCommand(
+        -1,
+        character.id,
+        character.id,
+        gameState: getIt<GameState>(),
+      );
 
       // Act & Assert
       expect(command.describe(), 'Kill Blinkblade');

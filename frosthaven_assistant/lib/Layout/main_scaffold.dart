@@ -1,45 +1,38 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Layout/ModifierDeckWidget/modifier_deck_widget.dart';
 import 'package:frosthaven_assistant/Layout/background.dart';
-import 'package:frosthaven_assistant/Layout/modifier_deck_widget.dart';
 import 'package:frosthaven_assistant/Layout/section_list.dart';
 import 'package:frosthaven_assistant/Layout/top_bar.dart';
+import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
 import '../Model/campaign.dart';
+import '../Model/room.dart';
 import '../Resource/game_data.dart';
-import '../Resource/game_methods.dart';
 import '../Resource/scaling.dart';
 import '../Resource/settings.dart';
 import '../Resource/ui_utils.dart';
 import '../services/service_locator.dart';
+import 'LootDeckWidget/loot_deck_widget.dart';
+import 'MainList/main_list.dart';
 import 'bottom_bar.dart';
 import 'character_amds_widget.dart';
-import 'loot_deck_widget.dart';
-import 'main_list.dart';
+import 'menus/AutoAddStandeeMenu/auto_add_standee_menu.dart';
 import 'menus/main_menu.dart';
+import 'view_models/main_scaffold_view_model.dart';
 
 class MainScaffold extends StatelessWidget {
-  const MainScaffold({super.key});
+  const MainScaffold({super.key, this.settings});
 
-  /// Detects if the current device is an iPad.
-  /// iPad has a shortestSide >= 600 and runs iOS.
-  static bool _isIPad(BuildContext context) {
-    // Check if it's iOS first
-    if (!Platform.isIOS) return false;
-
-    // Check if it's a tablet-sized device (iPad)
-    final shortestSide = MediaQuery.of(context).size.shortestSide;
-    return shortestSide >= 600;
-  }
+  // injected for testing
+  final Settings? settings;
 
   @override
   Widget build(BuildContext context) {
-    setupMoreGetIt(context);
+    final settings = this.settings ?? getIt<Settings>();
 
     return ValueListenableBuilder<double>(
-        valueListenable: getIt<Settings>().userScalingBars,
+        valueListenable: settings.userScalingBars,
         builder: (context, value, child) {
           return SafeArea(
               left: false,
@@ -50,7 +43,7 @@ class MainScaffold extends StatelessWidget {
                   bottomNavigationBar: RepaintBoundary(child: BottomBar()),
                   appBar: PreferredSize(
                       preferredSize: Size(double.infinity,
-                          40 * getIt<Settings>().userScalingBars.value),
+                          kBarHeight * settings.userScalingBars.value),
                       child: const RepaintBoundary(child: TopBar())),
                   drawer: MainMenu(),
                   body: const RepaintBoundary(child: MainScaffoldBody())));
@@ -59,15 +52,19 @@ class MainScaffold extends StatelessWidget {
 }
 
 class ToastNotifier extends StatelessWidget {
-  const ToastNotifier({super.key});
+  const ToastNotifier({super.key, this.gameState});
+
+  // injected for testing
+  final GameState? gameState;
 
   @override
   Widget build(BuildContext context) {
+    final gameState = this.gameState ?? getIt<GameState>();
     return ValueListenableBuilder<String>(
-        valueListenable: getIt<GameState>().toastMessage,
+        valueListenable: gameState.toastMessage,
         builder: (context, value, child) {
           Future.delayed(const Duration(milliseconds: 200), () {
-            String message = getIt<GameState>().toastMessage.value;
+            String message = gameState.toastMessage.value;
             if (message != "") {
               if (context.mounted) {
                 showToastSticky(context, message);
@@ -87,63 +84,48 @@ class ToastNotifier extends StatelessWidget {
   }
 }
 
-class MainScaffoldBody extends StatelessWidget {
-  const MainScaffoldBody({super.key});
+class AutoAddDialogTrigger extends StatelessWidget {
+  const AutoAddDialogTrigger({super.key, this.gameState});
 
-  double getSectionWidth(BuildContext context) {
-    bool modFitsOnBar = modifiersFitOnBar(context);
-    double screenWidth = MediaQuery.of(context).size.width;
-    double barScale = getIt<Settings>().userScalingBars.value;
-
-    bool hasLootDeck = GameMethods.hasLootDeck();
-    double sectionWidth = screenWidth;
-    if (hasLootDeck) {
-      sectionWidth -= 94 * barScale; //width of loot deck
-    }
-
-    final chars = GameMethods.getCurrentCharacters();
-    bool perksAvailable = false;
-    if (getIt<Settings>().showCharacterAMD.value) {
-      for (final character in chars) {
-        if (character.characterClass.perks.isNotEmpty) {
-          perksAvailable = true;
-          break;
-        }
-      }
-    }
-
-    if (!modFitsOnBar ||
-        GameMethods.shouldShowAlliesDeck() ||
-        perksAvailable && getIt<Settings>().showAmdDeck.value) {
-      sectionWidth -= 153 * barScale; //width of amd
-    }
-
-    return sectionWidth;
-  }
-
-  int? getNrOfSections() {
-    final GameData gameData = getIt<GameData>();
-    final GameState gameState = getIt<GameState>();
-    int? nrOfSections = gameData
-        .modelData
-        .value[gameState.currentCampaign.value]
-        ?.scenarios[gameState.scenario.value]
-        ?.sections
-        .length;
-    if (nrOfSections != null &&
-        gameState.scenarioSectionsAdded.length == nrOfSections) {
-      nrOfSections = null;
-    }
-    if (!getIt<Settings>().showSectionsInMainView.value) {
-      nrOfSections = null;
-    }
-
-    return nrOfSections;
-  }
+  final GameState? gameState;
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
+    final gameState = this.gameState ?? getIt<GameState>();
+    return ValueListenableBuilder<List<RoomMonsterData>?>(
+        valueListenable: gameState.pendingAutoAddDialog,
+        builder: (context, monsterData, child) {
+          if (monsterData != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                gameState.pendingAutoAddDialog.value = null;
+                openDialogWithDismissOption(context,
+                    AutoAddStandeeMenu(monsterData: monsterData), false);
+              }
+            });
+          }
+          return const SizedBox(width: 0, height: 0);
+        });
+  }
+}
+
+class MainScaffoldBody extends StatelessWidget {
+  static const double _kBarBottom = 4.0;
+  static const double _kBarLeft = 5.0;
+  static const double _kDeckMargin = 4.0;
+  const MainScaffoldBody(
+      {super.key, this.gameState, this.settings, this.gameData});
+
+  // injected for testing
+  final GameState? gameState;
+  final Settings? settings;
+  final GameData? gameData;
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = MainScaffoldViewModel(
+        gameState: gameState, settings: settings, gameData: gameData);
+    final Size screenSize = MediaQuery.of(context).size;
 
     return ValueListenableBuilder<bool>(
         valueListenable: loading,
@@ -157,88 +139,80 @@ class MainScaffoldBody extends StatelessWidget {
                   child: CircularProgressIndicator(),
                 )),
               const ToastNotifier(),
+              const AutoAddDialogTrigger(),
               ValueListenableBuilder<Map<String, CampaignModel>>(
-                  valueListenable: getIt<GameData>().modelData,
+                  valueListenable: vm.modelData,
                   builder: (context, value, child) {
-                    return ValueListenableBuilder<int>(
-                        valueListenable: getIt<GameState>().commandIndex,
-                        builder: (context, value, child) {
+                    return ListenableBuilder(
+                        listenable: Listenable.merge([
+                          vm.scenario,
+                          vm.currentCampaign,
+                          vm.scenarioSectionsVersion,
+                          vm.lootDeckCardCount,
+                          vm.hideLootDeck,
+                          vm.showAmdDeckNotifier,
+                          vm.showAllyDeck,
+                          vm.allyDeckInOGGloom,
+                          vm.currentListNotifier,
+                        ]),
+                        builder: (context, child) {
                           return ValueListenableBuilder<double>(
-                              valueListenable:
-                                  getIt<Settings>().userScalingBars,
+                              valueListenable: vm.userScalingBars,
                               builder: (context, value, child) {
-                                GameState gameState = getIt<GameState>();
-                                double barScale =
-                                    getIt<Settings>().userScalingBars.value;
-                                bool hasLootDeck = GameMethods.hasLootDeck();
-                                bool modFitsOnBar = modifiersFitOnBar(context);
-
-                                var sectionWidth = getSectionWidth(context);
-
-                                //move to separate row if it doesn't fit
-                                bool sectionsOnSeparateRow = false;
-                                int? nrOfSections = getNrOfSections();
-                                if ((nrOfSections != null &&
-                                        nrOfSections > 0 &&
-                                        sectionWidth < 58 * barScale) ||
-                                    (nrOfSections != null &&
-                                        nrOfSections > 2 &&
-                                        sectionWidth < 58 * barScale * 2)) {
-                                  //in case doesn't fit
-                                  sectionsOnSeparateRow = true;
-                                  sectionWidth =
-                                      MediaQuery.of(context).size.width;
-                                }
+                                final barScale = vm.userScalingBars.value;
+                                final bool hasLootDeck = vm.hasLootDeck;
+                                final bool modFitsOnBar =
+                                    modifiersFitOnBar(context);
+                                final int? nrOfSections = vm.availableSections;
+                                final bool separateRow =
+                                    vm.sectionsOnSeparateRow(context);
+                                final double width = separateRow
+                                    ? screenSize.width
+                                    : vm.sectionWidth(context);
 
                                 return Positioned(
                                     width: screenSize.width,
-                                    bottom: barScale * 4,
-                                    left: barScale * 5,
+                                    bottom: barScale * _kBarBottom,
+                                    left: barScale * _kBarLeft,
                                     child: Column(children: [
                                       Row(
-                                          mainAxisAlignment:
-                                              ((!sectionsOnSeparateRow &&
-                                                          nrOfSections !=
-                                                              null) ||
-                                                      hasLootDeck)
-                                                  ? MainAxisAlignment
-                                                      .spaceBetween
-                                                  : MainAxisAlignment.end,
+                                          mainAxisAlignment: ((!separateRow &&
+                                                      nrOfSections != null) ||
+                                                  hasLootDeck)
+                                              ? MainAxisAlignment.spaceBetween
+                                              : MainAxisAlignment.end,
                                           crossAxisAlignment:
                                               CrossAxisAlignment.end,
                                           mainAxisSize: MainAxisSize.max,
                                           children: [
                                             if (hasLootDeck)
                                               const LootDeckWidget(),
-                                            if (!sectionsOnSeparateRow &&
+                                            if (!separateRow &&
                                                 nrOfSections != null)
                                               SizedBox(
-                                                width: sectionWidth,
+                                                width: width,
                                                 child: const SectionList(),
                                               ),
                                             Column(children: [
                                               RepaintBoundary(
                                                   child: CharacterAmdsWidget()),
-                                              if (GameMethods
-                                                  .shouldShowAlliesDeck())
+                                              if (vm.shouldShowAlliesDeck)
                                                 Container(
                                                     margin: EdgeInsets.only(
-                                                      top: 4 * barScale,
+                                                      top: _kDeckMargin *
+                                                          barScale,
                                                     ),
                                                     child:
                                                         const ModifierDeckWidget(
                                                       name: 'allies',
                                                     )),
                                               if (!modFitsOnBar &&
-                                                  gameState.currentCampaign
-                                                          .value !=
-                                                      "Buttons and Bugs" && //hide amd deck for buttons and bugs
-                                                  getIt<Settings>()
-                                                      .showAmdDeck
-                                                      .value)
+                                                  !vm.isButtonsAndBugs &&
+                                                  vm.showAmdDeck)
                                                 Container(
                                                     margin: EdgeInsets.only(
-                                                      top: 4 * barScale,
+                                                      top: _kDeckMargin *
+                                                          barScale,
                                                     ),
                                                     child:
                                                         const ModifierDeckWidget(
@@ -246,10 +220,9 @@ class MainScaffoldBody extends StatelessWidget {
                                                     ))
                                             ])
                                           ]),
-                                      if (sectionsOnSeparateRow &&
-                                          nrOfSections != null)
+                                      if (separateRow && nrOfSections != null)
                                         SizedBox(
-                                          width: sectionWidth,
+                                          width: width,
                                           child: const RepaintBoundary(
                                               child: SectionList()),
                                         ),

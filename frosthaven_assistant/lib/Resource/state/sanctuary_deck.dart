@@ -2,8 +2,10 @@ part of 'game_state.dart';
 // ignore_for_file: library_private_types_in_public_api
 
 class SanctuaryDeck {
-  late final CardStack<ModifierCard> _multPile = CardStack<ModifierCard>();
-  late final CardStack<ModifierCard> _flipPile = CardStack<ModifierCard>();
+  static const int _kCardTypeCount = 5;
+
+  final CardStack<ModifierCard> _multPile = CardStack<ModifierCard>();
+  final CardStack<ModifierCard> _flipPile = CardStack<ModifierCard>();
 
   SanctuaryDeck() {
     //build deck
@@ -15,11 +17,11 @@ class SanctuaryDeck {
 
     List<ModifierCard> newMultList = [];
     List<ModifierCard> newFlipList = [];
-    for (var item in modifierDeckData["multPile"] as List) {
+    for (final item in modifierDeckData["multPile"] as List) {
       String gfx = item["gfx"];
       newMultList.add(ModifierCard(CardType.remove, gfx));
     }
-    for (var item in modifierDeckData["flipPile"] as List) {
+    for (final item in modifierDeckData["flipPile"] as List) {
       String gfx = item["gfx"];
       newFlipList.add(ModifierCard(CardType.remove, gfx));
     }
@@ -28,13 +30,17 @@ class SanctuaryDeck {
   }
 
   ModifierCard drawMult(_StateModifier _) {
-    //put top of draw pile on discard pile
+    if (_multPile.isEmpty) {
+      _initDeck();
+    }
     _multPile.shuffle();
     return _multPile.pop();
   }
 
   ModifierCard drawFlip(_StateModifier _) {
-    //put top of draw pile on discard pile
+    if (_flipPile.isEmpty) {
+      _initDeck();
+    }
     _flipPile.shuffle();
     return _flipPile.pop();
   }
@@ -49,13 +55,13 @@ class SanctuaryDeck {
     }
   }
 
+  Map<String, dynamic> toJson() => {
+        'multPile': _multPile.getList().map((c) => c.toJson()).toList(),
+        'flipPile': _flipPile.getList().map((c) => c.toJson()).toList(),
+      };
+
   @override
-  String toString() {
-    return '{'
-        '"multPile": ${_multPile.toString()}, '
-        '"flipPile": ${_flipPile.toString()} '
-        '}';
-  }
+  String toString() => json.encode(toJson());
 
   void _initDeck() {
     _multPile.clear();
@@ -63,7 +69,7 @@ class SanctuaryDeck {
     List<ModifierCard> flipCards = [];
     List<ModifierCard> multCards = [];
     final prefix = "sanctuary/";
-    for (int i = 1; i < 5; i++) {
+    for (int i = 1; i < _kCardTypeCount; i++) {
       //2 of each of 4 different cards
       flipCards.add(ModifierCard(CardType.remove, "${prefix}flip-$i"));
       flipCards.add(ModifierCard(CardType.remove, "${prefix}flip-$i"));

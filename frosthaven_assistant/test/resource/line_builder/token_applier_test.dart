@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/line_builder/token_applier.dart';
 
+// ignore_for_file: no-magic-number
+
 void main() {
   Widget wrapWidget(Widget w) => MaterialApp(home: Scaffold(body: w));
 
@@ -16,8 +18,7 @@ void main() {
 
     testWidgets('plain text with no tokens renders without crashing',
         (tester) async {
-      final widget =
-          TokenApplier.applyTokensForPerks('Remove one -1 card');
+      final widget = TokenApplier.applyTokensForPerks('Remove one -1 card');
       await tester.pumpWidget(wrapWidget(widget));
       expect(find.byType(RichText), findsAtLeast(1));
     });
@@ -25,7 +26,7 @@ void main() {
     testWidgets('empty string renders without crashing', (tester) async {
       final widget = TokenApplier.applyTokensForPerks('');
       await tester.pumpWidget(wrapWidget(widget));
-      // No crash is the assertion
+      expect(find.byType(RichText), findsAtLeast(1));
     });
   });
 
@@ -34,7 +35,7 @@ void main() {
   group('TokenApplier.applyTokensForPerks – numeric tokens', () {
     testWidgets('+1 becomes a circle widget span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('+1');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -44,7 +45,7 @@ void main() {
 
     testWidgets('-1 becomes a circle widget span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('-1');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -53,7 +54,7 @@ void main() {
 
     testWidgets('-2 is converted to a widget span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('-2');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -62,7 +63,7 @@ void main() {
 
     testWidgets('+4 is converted to a circle widget span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('+4');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -71,7 +72,7 @@ void main() {
 
     testWidgets('2x becomes a token widget span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('2x');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -84,7 +85,7 @@ void main() {
   group('TokenApplier.applyTokensForPerks – spacing normalisation', () {
     testWidgets('"- 1" is treated same as "-1"', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       // "- 1" is collapsed to "-1" before processing
       final widget = TokenApplier.applyTokensForPerks('- 1');
       await tester.pumpWidget(wrapWidget(widget));
@@ -94,7 +95,7 @@ void main() {
 
     testWidgets('"+ 1" is treated same as "+1"', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('+ 1');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -107,7 +108,7 @@ void main() {
   group('TokenApplier.applyTokensForPerks – mixed text and tokens', () {
     testWidgets('text before token is preserved as text span', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget = TokenApplier.applyTokensForPerks('Remove one +1 card');
       await tester.pumpWidget(wrapWidget(widget));
       FlutterError.onError = originalOnError;
@@ -117,7 +118,7 @@ void main() {
 
     testWidgets('multiple numeric tokens in one line', (tester) async {
       final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
+      FlutterError.onError = _ignoreOverflowErrors;
       final widget =
           TokenApplier.applyTokensForPerks('Replace -2 card with +2 card');
       await tester.pumpWidget(wrapWidget(widget));
@@ -128,7 +129,8 @@ void main() {
   });
 }
 
-void ignoreOverflowErrors(FlutterErrorDetails details, {bool forceReport = false}) {
+void _ignoreOverflowErrors(FlutterErrorDetails details,
+    {bool forceReport = false}) {
   if (details.exception is FlutterError) {
     final fe = details.exception as FlutterError;
     if (fe.diagnostics.any((e) =>

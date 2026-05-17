@@ -7,8 +7,6 @@
 
 #dcm plugin
 dart_code_metrics:
-  extends:
-    - recommended
   rules:
 
     #common
@@ -30,7 +28,7 @@ dart_code_metrics:
     #Warns when a literal value is on the left hand side in a binary expressions
     double-literal-format: true
     #Checks that double literals should begin with 0. instead of just ., and should not end with a trailing 0
-    member-ordering: true
+    member-ordering: false
     #Enforces ordering for a class members
     newline-before-return: false
     #Enforces a blank line between statements and return in a block
@@ -40,7 +38,7 @@ dart_code_metrics:
     #Disallows empty blocks except catch clause block
     no-equal-then-else: true
     #Warns when if statement has equal then and else statements or conditional expression has equal then and else expressions
-    no-magic-number: false #temp disabled because of amount
+    no-magic-number: true
     #Warns when number literals are used outside of named constants or variables
     prefer-conditional-expressions: true
     #Recommends to use a conditional expression instead of assigning to the same thing or return statement in each branch of an if statement
@@ -62,8 +60,6 @@ dart_code_metrics:
     #Warns when a property access or a method invocation start with duplicated chains of other invocations / accesses inside a single function or method block
     prefer-correct-test-file-name: true
     #Warns if the file within /test contains a main, but the file name doesn't end with _test.dart
-    prefer-abstract-final-static-class: true
-    #Suggests adding abstract final to classes with only static members to avoid them being instantiated or being used in inheritance
     prefer-async-await: true
     #Recommends to use async/await syntax to handle a Future result instead of .then() invocation
     prefer-commenting-analyzer-ignores: true

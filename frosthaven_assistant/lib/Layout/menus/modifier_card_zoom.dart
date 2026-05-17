@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/modifier_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/ModifierCardWidget/modifier_card_front.dart';
 
+import '../../Resource/app_constants.dart';
 import '../../Resource/state/game_state.dart';
 
 class ModifierCardZoom extends StatelessWidget {
+
   const ModifierCardZoom({super.key, required this.name, required this.card});
 
   final String name;
@@ -12,10 +14,10 @@ class ModifierCardZoom extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    double scale = 6;
-    final cardWidth = 7 * 58.6666;
+    double scale = kCardZoomDefaultScale;
+    final cardWidth = kCardZoomWidthFactor * kModifierCardBaseWidth;
     if (screenSize.width < cardWidth) {
-      scale = 6 * (screenSize.width / cardWidth);
+      scale = kCardZoomDefaultScale * (screenSize.width / cardWidth);
     }
 
     return GestureDetector(
@@ -25,6 +27,6 @@ class ModifierCardZoom extends StatelessWidget {
         child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [ModifierCardWidget.buildFront(card, name, scale, 1)]));
+            children: [ModifierCardFront(card: card, name: name, scale: scale)]));
   }
 }

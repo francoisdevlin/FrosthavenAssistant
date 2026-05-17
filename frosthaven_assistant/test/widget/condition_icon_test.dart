@@ -1,4 +1,3 @@
-import 'package:animated_widgets/widgets/shake_animated_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Layout/condition_icon.dart';
@@ -7,13 +6,15 @@ import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart'
 import 'package:frosthaven_assistant/Resource/commands/add_standee_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/change_stat_commands/change_health_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
 import 'package:frosthaven_assistant/Resource/game_methods.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../command/test_helpers.dart';
+
+// ignore_for_file: no-magic-number
 
 void main() {
   setUpAll(() async {
@@ -25,15 +26,18 @@ void main() {
     AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
   });
 
-  Character _getBlinkblade() {
-    return getIt<GameState>()
-        .currentList
-        .firstWhere((item) => item.id == 'Blinkblade') as Character;
+  Character getBlinkblade() {
+    return getIt<GameState>().currentList.firstWhere(
+          (item) => item.id == 'Blinkblade',
+        )
+        as Character;
   }
 
   Future<void> pumpConditionIcon(
-      WidgetTester tester, Condition condition) async {
-    final character = _getBlinkblade();
+    WidgetTester tester,
+    Condition condition,
+  ) async {
+    final character = getBlinkblade();
     final originalOnError = FlutterError.onError;
     FlutterError.onError = ignoreOverflowErrors;
     await tester.pumpWidget(
@@ -69,17 +73,23 @@ void main() {
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('renders invisible condition icon', (WidgetTester tester) async {
+    testWidgets('renders invisible condition icon', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.invisible);
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('renders strengthen condition icon', (WidgetTester tester) async {
+    testWidgets('renders strengthen condition icon', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.strengthen);
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('renders regenerate condition icon', (WidgetTester tester) async {
+    testWidgets('renders regenerate condition icon', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.regenerate);
       expect(find.byType(Image), findsAtLeast(1));
     });
@@ -94,10 +104,11 @@ void main() {
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('renders character condition with token background',
-        (WidgetTester tester) async {
+    testWidgets('renders character condition with token background', (
+      WidgetTester tester,
+    ) async {
       // character1 condition targets the first character icon
-      final character = _getBlinkblade();
+      final character = getBlinkblade();
       final owner = character;
       final figure = character.characterState;
       final originalOnError = FlutterError.onError;
@@ -123,25 +134,26 @@ void main() {
 
     testWidgets('uses frosthaven-style gfx path', (WidgetTester tester) async {
       // The gfx path is set in constructor — for stun in frosthaven style it should be _fh suffix
-      final character = _getBlinkblade();
       // Just verify widget renders without throwing
       await pumpConditionIcon(tester, Condition.stun);
       expect(find.byType(ConditionIcon), findsOneWidget);
     });
 
-    testWidgets('ShakeAnimatedWidget is in the widget tree',
-        (WidgetTester tester) async {
+    testWidgets('AnimatedBuilder is in the widget tree for shake animation', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.stun);
-      expect(find.byType(ShakeAnimatedWidget), findsOneWidget);
+      expect(find.byType(AnimatedBuilder), findsAtLeast(1));
     });
 
-    testWidgets('animate starts as false (no shake on build)',
-        (WidgetTester tester) async {
+    testWidgets('icon is not shaking on initial build', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.poison);
-      // Find the ShakeAnimatedWidget and verify enabled=false initially
-      final shake = tester
-          .widget<ShakeAnimatedWidget>(find.byType(ShakeAnimatedWidget));
-      expect(shake.enabled, false);
+      final state = tester.state<ConditionIconState>(
+        find.byType(ConditionIcon),
+      );
+      expect(state.animate.value, false);
     });
 
     testWidgets('renders chill condition icon', (WidgetTester tester) async {
@@ -154,8 +166,9 @@ void main() {
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('renders immobilize condition icon',
-        (WidgetTester tester) async {
+    testWidgets('renders immobilize condition icon', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.immobilize);
       expect(find.byType(Image), findsAtLeast(1));
     });
@@ -180,9 +193,10 @@ void main() {
       expect(find.byType(Image), findsAtLeast(1));
     });
 
-    testWidgets('character condition uses Stack layout',
-        (WidgetTester tester) async {
-      final character = _getBlinkblade();
+    testWidgets('character condition uses Stack layout', (
+      WidgetTester tester,
+    ) async {
+      final character = getBlinkblade();
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
       await tester.pumpWidget(
@@ -204,8 +218,9 @@ void main() {
       expect(find.byType(Stack), findsAtLeast(1));
     });
 
-    testWidgets('non-character condition renders single Image (no Stack)',
-        (WidgetTester tester) async {
+    testWidgets('non-character condition renders single Image (no Stack)', (
+      WidgetTester tester,
+    ) async {
       await pumpConditionIcon(tester, Condition.stun);
       // Non-character conditions render a single Image directly
       expect(find.byType(Image), findsOneWidget);
@@ -215,12 +230,25 @@ void main() {
   group('ConditionIcon monster figure', () {
     setUp(() {
       getIt<GameState>().clearList();
-      AddMonsterCommand('Zealot', 1, false).execute();
-      AddStandeeCommand(1, null, 'Zealot', MonsterType.normal, false).execute();
+      AddMonsterCommand(
+        'Zealot',
+        1,
+        false,
+        gameState: getIt<GameState>(),
+      ).execute();
+      AddStandeeCommand(
+        1,
+        null,
+        'Zealot',
+        MonsterType.normal,
+        false,
+        gameState: getIt<GameState>(),
+      ).execute();
     });
 
-    testWidgets('renders condition icon for monster instance',
-        (WidgetTester tester) async {
+    testWidgets('renders condition icon for monster instance', (
+      WidgetTester tester,
+    ) async {
       final gameState = getIt<GameState>();
       final monster =
           gameState.currentList.firstWhere((e) => e.id == 'Zealot') as Monster;
@@ -249,14 +277,13 @@ void main() {
   });
 
   group('ConditionIcon frosthaven gfx suffix', () {
-    testWidgets('constructor uses _fh suffix when campaign is Frosthaven',
-        (WidgetTester tester) async {
+    testWidgets('constructor uses _fh suffix when campaign is Frosthaven', (
+      WidgetTester tester,
+    ) async {
       SetCampaignCommand('Frosthaven').execute();
-      final character = _getBlinkblade();
       // Render stun icon — stun has a GH version, so suffix "_fh" should apply
       await pumpConditionIcon(tester, Condition.stun);
-      final icon =
-          tester.widget<ConditionIcon>(find.byType(ConditionIcon));
+      final icon = tester.widget<ConditionIcon>(find.byType(ConditionIcon));
       // gfx should end with _fh.png for frosthaven-style campaign
       expect(icon.gfx, contains('_fh'));
       // Also verify GameMethods.isFrosthavenStyle is true in this context
@@ -269,16 +296,17 @@ void main() {
       // Mock SharedPreferences so saveToDisk does not throw MissingPluginException
       SharedPreferences.setMockInitialValues({});
       getIt<GameState>().clearList();
-      // Use action() to populate gameSaveStates so listener can read old state
-      getIt<GameState>()
-          .action(AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1));
+      getIt<GameState>().action(
+        AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1),
+      );
     });
 
-    testWidgets('health decrease triggers animation for regenerate condition',
-        (WidgetTester tester) async {
+    testWidgets('health decrease triggers animation for regenerate condition', (
+      WidgetTester tester,
+    ) async {
       final gameState = getIt<GameState>();
-      final character = gameState.currentList
-          .firstWhere((e) => e is Character) as Character;
+      final character =
+          gameState.currentList.firstWhere((e) => e is Character) as Character;
 
       final originalOnError = FlutterError.onError;
       FlutterError.onError = ignoreOverflowErrors;
@@ -298,62 +326,89 @@ void main() {
       await tester.pump();
       FlutterError.onError = originalOnError;
 
-      // Trigger health change: commandIndex change → listener → animation path
-      gameState
-          .action(ChangeHealthCommand(-1, character.id, character.id));
+      final state = tester.state<ConditionIconState>(
+        find.byType(ConditionIcon),
+      );
+
+      // Health decrease fires figure.health notifier → _onHealthChanged → animation
+      gameState.action(
+        ChangeHealthCommand(
+          -1,
+          character.id,
+          character.id,
+          gameState: getIt<GameState>(),
+        ),
+      );
 
       FlutterError.onError = ignoreOverflowErrors;
-      // Pump past the 1000ms animation timer started by _runAnimation()
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 1100));
+      expect(state.animate.value, isTrue);
+      await tester.pump(const Duration(milliseconds: 400));
       FlutterError.onError = originalOnError;
 
       expect(find.byType(ConditionIcon), findsOneWidget);
+      expect(state.animate.value, isFalse);
       gameState.undo();
     });
 
     testWidgets(
-        'health decrease then increase with stun covers full condition chains without animation',
-        (WidgetTester tester) async {
-      final gameState = getIt<GameState>();
-      final character = gameState.currentList
-          .firstWhere((e) => e is Character) as Character;
+      'health decrease then increase with stun covers full condition chains without animation',
+      (WidgetTester tester) async {
+        final gameState = getIt<GameState>();
+        final character =
+            gameState.currentList.firstWhere((e) => e is Character)
+                as Character;
 
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = ignoreOverflowErrors;
-      // stun is not in the health-decrease or health-increase animation lists
-      // so _runAnimation() is NOT called → no pending timer
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ConditionIcon(
-              Condition.stun,
-              32.0,
-              character,
-              character.characterState,
-              scale: 1.0,
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = ignoreOverflowErrors;
+        // stun is not in the health-decrease or health-increase animation lists
+        // so _runAnimation() is NOT called → no pending timer
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ConditionIcon(
+                Condition.stun,
+                32.0,
+                character,
+                character.characterState,
+                scale: 1.0,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      FlutterError.onError = originalOnError;
+        );
+        await tester.pump();
+        FlutterError.onError = originalOnError;
 
-      // Health decrease: covers lines 128, 198-207 (all conditions evaluated, none match stun)
-      gameState.action(ChangeHealthCommand(-1, character.id, character.id));
-      FlutterError.onError = ignoreOverflowErrors;
-      await tester.pump();
-      FlutterError.onError = originalOnError;
+        // Health decrease: covers lines 128, 198-207 (all conditions evaluated, none match stun)
+        gameState.action(
+          ChangeHealthCommand(
+            -1,
+            character.id,
+            character.id,
+            gameState: getIt<GameState>(),
+          ),
+        );
+        FlutterError.onError = ignoreOverflowErrors;
+        await tester.pump();
+        FlutterError.onError = originalOnError;
 
-      // Health increase: covers lines 210-216 (all conditions evaluated, none match stun)
-      gameState.action(ChangeHealthCommand(1, character.id, character.id));
-      FlutterError.onError = ignoreOverflowErrors;
-      await tester.pump();
-      FlutterError.onError = originalOnError;
+        // Health increase: covers lines 210-216 (all conditions evaluated, none match stun)
+        gameState.action(
+          ChangeHealthCommand(
+            1,
+            character.id,
+            character.id,
+            gameState: getIt<GameState>(),
+          ),
+        );
+        FlutterError.onError = ignoreOverflowErrors;
+        await tester.pump();
+        FlutterError.onError = originalOnError;
 
-      expect(find.byType(ConditionIcon), findsOneWidget);
-      gameState.undo();
-      gameState.undo();
-    });
+        expect(find.byType(ConditionIcon), findsOneWidget);
+        gameState.undo();
+        gameState.undo();
+      },
+    );
   });
 }

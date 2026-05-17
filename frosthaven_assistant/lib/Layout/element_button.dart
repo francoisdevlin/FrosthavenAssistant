@@ -1,99 +1,86 @@
 import 'package:flutter/material.dart';
 
-import '../Resource/commands/imbue_element_command.dart';
-import '../Resource/commands/use_element_command.dart';
+import '../Resource/app_constants.dart';
 import '../Resource/enums.dart';
 import '../Resource/settings.dart';
 import '../Resource/state/game_state.dart';
-import '../services/service_locator.dart';
+import 'view_models/element_button_view_model.dart';
 
 class ElementButton extends StatefulWidget {
   const ElementButton(
       {super.key,
       required this.icon,
       required this.color,
-      required this.element});
+      required this.element,
+      this.gameState,
+      this.settings});
   final String icon;
   final Color color;
   final Elements element;
   final double width = 40;
   final double borderWidth = 2;
 
+  final GameState? gameState;
+  final Settings? settings;
+
   @override
   AnimatedContainerButtonState createState() => AnimatedContainerButtonState();
 }
 
 class AnimatedContainerButtonState extends State<ElementButton> {
-  final GameState _gameState = getIt<GameState>();
-  final Settings settings = getIt<Settings>();
-  late double _height;
-  late Color _color;
-  late BorderRadiusGeometry _borderRadius;
+  static const double _kHalfDivisor = 2.0;
+  static const double _kBorderSides = 2.0;
+  static const double _kInertHeight = 4.0;
+  static const double _kBoxShadowBlur = 4.0;
+  static const double _kIconScale = 0.65;
+
+  ElementButtonViewModel? _vmInstance;
+  ElementButtonViewModel get _vm => _vmInstance ??= ElementButtonViewModel(
+      widget.element, gameState: widget.gameState, settings: widget.settings);
+  double _height = 0;
+  Color _color = Colors.transparent;
+  BorderRadiusGeometry _borderRadius = BorderRadius.zero;
 
   @override
   void initState() {
-    final scale = settings.userScalingBars.value;
     super.initState();
+    final scale = _vm.userScalingBars;
     _height = widget.width * scale;
     _color = Colors.transparent;
     _borderRadius = BorderRadius.all(
-        Radius.circular(widget.width * scale - widget.borderWidth * scale * 2));
+        Radius.circular(widget.width * scale - widget.borderWidth * scale * _kBorderSides));
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  double get _userScalingBars => _vm.userScalingBars;
 
-  void elementListener() {
-    if (_gameState.elementState[widget.element] != null) {
-      ElementState state = _gameState.elementState[widget.element]!;
-      if (state == ElementState.full) {
-        if (mounted) {
-          setState(() {
-            setFull();
-          });
-        }
-      } else if (state == ElementState.half) {
-        if (mounted) {
-          setState(() {
-            setHalf();
-          });
-        }
-      }
-    }
-  }
-
-  void setHalf() {
-    final scale = settings.userScalingBars.value;
+  void _setHalf() {
+    final scale = _userScalingBars;
     _color = widget.color;
-    _height = widget.width * scale / 2 + 2 * scale;
+    _height = widget.width * scale / _kHalfDivisor + kSmallMargin * scale;
     _borderRadius = BorderRadius.only(
-        bottomLeft: Radius.circular(
-            widget.width * scale / 2 - widget.borderWidth * scale * 0),
-        bottomRight: Radius.circular(
-            widget.width * scale / 2 - widget.borderWidth * scale * 0));
+        bottomLeft: Radius.circular(widget.width * scale / _kHalfDivisor),
+        bottomRight: Radius.circular(widget.width * scale / _kHalfDivisor));
   }
 
-  void setFull() {
-    final scale = settings.userScalingBars.value;
+  void _setFull() {
+    final scale = _userScalingBars;
     _color = widget.color;
     _height = widget.width * scale;
     _borderRadius = BorderRadius.all(
         Radius.circular(widget.width * scale - widget.borderWidth * scale));
   }
 
-  void setInert() {
+  void _setInert() {
     _color = Colors.transparent;
-    _height = 4 * settings.userScalingBars.value;
+    _height = _kInertHeight * _userScalingBars;
     _borderRadius = BorderRadius.zero;
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = settings.userScalingBars.value;
+    final scale = _userScalingBars;
     return Container(
-        margin: EdgeInsets.only(right: 2 * scale),
+        margin: EdgeInsets.only(right: kSmallMargin * scale),
         child: InkWell(
             hoverColor: Colors.transparent,
             splashColor: Colors.transparent,
@@ -101,92 +88,64 @@ class AnimatedContainerButtonState extends State<ElementButton> {
             highlightColor: Colors.transparent,
             onLongPress: () {
               setState(() {
-                _gameState.action(ImbueElementCommand(widget.element, true));
+                _vm.imbue(half: true);
               });
             },
             onTap: () {
-              if (_gameState.elementState[widget.element] ==
-                  ElementState.half) {
-                _gameState.action(UseElementCommand(widget.element));
-              } else if (_gameState.elementState[widget.element] ==
-                  ElementState.full) {
-                _gameState.action(UseElementCommand(widget.element));
-              } else {
-                _gameState.action(ImbueElementCommand(widget.element, false));
-              }
+              _vm.tap();
             },
             child: Stack(
               alignment: Alignment.center,
               children: [
                 Container(
-                    padding: EdgeInsets.only(bottom: 2 * scale),
+                    padding: EdgeInsets.only(bottom: kSmallMargin * scale),
                     child: Align(
                       alignment: Alignment.bottomCenter,
-                      child: ValueListenableBuilder<int>(
-                          valueListenable: _gameState.commandIndex,
-                          builder: (context, value, child) {
-                            if (_gameState.elementState[widget.element] ==
-                                ElementState.inert) {
-                              setInert();
-                            } else if (_gameState
-                                    .elementState[widget.element] ==
-                                ElementState.half) {
-                              setHalf();
-                            } else if (_gameState
-                                    .elementState[widget.element] ==
-                                ElementState.full) {
-                              setFull();
+                      child: ValueListenableBuilder<ElementState>(
+                          valueListenable: _vm.elementStateNotifier,
+                          builder: (context, state, child) {
+                            if (state == ElementState.inert) {
+                              _setInert();
+                            } else if (state == ElementState.half) {
+                              _setHalf();
+                            } else if (state == ElementState.full) {
+                              _setFull();
                             }
 
                             return RepaintBoundary(
                                 child: AnimatedContainer(
-                                    // Use the properties stored in the State class.
                                     width: widget.width * scale -
-                                        widget.borderWidth * scale * 2,
-                                    height: _height -
-                                        widget.borderWidth * scale * 2,
+                                        widget.borderWidth * scale * _kBorderSides,
+                                    height:
+                                        _height - widget.borderWidth * scale * _kBorderSides,
                                     decoration: BoxDecoration(
                                         shape: BoxShape.rectangle,
                                         color: _color,
                                         borderRadius: _borderRadius,
                                         boxShadow: [
-                                          _gameState.elementState[
-                                                      widget.element] !=
-                                                  ElementState.inert
+                                          state != ElementState.inert
                                               ? BoxShadow(
-                                                  blurRadius: 4 *
-                                                      settings.userScalingBars
-                                                          .value)
+                                                  blurRadius: _kBoxShadowBlur * scale)
                                               : const BoxShadow(
                                                   color: Colors.transparent,
                                                 )
                                         ]),
-                                    // Define how long the animation should take.
-                                    duration: const Duration(milliseconds: 350),
-                                    // Provide an optional curve to make the animation feel smoother.
+                                    duration:
+                                        const Duration(milliseconds: 350),
                                     curve: Curves.decelerate));
                           }),
                     )),
                 ValueListenableBuilder<bool>(
-                    valueListenable: getIt<Settings>().darkMode,
+                    valueListenable: _vm.darkMode,
                     builder: (context, value, child) {
-                      return ValueListenableBuilder<int>(
-                          valueListenable: _gameState.commandIndex,
-                          builder: (context, value, child) {
-                            Color? color;
-                            if (!getIt<Settings>().darkMode.value) {
-                              color = Colors.black;
-                            }
-                            if (ElementState.inert !=
-                                _gameState.elementState[widget.element]) {
-                              color = null;
-                            }
-
+                      return ValueListenableBuilder<ElementState>(
+                          valueListenable: _vm.elementStateNotifier,
+                          builder: (context, state, child) {
                             return Image(
-                              height: widget.width * scale * 0.65,
+                              height: widget.width * scale * _kIconScale,
                               image: AssetImage(widget.icon),
-                              color: color,
-                              width: widget.width * scale * 0.65,
+                              color: _vm.iconColor,
+                              width: widget.width * scale * _kIconScale,
                             );
                           });
                     })

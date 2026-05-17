@@ -3,6 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:frosthaven_assistant/Resource/line_builder/line_builder.dart';
 
 class FrosthavenConverter {
+  static const int _kBossStatCardColor = 0x45D2D2D2;
+  static const int _kStatCardColor = 0x9A808080;
+  static const double _kBoxBorderRadius = 6.0;
+  static const double _kBoxPaddingLeft = 2.0;
+  static const double _kBoxPaddingTop = 0.35;
+  static const double _kBoxPaddingRight = 2.5;
+  static const double _kBoxPaddingBottom = 0.2625;
+  static const double _kBoxMarginH = 2.0;
+  static const double _kContainerMargin = 2.0;
+  static const double _kElementImageWidth = 20.0;
+  static const double _kElementTopOffset = -3.0;
+  static const double _kDottedBorderRadius = 10.0;
+  static const double _kDashPattern1 = 1.5;
+  static const double _kDashPattern2 = 0.8;
+  static const double _kStrokeWidth = 0.6;
+  static const double _kPaddingUseLeft = 1.0;
+  static const double _kPaddingNoUseLeft = 3.0;
+  static const double _kPaddingTop2 = 0.25;
+  static const int _kLookback = 2;
+  static const int _kElementPairCount = 2;
+
   static List<String> convertLinesToFH(List<String> lines, bool applyStats) {
     //move lines up when they should
     //add container markers here as well
@@ -37,7 +58,7 @@ class FrosthavenConverter {
             true; //makes sub line gray box not appear straight after a element use
       }
       if (i > 1 &&
-          lines[i - 2].contains("%use") &&
+          lines[i - _kLookback].contains("%use") &&
           (lines[i - 1] == "[r]" ||
               lines[i - 1] == "[s]" ||
               lines[i - 1] == "[c]")) {
@@ -77,18 +98,7 @@ class FrosthavenConverter {
             line.startsWith("^Advantage") ||
             //only target on same line for non valued tokens - damn myself, what did I mean by that? I was probably wrong
             line.startsWith("^Target") ||
-            line.startsWith(
-                "^%target%") || //supersedes the lower ones. In FH target clauses go first so this old code is useless
-            /*(line.startsWith("^Target") && lines[i - 1].contains('%push%')) ||
-            (line.startsWith("^Target") && lines[i - 1].contains('%pull%')) ||
-            (line.startsWith("^Target") &&
-                lines[i - 1].startsWith('%') &&
-                lines[i - 1].endsWith(
-                    '%')) || //this is to add sub line after a lone condition
-            (line.startsWith("^Target") &&
-                lines[i - 1].startsWith('^%') &&
-                lines[i - 1].endsWith(
-                    '%')) || //you will not want a linebreak after a lone poison sub line*/
+            line.startsWith("^%target%") ||
             line.startsWith("^Normal") || //for ice wraith
             line.startsWith("^all") ||
             line.startsWith("^All") &&
@@ -109,7 +119,7 @@ class FrosthavenConverter {
           //make bigger icon and text in element use block
           if (isElementUse &&
               (lines[i - 1].contains("use") ||
-                  (lines[i - 2].contains("use") &&
+                  (lines[i - _kLookback].contains("use") &&
                       lines[i - 1]
                           .contains("[c]"))) // (!lines[i - 2].contains("[c]"))
               &&
@@ -123,12 +133,6 @@ class FrosthavenConverter {
               retVal.removeLast();
             }
             isReallySubLine = false;
-          } else if (isElementUse &&
-              (!lines[i - 2].contains("[c]") &&
-                  !line.startsWith("^all") &&
-                  !line.startsWith("^All"))) {
-            //isReallySubLine = false; //block useblocks from having straight sublines?
-            //hope this doesn't come back to bite me (flame demon 77) - it does savvas lavaflow 51
           }
           line = "!$line";
           line = line.replaceFirst("Self", "self");
@@ -138,8 +142,6 @@ class FrosthavenConverter {
 
           if (retVal.last == "[subLineStart]") {
             retVal.last = "![subLineStart]";
-          } else {
-            //line = "!^ " + line.substring(2); //adding space
           }
         } else {
           //if not right aligned, then not really a subline after all
@@ -154,12 +156,9 @@ class FrosthavenConverter {
           retVal.add("!^[lineBreak]");
         }
         line = "!$line";
-      } else if (line.startsWith("!") ||
-          line.startsWith("*") ||
-          line.startsWith("^")) {
-        //ignore
-      } else {
-        // if(line != "[c]" && line != "[r]"){
+      } else if (!line.startsWith("!") &&
+          !line.startsWith("*") &&
+          !line.startsWith("^")) {
         if (!isSubLine && !line.contains("%use%")) {
           isSubLine = true;
         } else {
@@ -170,7 +169,6 @@ class FrosthavenConverter {
             isSubLine = false;
           }
         }
-        // }
       }
 
       //if conditional or sub line start - add marker
@@ -189,8 +187,7 @@ class FrosthavenConverter {
     return retVal;
   }
 
-  static bool shouldOverflow(
-      bool frosthavenStyle, String iconToken, bool mainLine) {
+  static bool shouldOverflow(bool frosthavenStyle, String iconToken) {
     return /*!mainLine &&*/ frosthavenStyle &&
         ((iconToken == "pierce" ||
             iconToken == "brittle" ||
@@ -217,7 +214,6 @@ class FrosthavenConverter {
   static void buildFHStyleBackgrounds(
       List<Widget> lines,
       List<Widget> lastLineTextPartList,
-      TextAlign textAlign,
       MainAxisAlignment rowMainAxisAlignment,
       double scale,
       bool isInRow,
@@ -234,15 +230,32 @@ class FrosthavenConverter {
     for (int i = 0; i < lastLineTextPartList.length; i++) {
       Widget part = lastLineTextPartList[i];
       if (part is Container) {
-        if (part.child! is Text &&
-            (part.child as Text).data!.contains("[subLineStart]")) {
+        final partText = part.child is Text ? (part.child as Text).data : null;
+        if (partText != null && partText.contains("[subLineStart]")) {
           list1 = lastLineTextPartList.sublist(0, i);
           List<Widget> tempSpanList = [];
           for (int j = i + 1; j < lastLineTextPartList.length; j++) {
             Widget part2 = lastLineTextPartList[j];
             if (part2 is Container &&
                 part2.child is Text &&
-                (part2.child as Text).data!.contains("[lineBreak]")) {
+                ((part2.child as Text).data ?? '').contains("[lineBreak]")) {
+              list2.add(tempSpanList.toList());
+              tempSpanList.clear();
+            } else {
+              tempSpanList.add(lastLineTextPartList[j]);
+            }
+          }
+          list2.add(tempSpanList);
+        }
+        if (partText != null && partText.contains("[conditionalStart]")) {
+          conditional = true;
+          list1 = lastLineTextPartList.sublist(0, i);
+          List<Widget> tempSpanList = [];
+          for (int j = i + 1; j < lastLineTextPartList.length; j++) {
+            Widget part2 = lastLineTextPartList[j];
+            if (part2 is Container &&
+                part2.child is Text &&
+                ((part2.child as Text).data ?? '').contains("[lineBreak]")) {
               list2.add(tempSpanList.toList());
               tempSpanList.clear();
             } else {
@@ -252,25 +265,6 @@ class FrosthavenConverter {
           list2.add(tempSpanList);
         }
       }
-      if (part is Container &&
-          part.child is Text &&
-          (part.child as Text).data!.contains("[conditionalStart]")) {
-        conditional = true;
-        list1 = lastLineTextPartList.sublist(0, i);
-        List<Widget> tempSpanList = [];
-        for (int j = i + 1; j < lastLineTextPartList.length; j++) {
-          Widget part2 = lastLineTextPartList[j];
-          if (part2 is Container &&
-              part2.child is Text &&
-              (part2.child as Text).data!.contains("[lineBreak]")) {
-            list2.add(tempSpanList.toList());
-            tempSpanList.clear();
-          } else {
-            tempSpanList.add(lastLineTextPartList[j]);
-          }
-        }
-        list2.add(tempSpanList);
-      }
     }
 
     Row widget1 = Row(children: list1);
@@ -279,28 +273,19 @@ class FrosthavenConverter {
         decoration: BoxDecoration(
             color: conditional
                 ? Colors.blue
-                : Color(int.parse(bossStatCard ? "45D2D2D2" : "9A808080",
-                    radix: 16)),
-            borderRadius: BorderRadius.all(Radius.circular(6.0 * scale))),
+                : Color(bossStatCard ? _kBossStatCardColor : _kStatCardColor),
+            borderRadius:
+                BorderRadius.all(Radius.circular(_kBoxBorderRadius * scale))),
         padding: EdgeInsets.fromLTRB(
-            2.0 * scale, 0.35 * scale, 2.5 * scale, 0.2625 * scale),
-        margin: EdgeInsets.only(left: 2.0 * scale, right: 2.0 * scale),
-        //child: Expanded(
-        child: Column(mainAxisSize: MainAxisSize.max, children: [
-          if (list2.isNotEmpty) Row(children: list2[0]),
-          if (list2.length > 1)
-            Row(
-              children: list2[1],
-            ),
-          if (list2.length > 2)
-            Row(
-              children: list2[2],
-            ),
-          if (list2.length > 3)
-            Row(
-              children: list2[3],
-            )
-        ]));
+            _kBoxPaddingLeft * scale,
+            _kBoxPaddingTop * scale,
+            _kBoxPaddingRight * scale,
+            _kBoxPaddingBottom * scale),
+        margin: EdgeInsets.only(
+            left: _kBoxMarginH * scale, right: _kBoxMarginH * scale),
+        child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [...list2.map((row) => Row(children: row))]));
 
     Widget row = Row(
       mainAxisSize: MainAxisSize.max,
@@ -344,9 +329,11 @@ class FrosthavenConverter {
         retVal.addAll(getAllImagesInWidget(item));
       }
     } else if (widget is Container && widget.child != null) {
-      retVal.addAll(getAllImagesInWidget(widget.child!));
+      retVal.addAll(
+          getAllImagesInWidget(widget.child ?? const SizedBox.shrink()));
     } else if (widget is Image) {
-      retVal.add(widget.semanticLabel!);
+      final label = widget.semanticLabel;
+      if (label != null) retVal.add(label);
     }
 
     return retVal;
@@ -363,22 +350,22 @@ class FrosthavenConverter {
         retVal += getAllTextInWidget(item);
       }
     } else if (widget is Container && widget.child != null) {
-      retVal += getAllTextInWidget(widget.child!);
+      retVal += getAllTextInWidget(widget.child ?? const SizedBox.shrink());
     } else if (widget is Text) {
-      retVal += widget.data!;
+      retVal += widget.data ?? '';
     }
 
     return retVal;
   }
 
-  static void applyConditionalGraphics(var lines, double scale, bool elementUse,
-      double rightMargin, bool bossStatCard, Row child) {
+  static void applyConditionalGraphics(List<Widget> lines, double scale,
+      bool elementUse, double rightMargin, bool bossStatCard, Row child) {
     bool belongs = true;
     if (lines.isEmpty) {
       belongs = false;
     } else {
       if (lines.last is Image) {
-        if ((lines.last as Image).semanticLabel!.contains("divider")) {
+        if (((lines.last as Image).semanticLabel ?? '').contains("divider")) {
           belongs = false;
         }
       }
@@ -386,60 +373,56 @@ class FrosthavenConverter {
 
     //sniff the child if it is a element to element thing
     List<String> graphics = getAllImagesInWidget(child);
-    if (graphics.length == 2) {
-      if (LineBuilder.isElement(graphics[0]) &&
+    if (graphics.length == _kElementPairCount) {
+      if (LineBuilder.isElement(graphics.first) &&
           LineBuilder.isElement(graphics[1])) {
         belongs = false;
       }
     }
 
     lines.add(Container(
-        margin: EdgeInsets.all(2.0 * scale),
-        //alignment: Alignment.bottomCenter,
+        margin: EdgeInsets.all(_kContainerMargin * scale),
         child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.topCenter,
             children: [
               if (belongs)
                 Positioned(
-                    top: -3 * scale,
+                    top: _kElementTopOffset * scale,
                     child: Image(
                         fit: BoxFit.fitWidth,
                         filterQuality: FilterQuality.medium,
-                        width: scale * 20,
+                        width: scale * _kElementImageWidth,
                         image: const AssetImage(
                           "assets/images/abilities/element_top.png",
                         ))),
               DottedBorder(
                   options: RoundedRectDottedBorderOptions(
                     color: Colors.white,
-                    //borderType: BorderType.Rect,
-                    //borderType: BorderType.RRect,
-
-                    radius: Radius.circular(10.0 * scale),
-
-                    //strokeCap: StrokeCap.round,
+                    radius: Radius.circular(_kDottedBorderRadius * scale),
                     padding: const EdgeInsets.all(0),
-                    //these are closer to the real values, but looks bad on small scale
-                    //dashPattern: [1.2 * scale, 0.5 * scale], //1.2 && 0.5
-                    //strokeWidth: 0.5 * scale, //0.4
-                    dashPattern: [1.5 * scale, 0.8 * scale],
-                    strokeWidth: 0.6 * scale,
+                    dashPattern: [
+                      _kDashPattern1 * scale,
+                      _kDashPattern2 * scale
+                    ],
+                    strokeWidth: _kStrokeWidth * scale,
                   ),
                   child: Container(
                       decoration: BoxDecoration(
                           //backgroundBlendMode: BlendMode.softLight,
                           //border: Border.fromBorderSide(BorderSide(style: BorderStyle.solid, color: Colors.white)),
-                          color: Color(int.parse(
-                              bossStatCard ? "45D2D2D2" : "9A808080",
-                              radix: 16)),
-                          borderRadius:
-                              BorderRadius.all(Radius.circular(10.0 * scale))),
+                          color: Color(bossStatCard
+                              ? _kBossStatCardColor
+                              : _kStatCardColor),
+                          borderRadius: BorderRadius.all(
+                              Radius.circular(_kDottedBorderRadius * scale))),
                       padding: EdgeInsets.fromLTRB(
-                          elementUse ? 1.0 * scale : 3.0 * scale,
-                          0.25 * scale,
+                          elementUse
+                              ? _kPaddingUseLeft * scale
+                              : _kPaddingNoUseLeft * scale,
+                          _kPaddingTop2 * scale,
                           rightMargin,
-                          0.2625 * scale),
+                          _kBoxPaddingBottom * scale),
                       //margin: EdgeInsets.only(left: 2 * scale),
                       //child: Expanded(
                       child: child))

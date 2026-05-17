@@ -7,6 +7,7 @@ import 'dart:typed_data';
 class StateUpdateMessage {
   String indexString = "";
   String description = "";
+  String eventJson = '{"type":"none"}';
   String data = "";
   int index = 0;
 }
@@ -31,13 +32,6 @@ abstract class GameServer {
     _serverEnabled = value;
   }
 
-  String _leftOverMessage = "";
-  String get leftOverMessage{
-    return _leftOverMessage;
-  }
-  set leftOverMessage(String value){
-    _leftOverMessage = value;
-  }
 
   void resetState();
   void undoState();
@@ -58,18 +52,74 @@ abstract class GameServer {
   void sendInitResponse(Socket client);
 
 
+  /// Encodes a state message as a JSON envelope.
+  ///
+  /// [eventJson] must be a valid JSON string (e.g. `'{"type":"none"}'`).
+  static String encodeStateEnvelope({
+    required int index,
+    required String description,
+    required String eventJson,
+    required String state,
+  }) {
+    return jsonEncode({
+      'i': index,
+      'd': description,
+      'e': jsonDecode(eventJson),
+      's': state,
+    });
+  }
+
+  /// Tries to decode [content] as a JSON envelope.
+  /// Returns `null` if it is not in the new format.
+  static StateUpdateMessage? tryDecodeStateEnvelope(String content) {
+    if (!content.startsWith('{')) return null;
+    try {
+      final map = jsonDecode(content) as Map<String, dynamic>;
+      final result = StateUpdateMessage();
+      result.index = map['i'] as int;
+      result.indexString = result.index.toString();
+      result.description = map['d'] as String;
+      result.eventJson = jsonEncode(map['e'] as Object);
+      result.data = map['s'] as String;
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
   StateUpdateMessage parseStateUpdateMessage(String message) {
+    // Try new JSON envelope format first.
+    final StateUpdateMessage? envelope = tryDecodeStateEnvelope(message);
+    if (envelope != null) return envelope;
+
+    // Legacy text format: "Index:NDescription:textEvent:{...}GameState:state"
     List<String> messageParts1 = message.split("Description:");
-    String indexString =
-        messageParts1[0].substring("Index:".length);
-    List<String> messageParts2 =
-        messageParts1[1].split("GameState:");
-    String description = messageParts2[0];
-    String data = messageParts2[1];
-    StateUpdateMessage result =  StateUpdateMessage();
+    String indexString = messageParts1[0].substring("Index:".length);
+    final String afterDescription = messageParts1[1];
+
+    String description;
+    String eventJson;
+    String data;
+
+    if (afterDescription.contains("Event:")) {
+      List<String> parts2 = afterDescription.split("Event:");
+      description = parts2[0];
+      List<String> parts3 = parts2[1].split("GameState:");
+      eventJson = parts3[0];
+      data = parts3[1];
+    } else {
+      // Backwards-compatible: older client without Event field.
+      List<String> parts2 = afterDescription.split("GameState:");
+      description = parts2[0];
+      eventJson = '{"type":"none"}';
+      data = parts2[1];
+    }
+
+    StateUpdateMessage result = StateUpdateMessage();
     result.indexString = indexString;
-    result.index = int.parse(indexString);
+    result.index = int.tryParse(indexString) ?? -1;
     result.description = description;
+    result.eventJson = eventJson;
     result.data = data;
     return result;
   }
@@ -117,8 +167,6 @@ abstract class GameServer {
       removeAllClientConnections();
     }
     serverEnabled = false;
-    leftOverMessage = "";
-
     resetState();
   }
 
@@ -136,15 +184,38 @@ abstract class GameServer {
 
     addClientConnection(client);
 
+    // Per-connection leftover buffer — avoids the shared-field bug where
+    // messages from different clients could corrupt each other's partial frames.
+    String leftOver = "";
+
+    const String prefix = 'S3nD:';
+    const String suffix = '[EOM]';
+
     // listen for events from the client
     try {
       client.listen(
         // handle data from the client
-        (Uint8List data) async {
-          String message = utf8.decode(data);
-          message = leftOverMessage + message;
-          leftOverMessage = "";
-          processMessages(message, client);
+        (Uint8List data) {
+          String chunk;
+          try {
+            chunk = utf8.decode(data);
+          } on FormatException catch (e) {
+            log('Invalid UTF-8 from client: $e');
+            removeClientConnection(client);
+            return;
+          }
+          leftOver += chunk;
+          // Use indexOf-based framing: safe if the payload contains "S3nD:".
+          while (true) {
+            final int start = leftOver.indexOf(prefix);
+            if (start == -1) break;
+            final int contentStart = start + prefix.length;
+            final int end = leftOver.indexOf(suffix, contentStart);
+            if (end == -1) break;
+            final String content = leftOver.substring(contentStart, end);
+            leftOver = leftOver.substring(end + suffix.length);
+            processMessages(content, client);
+          }
         },
         // handle errors
         onError: (error) {
@@ -154,9 +225,7 @@ abstract class GameServer {
           // not mid-message). This is particularly relevant for iOS clients,
           // where the app usually doesn't get a chance to close the socket
           // gracefully when the device is locked.
-          if (error is SocketException &&
-              (error.osError?.errorCode == 103 ||
-                  !leftOverMessage.isEmpty)) {
+          if (error is SocketException && error.osError?.errorCode == 103) {
             stopServer(error.toString());
           }
         },
@@ -175,29 +244,23 @@ abstract class GameServer {
     }
   }
 
-  void processMessages(String socketMessages, Socket client){
-    List<String> messages = socketMessages.split("S3nD:");
-          //handle
-          for (var message in messages) {
-            if (message.endsWith("[EOM]")) {
-              message = message.substring(0, message.length - "[EOM]".length);
-              if (message.startsWith("Index:")) {
-                handleIndexMessage(message, client);
-              } else if (message.startsWith("init")) {
-                handleInitMessage(message, client);
-              } else if (message.startsWith("undo")) {
-                handleUndoMessage();
-              } else if (message.startsWith("redo")) {
-                handleRedoMessage();
-              } else if (message.startsWith("pong")) {
-                handlePongMessage(client);
-              } else if (message.startsWith("ping")) {
-                handlePingMessage(client);
-              }
-            } else {
-              leftOverMessage = message;
-            }
-          }
+  /// Dispatches a single fully-decoded, unframed message content to the
+  /// appropriate handler.  Framing (S3nD:/[EOM] extraction) is done by
+  /// [handleConnection] before calling this method.
+  void processMessages(String message, Socket client){
+    if (message.startsWith("Index:") || message.startsWith("{")) {
+      handleIndexMessage(message, client);
+    } else if (message.startsWith("init")) {
+      handleInitMessage(message, client);
+    } else if (message.startsWith("undo")) {
+      handleUndoMessage();
+    } else if (message.startsWith("redo")) {
+      handleRedoMessage();
+    } else if (message.startsWith("pong")) {
+      handlePongMessage(client);
+    } else if (message.startsWith("ping")) {
+      handlePingMessage(client);
+    }
   }
 
   void handleIndexMessage(String message, Socket client){
@@ -207,7 +270,15 @@ abstract class GameServer {
 
   void handleInitMessage(String message, Socket client){
     List<String> initMessageParts = message.split("version:");
-    int version = int.parse(initMessageParts[1]);
+    if (initMessageParts.length < 2) {
+      sendToOnly("Error: malformed init message (missing version field).", client);
+      return;
+    }
+    final int? version = int.tryParse(initMessageParts[1]);
+    if (version == null) {
+      sendToOnly("Error: malformed init message (non-integer version).", client);
+      return;
+    }
     if (version != serverVersion) {
       //version mismatch
       setNetworkMessage("Client version mismatch. Please update. Client $version Server $serverVersion");

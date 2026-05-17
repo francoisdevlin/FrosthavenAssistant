@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/draw_command.dart';
@@ -7,6 +9,8 @@ import 'package:frosthaven_assistant/Resource/commands/next_round_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_campaign_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_scenario_command.dart';
 import 'package:frosthaven_assistant/Resource/enums.dart';
+import 'package:frosthaven_assistant/Resource/game_data.dart';
+import 'package:frosthaven_assistant/Resource/settings.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
 
@@ -21,14 +25,22 @@ void main() {
     getIt<GameState>().clearList();
     AddCharacterCommand('Blinkblade', 'Frosthaven', 'Blinky', 1).execute();
     SetCampaignCommand('Jaws of the Lion').execute();
-    SetScenarioCommand('#5 A Deeper Understanding', false).execute();
+    SetScenarioCommand(
+      '#5 A Deeper Understanding',
+      false,
+      gameState: getIt<GameState>(),
+    ).execute();
   });
 
   group('NextRoundCommand', () {
     test('should increment the round counter', () {
       final roundBefore = getIt<GameState>().round.value;
 
-      NextRoundCommand().execute();
+      NextRoundCommand(
+        gameState: getIt<GameState>(),
+        gameData: getIt<GameData>(),
+        settings: getIt<Settings>(),
+      ).execute();
 
       expect(getIt<GameState>().round.value, roundBefore + 1);
       checkSaveState();
@@ -38,7 +50,11 @@ void main() {
       ImbueElementCommand(Elements.fire, false).execute();
       expect(getIt<GameState>().elementState[Elements.fire], ElementState.full);
 
-      NextRoundCommand().execute();
+      NextRoundCommand(
+        gameState: getIt<GameState>(),
+        gameData: getIt<GameData>(),
+        settings: getIt<Settings>(),
+      ).execute();
 
       expect(getIt<GameState>().elementState[Elements.fire], ElementState.half);
     });
@@ -47,18 +63,35 @@ void main() {
       ImbueElementCommand(Elements.ice, true).execute();
       expect(getIt<GameState>().elementState[Elements.ice], ElementState.half);
 
-      NextRoundCommand().execute();
+      NextRoundCommand(
+        gameState: getIt<GameState>(),
+        gameData: getIt<GameData>(),
+        settings: getIt<Settings>(),
+      ).execute();
 
       expect(getIt<GameState>().elementState[Elements.ice], ElementState.inert);
     });
 
     test('describe returns "Next Round"', () {
-      expect(NextRoundCommand().describe(), 'Next Round');
+      expect(
+        NextRoundCommand(
+          gameState: getIt<GameState>(),
+          gameData: getIt<GameData>(),
+          settings: getIt<Settings>(),
+        ).describe(),
+        'Next Round',
+      );
     });
 
     test('undo does not throw', () {
       final gs = getIt<GameState>();
-      gs.action(NextRoundCommand());
+      gs.action(
+        NextRoundCommand(
+          gameState: getIt<GameState>(),
+          gameData: getIt<GameData>(),
+          settings: getIt<Settings>(),
+        ),
+      );
       expect(() => gs.undo(), returnsNormally);
     });
 
@@ -69,11 +102,15 @@ void main() {
       // Draw until needsShuffle is set (drawing a multiply/2x or curse usually does it)
       int attempts = 0;
       while (!deck.needsShuffle && attempts < 30) {
-        DrawModifierCardCommand('').execute();
+        DrawModifierCardCommand('', gameState: getIt<GameState>()).execute();
         attempts++;
       }
       if (deck.needsShuffle) {
-        NextRoundCommand().execute();
+        NextRoundCommand(
+          gameState: getIt<GameState>(),
+          gameData: getIt<GameData>(),
+          settings: getIt<Settings>(),
+        ).execute();
         // After next round with needsShuffle, deck should be reshuffled
         expect(deck.drawPileIsNotEmpty, isTrue);
       }
@@ -86,11 +123,18 @@ void main() {
       final deck = character.characterState.modifierDeck;
       int attempts = 0;
       while (!deck.needsShuffle && attempts < 30) {
-        DrawModifierCardCommand(character.id).execute();
+        DrawModifierCardCommand(
+          character.id,
+          gameState: getIt<GameState>(),
+        ).execute();
         attempts++;
       }
       if (deck.needsShuffle) {
-        NextRoundCommand().execute();
+        NextRoundCommand(
+          gameState: getIt<GameState>(),
+          gameData: getIt<GameData>(),
+          settings: getIt<Settings>(),
+        ).execute();
         expect(deck.drawPileIsNotEmpty, isTrue);
       }
     });
@@ -100,19 +144,30 @@ void main() {
       final deck = gs.modifierDeckAllies;
       int attempts = 0;
       while (!deck.needsShuffle && attempts < 30) {
-        DrawModifierCardCommand('allies').execute();
+        DrawModifierCardCommand(
+          'allies',
+          gameState: getIt<GameState>(),
+        ).execute();
         attempts++;
       }
       if (deck.needsShuffle) {
-        NextRoundCommand().execute();
+        NextRoundCommand(
+          gameState: getIt<GameState>(),
+          gameData: getIt<GameData>(),
+          settings: getIt<Settings>(),
+        ).execute();
         expect(deck.drawPileIsNotEmpty, isTrue);
       }
     });
 
     test('roundState is reset to chooseInitiative after DrawCommand', () {
-      DrawCommand().execute();
+      DrawCommand(gameState: getIt<GameState>()).execute();
       expect(getIt<GameState>().roundState.value, RoundState.playTurns);
-      NextRoundCommand().execute();
+      NextRoundCommand(
+        gameState: getIt<GameState>(),
+        gameData: getIt<GameData>(),
+        settings: getIt<Settings>(),
+      ).execute();
       expect(getIt<GameState>().roundState.value, RoundState.chooseInitiative);
     });
   });

@@ -3,15 +3,22 @@ import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
 import '../../Resource/enums.dart';
-import '../../Resource/game_methods.dart';
 import '../../Resource/settings.dart';
 import '../../Resource/ui_utils.dart';
-import '../../services/network/network.dart';
-import '../../services/service_locator.dart';
 import '../menus/numpad_menu.dart';
-import 'character_widget_internal.dart';
+import '../view_models/initiative_widget_view_model.dart';
 
 class InitiativeWidget extends StatelessWidget {
+  static const double _kMarginLeft = 10.0;
+  static const double _kMarginTopDivisor = 6.0;
+  static const double _kInitImageHeightRatio = 0.1;
+  static const double _kTextFieldMarginLeft = 11.0;
+  static const double _kTextFieldTopRatio = 0.11;
+  static const double _kTextFieldHeightRatio = 0.5;
+  static const double _kTextFieldWidth = 25.0;
+  static const int _kInitMaxLength = 2;
+  static const double _kDisplayHeight = 33.0;
+
   const InitiativeWidget(
       {super.key,
       required this.scale,
@@ -20,7 +27,9 @@ class InitiativeWidget extends StatelessWidget {
       required this.character,
       required this.isCharacter,
       required this.initTextFieldController,
-      required this.focusNode});
+      required this.focusNode,
+      this.gameState,
+      this.settings});
 
   final Character character;
   final double scale;
@@ -29,31 +38,35 @@ class InitiativeWidget extends StatelessWidget {
   final bool isCharacter;
   final TextEditingController initTextFieldController;
   final FocusNode focusNode;
+  final GameState? gameState;
+  final Settings? settings;
 
   @override
   Widget build(BuildContext context) {
-    final gameState = getIt<GameState>();
+    final vm = InitiativeWidgetViewModel(character,
+        gameState: gameState, settings: settings);
     return Column(children: [
       Container(
-        margin: EdgeInsets.only(top: scaledHeight / 6, left: 10 * scale),
+        margin: EdgeInsets.only(top: scaledHeight / InitiativeWidget._kMarginTopDivisor, left: InitiativeWidget._kMarginLeft * scale),
         child: Image(
-          height: scaledHeight * 0.1,
+          height: scaledHeight * InitiativeWidget._kInitImageHeightRatio,
           image: const AssetImage("assets/images/init.png"),
         ),
       ),
       ValueListenableBuilder<int>(
-          valueListenable: character.characterState.initiative,
+          valueListenable: vm.initiative,
           builder: (context, value, child) {
-            final initiative = character.characterState.initiative.value;
-            final roundState = gameState.roundState.value;
-            bool secret = (getIt<Settings>().server.value ||
-                    getIt<Settings>().client.value == ClientState.connected) &&
-                (!CharacterWidgetInternal.localCharacterInitChanges
-                    .contains(character.id));
+            final initTextStyle = TextStyle(
+                fontFamily: vm.fontFamily,
+                color: Colors.white,
+                fontSize: kFontSizeHeading * scale,
+                shadows: [shadow]);
+            final initiative = vm.initiative.value;
+            final roundState = vm.roundState;
+            final secret = vm.isSecret;
             if (initTextFieldController.text != initiative.toString() &&
                 initiative != 0 &&
                 (initTextFieldController.text.isNotEmpty || secret)) {
-              //handle secret if originating from other device
               secret
                   ? initTextFieldController.text = "??"
                   : initTextFieldController.text = initiative.toString();
@@ -61,50 +74,38 @@ class InitiativeWidget extends StatelessWidget {
             if (roundState == RoundState.playTurns && isCharacter) {
               initTextFieldController.clear();
             }
-            if (roundState == RoundState.chooseInitiative &&
-                character.characterState.health.value > 0) {
+            if (vm.isChooseInitiative && vm.isAlive) {
               return Container(
                 margin:
-                    EdgeInsets.only(left: 11 * scale, top: scaledHeight * 0.11),
-                height: scaledHeight * 0.5,
-                width: 25 * scale,
+                    EdgeInsets.only(left: InitiativeWidget._kTextFieldMarginLeft * scale, top: scaledHeight * InitiativeWidget._kTextFieldTopRatio),
+                height: scaledHeight * InitiativeWidget._kTextFieldHeightRatio,
+                width: InitiativeWidget._kTextFieldWidth * scale,
                 padding: EdgeInsets.zero,
                 alignment: Alignment.topCenter,
                 child: TextField(
                     focusNode: focusNode,
                     onTap: () {
-                      //clear on enter focus
                       initTextFieldController.clear();
-                      if (getIt<Settings>().softNumpadInput.value) {
+                      if (vm.softNumpadInput) {
                         openDialog(
                             context,
                             NumpadMenu(
                               controller: initTextFieldController,
-                              maxLength: 2,
+                              maxLength: InitiativeWidget._kInitMaxLength,
                             ));
                       }
                     },
                     onChanged: (String str) {
-                      //close soft keyboard on 2 chars entered
-                      if (str.length == 2) {
+                      if (str.length == InitiativeWidget._kInitMaxLength) {
                         FocusManager.instance.primaryFocus?.unfocus();
                       }
                     },
                     textAlign: TextAlign.center,
                     cursorColor: Colors.white,
-                    maxLength: 2,
-                    style: TextStyle(
-                        height: 1,
-                        //quick fix for web-phone disparity.
-                        fontFamily: GameMethods.isFrosthavenStyle(null)
-                            ? 'GermaniaOne'
-                            : 'Pirata',
-                        color: Colors.white,
-                        fontSize: kFontSizeHeading * scale,
-                        shadows: [shadow]),
+                    maxLength: InitiativeWidget._kInitMaxLength,
+                    style: initTextStyle.copyWith(height: 1),
                     decoration: const InputDecoration(
                       isDense: true,
-                      //this is what fixes the height issue
                       counterText: '',
                       contentPadding: EdgeInsets.zero,
                       enabledBorder: UnderlineInputBorder(
@@ -119,32 +120,20 @@ class InitiativeWidget extends StatelessWidget {
                       ),
                     ),
                     controller: initTextFieldController,
-                    keyboardType: getIt<Settings>().softNumpadInput.value
-                        ? TextInputType.none
-                        : TextInputType.number),
+                    keyboardType: vm.keyboardInputType),
               );
             } else {
               if (isCharacter) {
                 initTextFieldController.clear();
               }
-              final characterState = character.characterState;
-              final initiative = characterState.initiative.value;
               return Container(
-                  height: 33 * scale,
-                  width: 25 * scale,
-                  margin: EdgeInsets.only(left: 10 * scale),
+                  height: InitiativeWidget._kDisplayHeight * scale,
+                  width: InitiativeWidget._kTextFieldWidth * scale,
+                  margin: EdgeInsets.only(left: InitiativeWidget._kMarginLeft * scale),
                   child: Text(
-                    characterState.health.value > 0 && initiative > 0
-                        ? initiative.toString()
-                        : "",
+                    vm.initiativeDisplayText(initiative),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontFamily: GameMethods.isFrosthavenStyle(null)
-                            ? 'GermaniaOne'
-                            : 'Pirata',
-                        color: Colors.white,
-                        fontSize: kFontSizeHeading * scale,
-                        shadows: [shadow]),
+                    style: initTextStyle,
                   ));
             }
           }),

@@ -2,11 +2,13 @@ part of 'game_state.dart';
 
 // ignore_for_file: library_private_types_in_public_api
 class ListItemData {
-  late final String id;
+  String id = '';
   final _turnState = ValueNotifier<TurnsState>(TurnsState.notDone);
   ValueListenable<TurnsState> get turnState => _turnState;
 
-  setTurnState(_StateModifier _, TurnsState value) {
+  void setTurnState(_StateModifier _, TurnsState value) {
     _turnState.value = value;
   }
+
+  Map<String, dynamic> toJson() => {};
 }

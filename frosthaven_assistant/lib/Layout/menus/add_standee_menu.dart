@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Layout/widgets/standee_nr_button.dart';
 import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/ui_utils.dart';
 
-import '../../Layout/components/modal_background.dart';
+import '../../Layout/widgets/modal_background.dart';
 import '../../Resource/commands/add_standee_command.dart';
 import '../../Resource/enums.dart';
 import '../../Resource/settings.dart';
@@ -10,180 +11,133 @@ import '../../Resource/state/game_state.dart';
 import '../../services/service_locator.dart';
 
 class AddStandeeMenu extends StatefulWidget {
-  const AddStandeeMenu({super.key, required this.monster, required this.elite});
+  static const double _kMenuWidth = 250.0;
+  static const double _kHeightOneRow = 140.0;
+  static const double _kHeightTwoRows = 172.0;
+  static const double _kHeightThreeRows = 211.0;
+  static const int _kRow1Max = 4;
+  static const int _kRow2Max = 8;
+  static const Map<int, Color> _kBnBColors = {
+    1: Colors.green,
+    2: Colors.blue,
+    3: Colors.purple,
+    4: Colors.red,
+  };
+
+  const AddStandeeMenu({
+    super.key,
+    required this.monster,
+    required this.elite,
+    this.gameState,
+    this.settings,
+  });
 
   final Monster monster;
   final bool elite;
+
+  final GameState? gameState;
+  // injected for testing
+  final Settings? settings;
 
   @override
   AddStandeeMenuState createState() => AddStandeeMenuState();
 }
 
 class AddStandeeMenuState extends State<AddStandeeMenu> {
-  final GameState _gameState = getIt<GameState>();
+  GameState get _gameState => widget.gameState ?? getIt<GameState>();
+  Settings get _settings => widget.settings ?? getIt<Settings>();
 
   bool addAsSummon = false;
 
   @override
-  initState() {
-    // at the beginning, all items are shown
-    super.initState();
-  }
-
-  Widget buildNrButton(final int nr, final double scale) {
-    bool boss = widget.monster.type.levels[0].boss != null;
+  Widget build(BuildContext context) {
+    bool boss = widget.monster.type.levels.first.boss != null;
     MonsterType type = MonsterType.normal;
-    Color color = Colors.white;
+    Color baseColor = Colors.white;
 
     if (widget.elite) {
-      color = Colors.yellow;
+      baseColor = Colors.yellow;
       type = MonsterType.elite;
     }
-
     if (boss) {
-      color = Colors.red;
+      baseColor = Colors.red;
       type = MonsterType.boss;
     }
 
-    if (getIt<GameState>().currentCampaign.value == "Buttons and Bugs") {
-      if (nr == 1) {
-        color = Colors.green;
-      }
-      if (nr == 2) {
-        color = Colors.blue;
-      }
-      if (nr == 3) {
-        color = Colors.purple;
-      }
-      if (nr == 4) {
-        color = Colors.red;
-      }
-    }
-
-    bool isOut = false;
-    for (var item in widget.monster.monsterInstances) {
-      if (item.standeeNr == nr) {
-        isOut = true;
-        break;
-      }
-    }
-    if (isOut) {
-      color = Colors.grey;
-    }
-    String text = nr.toString();
-    var shadow = Shadow(
-      offset: Offset(1 * scale, 1 * scale),
-      color: Colors.black87,
-      blurRadius: 1,
-    );
-    return SizedBox(
-      width: 40 * scale,
-      height: 40 * scale,
-      child: TextButton(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: kFontSizeTitle * scale,
-            shadows: [shadow],
-          ),
-        ),
-        onPressed: () {
-          if (!isOut) {
-            _gameState.action(AddStandeeCommand(
-                nr, null, widget.monster.id, type, addAsSummon));
-          }
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
     int nrOfStandees = widget.monster.type.count;
     double scale = getModalMenuScale(context);
-    //4 nrs per row
-    double height = 140;
-    if (nrOfStandees > 4) {
-      height = 172;
+    double height = AddStandeeMenu._kHeightOneRow;
+    if (nrOfStandees > AddStandeeMenu._kRow1Max) {
+      height = AddStandeeMenu._kHeightTwoRows;
     }
-    if (nrOfStandees > 8) {
-      height = 211;
+    if (nrOfStandees > AddStandeeMenu._kRow2Max) {
+      height = AddStandeeMenu._kHeightThreeRows;
     }
     return ModalBackground(
-        width: 250 * scale,
-        //need to set any width to center content, overridden by dialog default min width.
+        width: AddStandeeMenu._kMenuWidth * scale,
         height: height * scale,
         child: Stack(children: [
-          ValueListenableBuilder<int>(
-              valueListenable: _gameState.commandIndex,
-              builder: (context, value, child) {
+          ListenableBuilder(
+              listenable: Listenable.merge([
+                widget.monster.monsterInstancesNotifier,
+                _gameState.currentCampaign,
+              ]),
+              builder: (context, child) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      height: 20 * scale,
-                    ),
+                    SizedBox(height: kMenuTopPadding * scale),
                     Text("Add Standee Nr", style: getTitleTextStyle(scale)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        buildNrButton(1, scale),
-                        nrOfStandees > 1
-                            ? buildNrButton(2, scale)
-                            : Container(),
-                        nrOfStandees > 2
-                            ? buildNrButton(3, scale)
-                            : Container(),
-                        nrOfStandees > 3
-                            ? buildNrButton(4, scale)
-                            : Container(),
-                      ],
+                    ...List.generate(
+                      (nrOfStandees + AddStandeeMenu._kRow1Max - 1) ~/
+                          AddStandeeMenu._kRow1Max,
+                      (rowIdx) => Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          AddStandeeMenu._kRow1Max,
+                          (colIdx) {
+                            final nr =
+                                rowIdx * AddStandeeMenu._kRow1Max + colIdx + 1;
+                            if (nr > nrOfStandees) return Container();
+                            bool isOut = widget.monster.monsterInstances
+                                .any((item) => item.standeeNr == nr);
+                            Color color = isOut
+                                ? Colors.grey
+                                : (_gameState.currentCampaign.value ==
+                                        "Buttons and Bugs"
+                                    ? (AddStandeeMenu._kBnBColors[nr] ??
+                                        baseColor)
+                                    : baseColor);
+                            return StandeeNrButton(
+                              nr: nr,
+                              scale: scale,
+                              color: color,
+                              onPressed: isOut
+                                  ? null
+                                  : () => _gameState.action(AddStandeeCommand(
+                                      nr,
+                                      null,
+                                      widget.monster.id,
+                                      type,
+                                      addAsSummon,
+                                      gameState: _gameState)),
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                    nrOfStandees > 4
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              nrOfStandees > 4
-                                  ? buildNrButton(5, scale)
-                                  : Container(),
-                              nrOfStandees > 5
-                                  ? buildNrButton(6, scale)
-                                  : Container(),
-                              nrOfStandees > 6
-                                  ? buildNrButton(7, scale)
-                                  : Container(),
-                              nrOfStandees > 7
-                                  ? buildNrButton(8, scale)
-                                  : Container(),
-                            ],
-                          )
-                        : Container(),
-                    nrOfStandees > 8
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              nrOfStandees > 8
-                                  ? buildNrButton(9, scale)
-                                  : Container(),
-                              nrOfStandees > 9
-                                  ? buildNrButton(10, scale)
-                                  : Container(),
-                            ],
-                          )
-                        : Container(),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Text("Summoned:", style: getSmallTextStyle(scale)),
                       Checkbox(
                         checkColor: Colors.black,
                         activeColor: Colors.grey.shade200,
                         side: BorderSide(
-                            color: getIt<Settings>().darkMode.value
+                            color: _settings.darkMode.value
                                 ? Colors.white
                                 : Colors.black),
                         onChanged: (bool? newValue) {
                           setState(() {
-                            addAsSummon = newValue!;
+                            addAsSummon = newValue ?? false;
                           });
                         },
                         value: addAsSummon,
@@ -195,3 +149,4 @@ class AddStandeeMenuState extends State<AddStandeeMenu> {
         ]));
   }
 }
+

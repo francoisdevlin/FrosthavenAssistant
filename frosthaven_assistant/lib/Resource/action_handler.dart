@@ -6,63 +6,123 @@ import 'package:frosthaven_assistant/Resource/settings.dart';
 import '../services/network/communication.dart';
 import '../services/network/network.dart';
 import '../services/service_locator.dart';
+import 'game_event.dart';
 import 'state/game_state.dart';
+
+/// A bare ChangeNotifier that exposes [notify] so callers outside this class
+/// can fire listeners without needing a meaningful value.
+class ListUpdateNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
 
 class ActionHandler {
   final commandIndex = ValueNotifier<int>(-1);
-  final List<Command?> commands = [];
-  final List<String> commandDescriptions = []; //only used when connected
-  final List<GameSaveState?> gameSaveStates = [];
+  final List<Command?> _commands = [];
+  final List<String> _commandDescriptions = []; //only used when connected
+  final List<GameSaveState?> _gameSaveStates = [];
+
+  List<Command?> get commands => List.unmodifiable(_commands);
+  List<String> get commandDescriptions => List.unmodifiable(_commandDescriptions);
+  List<GameSaveState?> get gameSaveStates => List.unmodifiable(_gameSaveStates);
+
+  /// Resets all command/description/save-state history to a clean slate,
+  /// keeping only the most recent save state as the baseline.
+  void resetCommandHistory() {
+    _commands.clear();
+    _commandDescriptions.clear();
+    if (_gameSaveStates.length > 1) {
+      _gameSaveStates.removeRange(0, _gameSaveStates.length - 1);
+    }
+  }
+
+  /// Clears only the local commands list (used when connecting to a server).
+  void clearLocalCommands() {
+    _commands.clear();
+  }
+
+  /// Inserts a description received from the network at [index].
+  void insertReceivedDescription(int index, String description) {
+    _commandDescriptions.insert(index, description);
+  }
+
+  /// Appends a save-state snapshot. Called by [GameState.save] and [GameState.load].
+  void addSaveState(GameSaveState state) {
+    _gameSaveStates.add(state);
+  }
+
+  /// The event produced by the most recent state transition.
+  ///
+  /// Set before [commandIndex] fires so that [commandIndex] VLB callbacks
+  /// can read the correct event during their rebuild.
+  final lastEvent = ValueNotifier<GameEvent>(const NoEvent());
 
   final int maxUndo = 250;
 
-  //todo: ugly hacks to delay list update
-  final updateList = ValueNotifier<int>(0);
-  final killMonsterStandee = ValueNotifier<int>(-1);
-  final updateForUndo = ValueNotifier<int>(0);
+  final updateList = ListUpdateNotifier();
 
-  final _communication = getIt<Communication>();
+  final GameState _gameState;
+  final Communication _communication;
+  final Settings? _settingsOverride;
+  final Network? _networkOverride;
+
+  ActionHandler({
+    required GameState gameState,
+    required Communication communication,
+    Settings? settings,
+    Network? network,
+  })  : _gameState = gameState,
+        _communication = communication,
+        _settingsOverride = settings,
+        _networkOverride = network;
+
+  Settings get _settings => _settingsOverride ?? getIt<Settings>();
+  Network get _network => _networkOverride ?? getIt<Network>();
 
   void updateAllUI() {
-    getIt<GameState>().updateList.value++;
-    getIt<GameState>().updateForUndo.value++;
-    getIt<GameState>().killMonsterStandee.value++;
-    //try to update card widget here if needed
-    //try to update element buttons here if needed
+    updateList.notify();
+    _gameState.notifyAllMonsterInstances();
   }
 
   Command getCurrent() {
-    return commands[commandIndex.value]!;
+    final cmd = _commands[commandIndex.value];
+    if (cmd == null) throw StateError('No command at index ${commandIndex.value}');
+    return cmd;
   }
 
   void undo() {
-    bool isServer = getIt<Settings>().server.value;
-    bool isClient = getIt<Settings>().client.value == ClientState.connected;
+    bool isServer = _settings.server.value;
+    bool isClient = _settings.client.value == ClientState.connected;
     if (!isClient) {
-      if (commandIndex.value >= 0 &&
-          gameSaveStates[commandIndex.value] != null) {
-        gameSaveStates[commandIndex.value]!.load(getIt<
-            GameState>()); //this works as gameSaveStates has one more entry than command list (includes load at start)
-        gameSaveStates[commandIndex.value]!.saveToDisk(getIt<GameState>());
-        if (!isServer && !isClient) {
-          commands[commandIndex.value]!
-              .undo(); //undo only makes sure ui is updated
-        } else {
-          updateAllUI();
-          //run generic update all function instead, as commands list is not retained
+      if (commandIndex.value >= 0) {
+        final saveState = _gameSaveStates[commandIndex.value];
+        if (saveState != null) {
+          saveState.load(_gameState);
+          saveState.saveToDisk(_gameState);
+          if (!isServer && !isClient) {
+            _commands[commandIndex.value]
+                ?.onUndo(); //undo only makes sure ui is updated
+          } else {
+            updateAllUI();
+            //run generic update all function instead, as commands list is not retained
 
-          //send last game state if connected
-          if (isServer) {
-            log('server sends, undo index: ${commandIndex.value}, description:${commandDescriptions[commandIndex.value]}');
-            //should send a special undo message? yes
-            getIt<Network>().server.send(
-                "Index:${commandIndex.value}Description:${commandDescriptions[commandIndex.value]}GameState:${gameSaveStates[commandIndex.value]!.getState()}");
+            //send last game state if connected
+            if (isServer) {
+              final idx = commandIndex.value;
+              if (idx >= 0 && idx < _commandDescriptions.length) {
+                log('server sends, undo index: $idx, description:${_commandDescriptions[idx]}');
+                //should send a special undo message? yes
+                _network.server.send(StateEnvelope(
+                  index: idx,
+                  description: _commandDescriptions[idx],
+                  eventJson: const NoEvent().toJsonString(),
+                  state: saveState.getState(),
+                ).encode());
+              }
+            }
           }
         }
+        lastEvent.value = const NoEvent();
         commandIndex.value--;
-
-        //make sure to invalidate and rebuild all ui, since references will be broken
-        getIt<GameState>().updateForUndo.value++;
       }
     } else {
       _communication.sendToAll("undo");
@@ -70,13 +130,18 @@ class ActionHandler {
   }
 
   void redo() {
-    bool isServer = getIt<Settings>().server.value;
-    bool isClient = getIt<Settings>().client.value == ClientState.connected;
+    bool isServer = _settings.server.value;
+    bool isClient = _settings.client.value == ClientState.connected;
     if (!isClient) {
-      if (commandIndex.value < commandDescriptions.length - 1) {
+      if (commandIndex.value < _commandDescriptions.length - 1) {
+        lastEvent.value = const NoEvent();
         commandIndex.value++;
-        gameSaveStates[commandIndex.value + 1]!.load(getIt<GameState>());
-        gameSaveStates[commandIndex.value + 1]!.saveToDisk(getIt<GameState>());
+        final nextIdx = commandIndex.value + 1;
+        final nextState =
+            (nextIdx < _gameSaveStates.length) ? _gameSaveStates[nextIdx] : null;
+        if (nextState == null) return; // save state evicted by maxUndo
+        nextState.load(_gameState);
+        nextState.saveToDisk(_gameState);
         //also run generic update ui function
         updateAllUI();
       } else {
@@ -86,9 +151,19 @@ class ActionHandler {
 
       //send last game state if connected
       if (isServer) {
-        log('server sends, redo index: ${commandIndex.value}, description:${commandDescriptions[commandIndex.value]}');
-        getIt<Network>().server.send(
-            "Index:${commandIndex.value}Description:${commandDescriptions[commandIndex.value]}GameState:${gameSaveStates[commandIndex.value + 1]!.getState()}");
+        final idx = commandIndex.value;
+        final nextIdx = idx + 1;
+        final nextState =
+            (nextIdx < _gameSaveStates.length) ? _gameSaveStates[nextIdx] : null;
+        if (idx < _commandDescriptions.length && nextState != null) {
+          log('server sends, redo index: $idx, description:${_commandDescriptions[idx]}');
+          _network.server.send(StateEnvelope(
+            index: idx,
+            description: _commandDescriptions[idx],
+            eventJson: const NoEvent().toJsonString(),
+            state: nextState.getState(),
+          ).encode());
+        }
       }
     } else if (isClient) {
       _communication.sendToAll("redo");
@@ -96,52 +171,64 @@ class ActionHandler {
   }
 
   void action(Command command) {
-    bool isServer = getIt<Settings>().server.value;
-    bool isClient = getIt<Settings>().client.value == ClientState.connected;
+    bool isServer = _settings.server.value;
+    bool isClient = _settings.client.value == ClientState.connected;
 
     command.execute();
-    if (commands.length > commandIndex.value) {
-      commands.insert(commandIndex.value + 1, command);
-      commandDescriptions.insert(commandIndex.value + 1, command.describe());
+    if (_commands.length > commandIndex.value) {
+      _commands.insert(commandIndex.value + 1, command);
+      _commandDescriptions.insert(commandIndex.value + 1, command.describe());
     } else {
-      commands.add(command);
-      commandDescriptions.add(command.describe());
-    }
-    commandIndex.value++;
-    //remove possible redo list
-    if (commands.length - 1 > commandIndex.value) {
-      commands.removeRange(commandIndex.value + 1, commands.length);
-      commandDescriptions.removeRange(
-          commandIndex.value + 1, commandDescriptions.length);
-    }
-    if (gameSaveStates.length > commandIndex.value + 1) {
-      //remove future game states
-      gameSaveStates.removeRange(commandIndex.value + 1, gameSaveStates.length);
+      _commands.add(command);
+      _commandDescriptions.add(command.describe());
     }
 
-    GameState gameState = getIt<GameState>();
-    gameState.save(); //save after each action
+    // Set event before commandIndex fires so VLB callbacks see the correct value.
+    lastEvent.value = command.event;
+    commandIndex.value++;
+
+    //remove possible redo list
+    if (_commands.length - 1 > commandIndex.value) {
+      _commands.removeRange(commandIndex.value + 1, _commands.length);
+      _commandDescriptions.removeRange(
+          commandIndex.value + 1, _commandDescriptions.length);
+    }
+    if (_gameSaveStates.length > commandIndex.value + 1) {
+      //remove future game states
+      _gameSaveStates.removeRange(commandIndex.value + 1, _gameSaveStates.length);
+    }
+
+    _gameState.save(); //save after each action
 
     //send last game state if connected
     String description = command.describe();
+    String eventJson = command.event.toJsonString();
     if (isServer) {
       log('server sends, index: ${commandIndex.value}, description:$description');
-      getIt<Network>().server.send(
-          "Index:${commandIndex.value}Description:${description}GameState:${gameState.toString()}");
+      _network.server.send(StateEnvelope(
+        index: commandIndex.value,
+        description: description,
+        eventJson: eventJson,
+        state: _gameState.toString(),
+      ).encode());
     } else if (isClient) {
       log('client sends, index: ${commandIndex.value}, description:$description');
-      _communication.sendToAll(
-          "Index:${commandIndex.value}Description:${description}GameState:${gameState.toString()}");
+      _communication.sendToAll(StateEnvelope(
+        index: commandIndex.value,
+        description: description,
+        eventJson: eventJson,
+        state: _gameState.toString(),
+      ).encode());
     }
 
     //TODO: this is breaking if command index is not in sync with commands. and in connected state.
     //really need to go over this again: do we really need to save commands at all, or are save states + descriptions enough also for offline?
     if (commandIndex.value >= maxUndo) {
-      if (commands.length > commandIndex.value) {
-        commands[commandIndex.value - maxUndo] = null;
+      if (_commands.length > commandIndex.value) {
+        _commands[commandIndex.value - maxUndo] = null;
       }
-      if (gameSaveStates.length > commandIndex.value - maxUndo) {
-        gameSaveStates[commandIndex.value - maxUndo] = null;
+      if (_gameSaveStates.length > commandIndex.value - maxUndo) {
+        _gameSaveStates[commandIndex.value - maxUndo] = null;
       }
     }
   }

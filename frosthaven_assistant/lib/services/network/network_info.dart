@@ -12,6 +12,7 @@ import '../service_locator.dart';
 import 'network.dart';
 
 class NetworkInformation {
+  // ignore: prefer-match-file-name, file name uses short form of NetworkInformation
   NetworkInformation() {
     _connectivitySubscription = _connectivity.onConnectivityChanged
         .listen((List<ConnectivityResult> result) {
@@ -37,20 +38,20 @@ class NetworkInformation {
 
   ConnectivityResult? _connectionStatus;
   final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   final Set<String> wifiIPv6List = {};
   final wifiIPv6 = ValueNotifier<String>("");
   final outgoingIPv6 = ValueNotifier<String>("");
 
   Future<void> initNonWifiIPs() async {
-    for (var interface in await NetworkInterface.list()) {
+    for (final interface in await NetworkInterface.list()) {
       //searching for eth should fix the ethernet ip address issue on
       // ethernet connections on windows and linux
       if (interface.name.toLowerCase().contains("eth") &&
           !interface.name.toLowerCase().contains("switch") &&
           !interface.name.toLowerCase().contains("veth")) {
-        for (var address in interface.addresses) {
+        for (final address in interface.addresses) {
           if (address.type == InternetAddressType.IPv6) {
             wifiIPv6List.add(address.address);
             if (wifiIPv6.value != "") {
@@ -59,9 +60,6 @@ class NetworkInformation {
             }
             break;
           }
-        }
-        if (wifiIPv6.value != "") {
-          //break;
         }
       }
     }

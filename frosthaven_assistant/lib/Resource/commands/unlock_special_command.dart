@@ -1,25 +1,25 @@
-import '../../services/service_locator.dart';
 import '../state/game_state.dart';
 
 class UnlockSpecialCommand extends Command {
-  final GameState _gameState = getIt<GameState>();
+  final GameState _gameState;
   final String _id;
   bool _unlock = true;
 
-  UnlockSpecialCommand(this._id);
+  UnlockSpecialCommand(this._id, {required GameState gameState})
+      : _gameState = gameState;
 
   @override
   void execute() {
     if (_gameState.unlockedClasses.contains(_id)) {
       _unlock = false;
-      MutableGameMethods.clearUnlockedClass(stateAccess, _id);
+      ScenarioMethods.clearUnlockedClass(stateAccess, _id);
     } else {
-      MutableGameMethods.unlockClass(stateAccess, _id);
+      ScenarioMethods.unlockClass(stateAccess, _id);
     }
   }
 
   @override
-  void undo();
+  void onUndo();
 
   @override
   String describe() {

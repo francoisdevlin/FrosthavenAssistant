@@ -8,6 +8,7 @@ import '../Resource/game_methods.dart';
 
 @immutable
 class LootDeckModel {
+  // ignore: prefer-match-file-name, file contains multiple scenario model types
   final int lumber;
   final int hide;
   final int metal;
@@ -59,13 +60,13 @@ class LootDeckModel {
 class SpecialRule {
   final String type;
   final String name;
-  final dynamic health;
+  final Object? health;
   final int level;
   final int init;
   final String note;
-  final List<dynamic> list;
+  final List<Object?> list;
   final bool startOfRound;
-  final dynamic condition;
+  final Object? condition;
 
   const SpecialRule(this.type, this.name, this.health, this.level, this.init,
       this.note, this.list, this.startOfRound, this.condition);
@@ -76,11 +77,11 @@ class SpecialRule {
     if (data.containsKey('name')) {
       name = data['name'];
     }
-    dynamic health = "";
+    Object? health = "";
     if (data.containsKey('health')) {
       health = data['health'];
     }
-    dynamic condition = "";
+    Object? condition = "";
     if (data.containsKey('condition')) {
       condition = data['condition'];
     }
@@ -100,29 +101,28 @@ class SpecialRule {
     if (data.containsKey('startOfRound')) {
       startOfRound = data['startOfRound'];
     }
-    List<dynamic> aList = [];
+    List<Object?> aList = [];
     if (data.containsKey('list')) {
-      aList = data['list'];
+      aList = data['list'] as List<Object?>;
     }
     return SpecialRule(
         type, name, health, level, init, note, aList, startOfRound, condition);
   }
 
-  //is this used at all?
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'note': note,
+        'name': name,
+        'health': health.toString(),
+        'condition': condition.toString(),
+        'init': init,
+        'level': level,
+        'startOfRound': startOfRound,
+        'list': list,
+      };
+
   @override
-  String toString() {
-    return '{'
-        '"type": "$type", '
-        '"note": ${jsonEncode(note)}, ' //need json encode if note can have escape chars ( i.e. \n )
-        '"name": "$name", '
-        '"health": "$health", '
-        '"condition": "$condition", '
-        '"init": $init, '
-        '"level": $level, '
-        '"startOfRound": ${startOfRound.toString()}, '
-        '"list": ${jsonEncode(list)} '
-        '}';
-  }
+  String toString() => json.encode(toJson());
 }
 
 //can't be immutable since merging other data late
@@ -146,15 +146,16 @@ class ScenarioModel {
       String name, Map<String, dynamic> data, RoomsModel? rooms) {
     List<String> monsterList = [];
     if (data.containsKey('monsters')) {
-      final monsters = data['monsters'] as List<dynamic>;
-      for (var monster in monsters) {
+      final monsters = (data['monsters'] as List<Object?>).cast<String>();
+      for (final monster in monsters) {
         monsterList.add(monster);
       }
     }
     List<SpecialRule> rulesList = [];
     if (data.containsKey('special')) {
-      final specialRules = data['special'] as List<dynamic>;
-      for (var rule in specialRules) {
+      final specialRules =
+          (data['special'] as List<Object?>).cast<Map<String, dynamic>>();
+      for (final rule in specialRules) {
         rulesList.add(SpecialRule.fromJson(rule));
       }
     }
@@ -172,7 +173,7 @@ class ScenarioModel {
     if (kDebugMode) {
       if (rooms != null) {
         List names = [];
-        for (var u in rooms.roomData) {
+        for (final u in rooms.roomData) {
           if (names.contains(u.name)) {
             print("duplicate ${u.name} in ${rooms.scenarioName}");
           } else {
@@ -227,22 +228,23 @@ class ScenarioModel {
         lootDeck: lootDeck,
         initMessage: initMessage,
         sections: sectionList,
-        monsterStandees: rooms?.roomData[0].monsterData);
+        monsterStandees: rooms?.roomData.first.monsterData);
   }
 
   factory ScenarioModel.sectionFromJson(
       String name, Map<String, dynamic> data, RoomsModel? rooms) {
     List<String> monsterList = [];
     if (data.containsKey('monsters')) {
-      final monsters = data['monsters'] as List<dynamic>;
-      for (var monster in monsters) {
+      final monsters = (data['monsters'] as List<Object?>).cast<String>();
+      for (final monster in monsters) {
         monsterList.add(monster);
       }
     }
     List<SpecialRule> rulesList = [];
     if (data.containsKey('special')) {
-      final specialRules = data['special'] as List<dynamic>;
-      for (var rule in specialRules) {
+      final specialRules =
+          (data['special'] as List<Object?>).cast<Map<String, dynamic>>();
+      for (final rule in specialRules) {
         rulesList.add(SpecialRule.fromJson(rule));
       }
     }

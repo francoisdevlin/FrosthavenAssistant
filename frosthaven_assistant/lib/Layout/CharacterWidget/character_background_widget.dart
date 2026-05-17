@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../Resource/ui_utils.dart';
 import '../../Resource/state/game_state.dart';
 
 class CharacterBackgroundWidget extends StatelessWidget {
+  static const double _kMargin = 2.0;
+  static const double _kWidth = 408.0;
+  static const double _kHeight = 58.0;
+  static const double _kGradientRotation = 2.0;
+  static const int _kGradientRepeat = 3;
+  static const int _kGradientExtraColor = 1;
+
   const CharacterBackgroundWidget(
       {super.key,
       required this.character,
@@ -13,10 +21,12 @@ class CharacterBackgroundWidget extends StatelessWidget {
   final Shadow shadow;
 
   SweepGradient buildGradiantBackground(List<Color> colors) {
-    int nrOfColorEntries = colors.length * 3 + 1;
+    int nrOfColorEntries =
+        colors.length * CharacterBackgroundWidget._kGradientRepeat +
+            CharacterBackgroundWidget._kGradientExtraColor;
 
     List<Color> endList = [];
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < CharacterBackgroundWidget._kGradientRepeat; i++) {
       for (Color color in colors) {
         endList.add(color);
       }
@@ -32,7 +42,7 @@ class CharacterBackgroundWidget extends StatelessWidget {
 
     return SweepGradient(
         center: FractionalOffset.bottomRight,
-        transform: const GradientRotation(2),
+        transform: const GradientRotation(CharacterBackgroundWidget._kGradientRotation),
         tileMode: TileMode.mirror,
         colors: endList,
 
@@ -92,24 +102,18 @@ class CharacterBackgroundWidget extends StatelessWidget {
     }
 
     return Container(
-      margin: EdgeInsets.all(2 * scale),
-      width: 408 * scale,
-      height: 58 * scale,
+      margin: EdgeInsets.all(CharacterBackgroundWidget._kMargin * scale),
+      width: CharacterBackgroundWidget._kWidth * scale,
+      height: CharacterBackgroundWidget._kHeight * scale,
       decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black45,
-            blurRadius: 4 * scale,
-            offset: Offset(2 * scale, 4 * scale), // Shadow position
-          ),
-        ],
+        boxShadow: [cardBoxShadow(scale)],
         image: DecorationImage(
           fit: BoxFit.fill,
           colorFilter: hasGradient
               ? ColorFilter.mode(color, BlendMode.softLight)
               : ColorFilter.mode(colorSecondary, BlendMode.color),
           image: ResizeImage(AssetImage("assets/images/psd/character-bar.png"),
-              width: (408 * scale).toInt(), height: (58 * scale).toInt()),
+              width: (CharacterBackgroundWidget._kWidth * scale).toInt(), height: (CharacterBackgroundWidget._kHeight * scale).toInt()),
         ),
         shape: BoxShape.rectangle,
       ),

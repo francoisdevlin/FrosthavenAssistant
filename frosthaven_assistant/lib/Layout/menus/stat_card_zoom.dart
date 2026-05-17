@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:frosthaven_assistant/Layout/monster_stat_card_widget.dart';
+import 'package:frosthaven_assistant/Layout/MonsterStatCardWidget/monster_stat_card_view.dart';
+import 'package:frosthaven_assistant/Layout/view_models/monster_stat_card_view_model.dart';
 import 'package:frosthaven_assistant/Resource/scaling.dart';
 
 import '../../Resource/state/game_state.dart';
 
 class StatCardZoom extends StatelessWidget {
+  static const double _kMinScaledWidth = 269.0;
+
   const StatCardZoom({super.key, required this.monster});
 
   final Monster monster;
@@ -31,8 +34,8 @@ class StatCardZoom extends StatelessWidget {
     }
 
     double scaling = scale * zoomValue;
-    if (scaling < 269 / cardWidth && screenWidth > horizontalMargin + width) {
-      scaling = 269 / cardWidth;
+    if (scaling < _kMinScaledWidth / cardWidth && screenWidth > horizontalMargin + width) {
+      scaling = _kMinScaledWidth / cardWidth;
     }
 
     return InkWell(
@@ -42,7 +45,10 @@ class StatCardZoom extends StatelessWidget {
       child: SizedBox(
           width: cardWidth * scale * zoomValue,
           height: cardHeight * scale * zoomValue,
-          child: MonsterStatCardWidget.buildCard(monster, scaling)),
+          child: MonsterStatCardView(
+              data: monster,
+              scale: scaling,
+              viewModel: MonsterStatCardViewModel(monster))),
     );
   }
 }

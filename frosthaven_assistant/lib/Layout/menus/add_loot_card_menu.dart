@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Layout/widgets/scrollable_menu_card.dart';
 import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 
@@ -6,91 +7,72 @@ import '../../Resource/commands/add_loot_card_command.dart';
 import '../../services/service_locator.dart';
 
 class AddLootCardMenu extends StatelessWidget {
+
+  static const List<String> _kLootCardNames = [
+    "hide", "lumber", "metal", "arrowvine", "axenut",
+    "corpsecap", "flamefruit", "rockroot", "snowthistle",
+  ];
+
   const AddLootCardMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ScrollController scrollController = ScrollController();
-
-    return Card(
-        child: Scrollbar(
-            controller: scrollController,
-            child: SingleChildScrollView(
-                controller: scrollController,
-                child: Stack(children: [
-                  Column(
-                    children: [
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 300),
-                        child: Column(children: [
-                          const Text(
-                            "Add Extra Loot Card",
-                            style: kTitleStyle,
-                          ),
-                          //TODO: only show what can be added?
-                          LootCardListTile(name: "hide", index: 0),
-                          LootCardListTile(name: "lumber", index: 1),
-                          LootCardListTile(name: "metal", index: 2),
-                          LootCardListTile(name: "arrowvine", index: 3),
-                          LootCardListTile(name: "axenut", index: 4),
-                          LootCardListTile(name: "corpsecap", index: 5),
-                          LootCardListTile(name: "flamefruit", index: 6),
-                          LootCardListTile(name: "rockroot", index: 7),
-                          LootCardListTile(name: "snowthistle", index: 8),
-                        ]),
-                      ),
-                      const SizedBox(
-                        height: kMenuCloseButtonSpacing,
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                      width: kCloseButtonWidth,
-                      height: kButtonSize,
-                      right: 0,
-                      bottom: 0,
-                      child: TextButton(
-                          child: const Text(
-                            'Close',
-                            style: kButtonLabelStyle,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          }))
-                ]))));
+    return ScrollableMenuCard(
+      maxWidth: kMenuNarrowWidth,
+      child: Column(children: [
+        const Text(
+          "Add Extra Loot Card",
+          style: kTitleStyle,
+        ),
+        //TODO: only show what can be added?
+        ...List.generate(
+          _kLootCardNames.length,
+          (i) => LootCardListTile(name: _kLootCardNames[i], index: i),
+        ),
+      ]),
+    );
   }
 }
 
 class LootCardListTile extends StatefulWidget {
-  const LootCardListTile({super.key, required this.name, required this.index});
+  const LootCardListTile({super.key, required this.name, required this.index, this.gameState});
 
   final String name;
   final int index;
+  final GameState? gameState;
 
   @override
   State<StatefulWidget> createState() => LootCardListTileState();
 }
 
 class LootCardListTileState extends State<LootCardListTile> {
+  static const double _kContentPaddingLeft = 14.0;
+  static const double _kHorizontalTitleGap = 6.0;
+
+  late final GameState _gameState;
+
+  @override
+  void initState() {
+    _gameState = widget.gameState ?? getIt<GameState>();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
         setState(() {
-          getIt<GameState>().action(AddLootCardCommand(widget.name));
+          _gameState.action(AddLootCardCommand(widget.name, gameState: _gameState));
         });
       },
-      contentPadding: const EdgeInsets.only(left: 14),
+      contentPadding: const EdgeInsets.only(left: _kContentPaddingLeft),
       minVerticalPadding: 0,
       minLeadingWidth: 0,
-      horizontalTitleGap: 6,
+      horizontalTitleGap: _kHorizontalTitleGap,
       leading: Image(
         filterQuality: FilterQuality.medium,
-        height: 30,
-        width: 30,
+        height: kIconSize,
+        width: kIconSize,
         fit: BoxFit.contain,
         image: AssetImage("assets/images/loot/${widget.name}_icon.png"),
       ),
@@ -100,7 +82,7 @@ class LootCardListTileState extends State<LootCardListTile> {
         maxLines: 1,
       ),
       trailing: Text(
-          "added: ${getIt<GameState>().lootDeck.addedCards[widget.index]}   ",
+          "added: ${_gameState.lootDeck.addedCards[widget.index]}   ",
           style: kTitleStyle),
     );
   }

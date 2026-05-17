@@ -1,3 +1,5 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_perk_command.dart';
@@ -16,8 +18,9 @@ void main() {
   setUp(() {
     getIt<GameState>().clearList();
     AddCharacterCommand('Blinkblade', 'Frosthaven', "", 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   group('AddPerkCommand', () {
@@ -53,20 +56,6 @@ void main() {
       expect(initialPerkState, isTrue);
       expect(finalPerkState, isFalse);
       checkSaveState();
-    });
-
-    test('undo should not do anything (as currently implemented)', () {
-      // Arrange
-      final command = AddPerkCommand(character.id, 0);
-      command.execute();
-      final perkStateAfterExecute = character.characterState.perkList[0];
-
-      // Act
-      command.undo();
-
-      // Assert
-      // The undo method is empty, so no change is expected.
-      expect(character.characterState.perkList[0], perkStateAfterExecute);
     });
 
     test('describe should return "Remove" when adding a perk (due to bug)', () {

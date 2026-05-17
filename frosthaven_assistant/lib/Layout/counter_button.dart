@@ -5,9 +5,12 @@ import '../Resource/app_constants.dart';
 import '../Resource/commands/change_stat_commands/change_stat_command.dart';
 import '../Resource/game_methods.dart';
 import '../Resource/state/game_state.dart';
-import '../services/service_locator.dart';
+import '../Resource/ui_utils.dart';
+import 'view_models/counter_button_view_model.dart';
 
 class CounterButton extends StatefulWidget {
+  static const double _kTextHeight = 0.5;
+
   const CounterButton(
       {super.key,
       required this.notifier,
@@ -39,8 +42,10 @@ class CounterButton extends StatefulWidget {
 }
 
 class CounterButtonState extends State<CounterButton> {
-  GameState gameState = getIt<GameState>();
+  CounterButtonViewModel? _vmInstance;
+  CounterButtonViewModel get _vm => _vmInstance ??= CounterButtonViewModel();
   final totalChangeValue = ValueNotifier<int>(0);
+
   @override
   Widget build(BuildContext context) {
     final FigureState? figure =
@@ -49,7 +54,8 @@ class CounterButtonState extends State<CounterButton> {
       //in case it dies and was removed from the list
       return Container();
     }
-    return RepaintBoundary(child:Row(mainAxisSize: MainAxisSize.min, children: [
+    return RepaintBoundary(
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
       SizedBox(
           width: kButtonSize * widget.scale,
           height: kButtonSize * widget.scale,
@@ -59,7 +65,7 @@ class CounterButtonState extends State<CounterButton> {
                 widget.command.setChange(-1);
                 if (widget.notifier.value > 0) {
                   totalChangeValue.value--;
-                  gameState.action(widget.command);
+                  _vm.executeCommand(widget.command);
                   if (widget.figureId != "unknown" &&
                       widget.notifier == figure?.health &&
                       figure != null &&
@@ -91,6 +97,7 @@ class CounterButtonState extends State<CounterButton> {
               colorBlendMode: BlendMode.modulate,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.medium,
+              // ignore: avoid-non-null-assertion, obviously not null here
               image: AssetImage(widget.extraImage!),
             ),
           ),
@@ -106,7 +113,7 @@ class CounterButtonState extends State<CounterButton> {
               if (widget.showTotalValue) {
                 text = widget.notifier.value.toString();
               }
-              var shadow = Shadow(
+              final shadow = Shadow(
                 offset: Offset(1 * widget.scale, 1 * widget.scale),
                 color: Colors.black,
                 blurRadius: 1 * widget.scale,
@@ -116,11 +123,9 @@ class CounterButtonState extends State<CounterButton> {
                   right: 0,
                   child: Text(
                     text,
-                    style: TextStyle(
-                        height: 0.5,
-                        fontSize: kFontSizeBody * widget.scale,
-                        color: Colors.white,
-                        shadows: [shadow]),
+                    style: getWhiteShadowStyle(
+                        kFontSizeBody * widget.scale, shadow,
+                        height: CounterButton._kTextHeight),
                   ));
             })
       ]),
@@ -134,7 +139,7 @@ class CounterButtonState extends State<CounterButton> {
               widget.command.setChange(1);
               if (value < widget.maxValue) {
                 totalChangeValue.value++;
-                gameState.action(widget.command);
+                _vm.executeCommand(widget.command);
                 if (widget.figureId != "unknown" &&
                     widget.notifier.value <= 0 &&
                     widget.notifier == figure?.health) {

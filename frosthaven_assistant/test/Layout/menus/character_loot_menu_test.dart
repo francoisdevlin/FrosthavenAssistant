@@ -46,8 +46,9 @@ void main() {
   }
 
   group('CharacterLootMenu', () {
-    testWidgets("renders character loot section with character name",
-        (WidgetTester tester) async {
+    testWidgets("renders character loot section with character name", (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       expect(find.textContaining("Blinkblade"), findsOneWidget);
     });
@@ -57,20 +58,27 @@ void main() {
       expect(find.text('Close'), findsOneWidget);
     });
 
-    testWidgets('tapping Close dismisses the dialog', (WidgetTester tester) async {
+    testWidgets('tapping Close dismisses the dialog', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
       expect(find.byType(CharacterLootMenu), findsNothing);
     });
 
-    testWidgets('renders loot with discard pile having owned cards',
-        (WidgetTester tester) async {
+    testWidgets('renders loot with discard pile having owned cards', (
+      WidgetTester tester,
+    ) async {
       // Set up a Frosthaven scenario with loot deck
       getIt<GameState>().clearList();
       AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
       SetCampaignCommand('Frosthaven').execute();
-      SetScenarioCommand('#0 Howling in the Snow', false).execute();
+      SetScenarioCommand(
+        '#0 Howling in the Snow',
+        false,
+        gameState: getIt<GameState>(),
+      ).execute();
 
       final gs = getIt<GameState>();
       final character =
@@ -78,12 +86,13 @@ void main() {
 
       // Draw and assign loot cards if deck has any
       if (gs.lootDeck.drawPileIsNotEmpty) {
-        DrawLootCardCommand().execute();
+        DrawLootCardCommand(gameState: getIt<GameState>()).execute();
         // SetLootOwnerCommand assigns ownership of discard pile cards
         if (gs.lootDeck.discardPileIsNotEmpty) {
-          SetLootOwnerCommand(character.id,
-                  gs.lootDeck.discardPileContents.toList().first)
-              .execute();
+          SetLootOwnerCommand(
+            character.id,
+            gs.lootDeck.discardPileContents.toList().first,
+          ).execute();
         }
       }
 

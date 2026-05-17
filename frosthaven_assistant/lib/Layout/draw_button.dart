@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 
 import '../Resource/app_constants.dart';
-import '../Resource/enums.dart';
-import '../Resource/game_actions.dart';
-import '../Resource/settings.dart';
 import '../Resource/state/game_state.dart';
 import '../Resource/ui_utils.dart';
-import '../services/service_locator.dart';
+import 'view_models/draw_button_view_model.dart';
 
 class DrawButton extends StatefulWidget {
-  const DrawButton({
-    super.key,
-  });
+  const DrawButton({super.key, this.gameState});
+
+  final GameState? gameState;
 
   @override
   DrawButtonState createState() => DrawButtonState();
 }
 
 class DrawButtonState extends State<DrawButton> {
-  final GameState _gameState = getIt<GameState>();
+  static const double _kRoundTextBottom = 2.0;
+  static const double _kRoundTextLeft = 45.0;
+  static const double _kButtonPadding = 10.0;
+  static const double _kTextHeight = 0.8;
 
-  void onPressed() {
-    final result = runDrawOrNextRoundAction(_gameState);
-    final blockedMessage = result.blockedMessage;
+  DrawButtonViewModel? _vmInstance;
+  DrawButtonViewModel get _vm => _vmInstance ??= DrawButtonViewModel(gameState: widget.gameState);
+
+
+  void _onPressed() {
+    final blockedMessage = _vm.runAction();
     if (blockedMessage != null) {
       showToast(context, blockedMessage);
     }
@@ -30,69 +33,40 @@ class DrawButtonState extends State<DrawButton> {
 
   @override
   Widget build(BuildContext context) {
-    //TextButton says Draw/Next Round
-    //has a turn counter
-    //and a timer
-    //2 states
-    Settings settings = getIt<Settings>();
     return ValueListenableBuilder<double>(
-        valueListenable: settings.userScalingBars,
+        valueListenable: _vm.userScalingBars,
         builder: (context, value, child) {
-          final scaling = settings.userScalingBars.value;
-          final shadow = Shadow(
-            offset: Offset(1 * scaling, 1 * scaling),
-            color: Colors.black87,
-            blurRadius: 1 * scaling,
-          );
+          final scaling = _vm.userScalingBars.value;
+          final shadow = textShadow(scaling);
 
           return RepaintBoundary(
               child: Stack(alignment: Alignment.centerLeft, children: [
             ValueListenableBuilder<int>(
-              valueListenable: _gameState.round,
+              valueListenable: _vm.round,
               builder: (context, value, child) {
-                String text = _gameState.round.value.toString();
-                if (_gameState.totalRounds.value != _gameState.round.value) {
-                  text = "${"$text(${_gameState.totalRounds.value}"})";
-                }
                 return Positioned(
-                    bottom: 2 * scaling,
-                    left: 45 * scaling,
-                    child: Text(text,
-                        style: TextStyle(
-                          fontSize: kFontSizeSmall * scaling,
-                          color: Colors.white,
-                          shadows: [shadow],
-                        )));
+                    bottom: _kRoundTextBottom * scaling,
+                    left: _kRoundTextLeft * scaling,
+                    child: Text(_vm.roundText,
+                        style: getWhiteShadowStyle(kFontSizeSmall * scaling, shadow)));
               },
             ),
-            ValueListenableBuilder<int>(
-              valueListenable: _gameState.commandIndex,
-              builder: (context, value, child) {
+            ListenableBuilder(
+              listenable: Listenable.merge([_vm.roundState, _vm.totalRounds]),
+              builder: (context, child) {
                 return Container(
                     margin: EdgeInsets.zero,
-                    height: 40 * scaling,
-                    width:
-                        (_gameState.totalRounds.value != _gameState.round.value
-                                ? 75
-                                : 60) *
-                            scaling,
+                    height: kBarHeight * scaling,
+                    width: _vm.buttonWidth * scaling,
                     child: TextButton(
                         style: TextButton.styleFrom(
                             padding: EdgeInsets.only(
-                                left: 10 * scaling, right: 10 * scaling),
+                                left: _kButtonPadding * scaling, right: _kButtonPadding * scaling),
                             alignment: Alignment.center),
-                        onPressed: onPressed,
+                        onPressed: _onPressed,
                         child: Text(
-                          _gameState.roundState.value ==
-                                  RoundState.chooseInitiative
-                              ? "Draw"
-                              : " Next Round",
-                          style: TextStyle(
-                            height: 0.8,
-                            fontSize: kFontSizeBody * scaling,
-                            color: Colors.white,
-                            shadows: [shadow],
-                          ),
+                          _vm.buttonText,
+                          style: getWhiteShadowStyle(kFontSizeBody * scaling, shadow, height: _kTextHeight),
                         )));
               },
             )

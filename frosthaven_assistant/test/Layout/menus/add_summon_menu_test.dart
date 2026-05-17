@@ -1,6 +1,8 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frosthaven_assistant/Layout/menus/add_summon_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/AddSummonMenu/add_summon_menu.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
@@ -18,8 +20,9 @@ void main() {
     getIt<GameState>().clearList();
     // Banner Spear has summons defined in test data
     AddCharacterCommand('Banner Spear', 'Frosthaven', null, 1).execute();
-    character = getIt<GameState>().currentList.firstWhere((e) => e is Character)
-        as Character;
+    character =
+        getIt<GameState>().currentList.firstWhere((e) => e is Character)
+            as Character;
   });
 
   Future<void> pumpMenu(WidgetTester tester) async {
@@ -33,9 +36,8 @@ void main() {
             onPressed: () {
               showDialog(
                 context: context,
-                builder: (context) => Material(
-                  child: AddSummonMenu(character: character),
-                ),
+                builder: (context) =>
+                    Material(child: AddSummonMenu(character: character)),
               );
             },
             child: const Text('Open'),
@@ -61,27 +63,30 @@ void main() {
       expect(find.text('2'), findsAtLeast(1));
     });
 
-    testWidgets('renders color selection icon buttons',
-        (WidgetTester tester) async {
+    testWidgets('renders color selection icon buttons', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       // Color buttons are IconButton widgets (images, no text)
       expect(find.byType(IconButton), findsAtLeast(8));
     });
 
-    testWidgets('tapping a color icon button selects that graphic',
-        (WidgetTester tester) async {
+    testWidgets('tapping a color icon button selects that graphic', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       // Tap the first IconButton (first color choice)
       final iconButtons = find.byType(IconButton);
       if (tester.widgetList(iconButtons).isNotEmpty) {
         await tester.tap(iconButtons.first, warnIfMissed: false);
         await tester.pump();
-        // No crash is the assertion
       }
+      expect(find.byType(AddSummonMenu), findsOneWidget);
     });
 
-    testWidgets('tapping a non-selected color button triggers setState',
-        (WidgetTester tester) async {
+    testWidgets('tapping a non-selected color button triggers setState', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       // First button is 'blue' (already selected). Tap second ('green') directly.
       final iconButtons = find.byType(IconButton);
@@ -90,10 +95,12 @@ void main() {
         greenButton.onPressed?.call();
         await tester.pump();
       }
+      expect(find.byType(AddSummonMenu), findsOneWidget);
     });
 
-    testWidgets('tapping nr button 2 changes selected standee number',
-        (WidgetTester tester) async {
+    testWidgets('tapping nr button 2 changes selected standee number', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       // Nr=1 is selected by default. Tapping '2' TextButton triggers setState.
       final textButtons = find.byType(TextButton);
@@ -102,17 +109,19 @@ void main() {
         btn2.onPressed?.call();
         await tester.pump();
       }
+      expect(find.byType(AddSummonMenu), findsOneWidget);
     });
 
-    testWidgets('tapping a summon list item triggers addSummon',
-        (WidgetTester tester) async {
+    testWidgets('tapping a summon list item triggers addSummon', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
+      expect(find.byType(AddSummonMenu), findsOneWidget);
       // Find ListTile items in the summon list
       final listTiles = find.byType(ListTile);
       if (tester.widgetList(listTiles).isNotEmpty) {
         await tester.tap(listTiles.first, warnIfMissed: false);
         await tester.pump();
-        // After tapping a summon, the menu should close (Navigator.pop)
       }
     });
   });

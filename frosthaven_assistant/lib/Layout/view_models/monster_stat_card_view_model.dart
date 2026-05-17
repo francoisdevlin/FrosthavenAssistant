@@ -1,0 +1,98 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:frosthaven_assistant/Resource/commands/activate_monster_type_command.dart';
+import 'package:frosthaven_assistant/Resource/commands/add_standee_command.dart';
+import 'package:frosthaven_assistant/Resource/game_methods.dart';
+import 'package:frosthaven_assistant/Resource/settings.dart';
+import 'package:frosthaven_assistant/Resource/state/game_state.dart';
+import 'package:frosthaven_assistant/services/service_locator.dart';
+
+import '../../Resource/enums.dart';
+import '../../Resource/ui_utils.dart';
+import '../menus/add_standee_menu.dart';
+
+class MonsterStatCardViewModel {
+  static const int _kIncarnateHealthMultiplier = 2;
+  MonsterStatCardViewModel(this.monster,
+      {GameState? gameState, Settings? settings})
+      : _gameState = gameState ?? getIt<GameState>(),
+        _settings = settings ?? getIt<Settings>();
+
+  final Monster monster;
+  final GameState _gameState;
+  final Settings _settings;
+
+  // Notifiers the widget should subscribe to
+  ValueListenable<int> get levelChanges => monster.level;
+  Listenable get monsterInstancesNotifier => monster.monsterInstancesNotifier;
+
+  // Derived state
+  bool get isBoss => monster.type.levels[monster.level.value].boss != null;
+  bool get allStandeesOut =>
+      monster.monsterInstances.length == monster.type.count;
+
+  // Boss health special cases: some bosses derive HP from a character's level
+  String resolveBossHealth(String rawHealth) {
+    if (rawHealth == "Hollowpact") {
+      for (final item in _gameState.currentList) {
+        if (item is Character && item.id == "Hollowpact") {
+          return item
+              .characterClass.healthByLevel[item.characterState.level.value - 1]
+              .toString();
+        }
+      }
+      return "7";
+    }
+    if (rawHealth == "Incarnate") {
+      for (final item in _gameState.currentList) {
+        if (item is Character && item.id == "Incarnate") {
+          return (item.characterClass
+                      .healthByLevel[item.characterState.level.value - 1] *
+                  _kIncarnateHealthMultiplier)
+              .toString();
+        }
+      }
+      return "36";
+    }
+    return rawHealth;
+  }
+
+  void handleAddNormal(BuildContext context) =>
+      _handleAdd(context, left: true, isBossStandee: false);
+
+  void handleAddElite(BuildContext context) =>
+      _handleAdd(context, left: false, isBossStandee: isBoss);
+
+  void _handleAdd(BuildContext context,
+      {required bool left, required bool isBossStandee}) {
+    if (_settings.noStandees.value) {
+      _gameState.action(ActivateMonsterTypeCommand(
+          monster.id, !monster.isActive,
+          gameState: _gameState));
+      return;
+    }
+
+    final nrOfStandees = monster.monsterInstances.length;
+    final maxStandees = monster.type.count;
+    MonsterType nonBossType = left ? MonsterType.normal : MonsterType.elite;
+    final type = isBossStandee ? MonsterType.boss : nonBossType;
+
+    if (nrOfStandees == maxStandees - 1) {
+      MonsterMethods.addStandee(null, monster, type, false);
+    } else if (nrOfStandees < maxStandees - 1) {
+      if (_settings.randomStandees.value) {
+        int standeeNr = GameMethods.getRandomStandee(monster);
+        if (_gameState.currentCampaign.value == "Buttons and Bugs") {
+          standeeNr = GameMethods.getNextAvailableBnBStandee(monster);
+        }
+        if (standeeNr != 0) {
+          _gameState.action(AddStandeeCommand(
+              standeeNr, null, monster.id, type, false,
+              gameState: _gameState));
+        }
+      } else {
+        openDialog(context, AddStandeeMenu(elite: !left, monster: monster));
+      }
+    }
+  }
+}

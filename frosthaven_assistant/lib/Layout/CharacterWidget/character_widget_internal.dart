@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../Resource/commands/next_turn_command.dart';
-import '../../Resource/commands/set_init_command.dart';
 import '../../Resource/enums.dart';
-import '../../Resource/game_methods.dart';
 import '../../Resource/scaling.dart';
 import '../../Resource/settings.dart';
 import '../../Resource/state/game_state.dart';
 import '../../Resource/ui_utils.dart';
-import '../../services/service_locator.dart';
 import '../menus/numpad_menu.dart';
+import '../view_models/character_widget_internal_view_model.dart';
 import 'character_background_widget.dart';
 import 'character_health_widget.dart';
 import 'character_icon_widget.dart';
@@ -19,36 +16,54 @@ import 'character_xp_widget.dart';
 import 'initiative_widget.dart';
 
 class CharacterWidgetInternal extends StatefulWidget {
+  static const double _kScaledHeight = 60.0;
+  static const double _kXPTop = 10.0;
+  static const double _kXPLeft = 314.0;
+  static const double _kLevelTop = 28.0;
+  static const double _kLevelLeft = 316.0;
+  static const double _kSummonsRight = 19.0;
+  static const double _kSummonsTop = 4.0;
+  static const double _kInkwellWidth = 70.0;
+  static const int _kInitMaxLength = 2;
+
   const CharacterWidgetInternal(
       {super.key,
       required this.character,
       required this.isCharacter,
       required this.characterId,
-      this.initPreset});
+      this.initPreset,
+      this.gameState,
+      this.settings});
 
   final Character character;
   final bool isCharacter;
   final String characterId;
   final int? initPreset;
 
-  static final Set<String> localCharacterInitChanges =
-      {}; //if it's been changed locally then it's not hidden
+  static final Set<String> localCharacterInitChanges = {};
+
+  final GameState? gameState;
+  // injected for testing
+  final Settings? settings;
 
   @override
   CharacterInternalWidgetState createState() => CharacterInternalWidgetState();
 }
 
 class CharacterInternalWidgetState extends State<CharacterWidgetInternal> {
-  final GameState _gameState = getIt<GameState>();
+  CharacterWidgetInternalViewModel? _vmInstance;
+  CharacterWidgetInternalViewModel get _vm =>
+      _vmInstance ??= CharacterWidgetInternalViewModel(widget.character,
+          gameState: widget.gameState, settings: widget.settings);
   bool isCharacter = true;
   final _initTextFieldController = TextEditingController();
-  late List<MonsterInstance> lastList = [];
+  List<MonsterInstance> lastList = [];
   final _focusNode = FocusNode();
 
   @override
   void initState() {
-    final character = widget.character;
     super.initState();
+    final character = widget.character;
     lastList = character.characterState.summonList.toList();
 
     if (widget.initPreset != null) {
@@ -56,37 +71,23 @@ class CharacterInternalWidgetState extends State<CharacterWidgetInternal> {
     }
     _initTextFieldController.addListener(_textFieldControllerListener);
 
-    if (GameMethods.isObjectiveOrEscort(character.characterClass)) {
-      isCharacter = false;
-    }
+    isCharacter = !_vm.isObjectiveOrEscort;
     if (isCharacter) {
       _initTextFieldController.clear();
     }
-    if (_gameState.roundState.value == RoundState.playTurns) {
-      CharacterWidgetInternal.localCharacterInitChanges.clear();
+    if (_vm.roundState.index >= 0) {
+      // clear on playTurns
+      if (_vm.roundState == RoundState.playTurns) {
+        CharacterWidgetInternal.localCharacterInitChanges.clear();
+      }
     }
   }
 
   void _textFieldControllerListener() {
-    final character = widget.character;
-    for (var item in _gameState.currentList) {
-      if (item is Character) {
-        if (item.id == character.id) {
-          final text = _initTextFieldController.value.text;
-          if (text.isNotEmpty &&
-              text != character.characterState.initiative.value.toString() &&
-              text.isNotEmpty &&
-              text != "??") {
-            int? init = int.tryParse(_initTextFieldController.value.text);
-            if (init != null && init != 0) {
-              CharacterWidgetInternal.localCharacterInitChanges
-                  .add(character.id);
-              _gameState.action(SetInitCommand(character.id, init));
-            }
-          }
-          break;
-        }
-      }
+    final text = _initTextFieldController.value.text;
+    if (_vm.handleInitTextChange(text)) {
+      CharacterWidgetInternal.localCharacterInitChanges
+          .add(widget.character.id);
     }
   }
 
@@ -99,18 +100,14 @@ class CharacterInternalWidgetState extends State<CharacterWidgetInternal> {
   @override
   Widget build(BuildContext context) {
     double scale = getScaleByReference(context);
-    double scaledHeight = 60 * scale;
+    double scaledHeight = CharacterWidgetInternal._kScaledHeight * scale;
 
-    var shadow = Shadow(
-      offset: Offset(1 * scale, 1 * scale),
-      color: Colors.black87,
-      blurRadius: 1 * scale,
-    );
+    final shadow = textShadow(scale);
 
     final character = widget.character;
     return SizedBox(
         width: getMainListWidth(context),
-        height: 60 * scale,
+        height: CharacterWidgetInternal._kScaledHeight * scale,
         child: Stack(
           children: [
             CharacterBackgroundWidget(
@@ -143,14 +140,14 @@ class CharacterInternalWidgetState extends State<CharacterWidgetInternal> {
             ),
             if (isCharacter)
               Positioned(
-                  top: 10 * scale,
-                  left: 314 * scale,
+                  top: CharacterWidgetInternal._kXPTop * scale,
+                  left: CharacterWidgetInternal._kXPLeft * scale,
                   child: CharacterXPWidget(
                       character: character, scale: scale, shadow: shadow)),
             if (isCharacter)
               Positioned(
-                  top: 28 * scale,
-                  left: 316 * scale,
+                  top: CharacterWidgetInternal._kLevelTop * scale,
+                  left: CharacterWidgetInternal._kLevelLeft * scale,
                   child: CharacterLevelWidget(
                     character: character,
                     scale: scale,
@@ -158,38 +155,33 @@ class CharacterInternalWidgetState extends State<CharacterWidgetInternal> {
                   )),
             if (isCharacter)
               Positioned(
-                right: 19 * scale,
-                top: 4 * scale,
+                right: CharacterWidgetInternal._kSummonsRight * scale,
+                top: CharacterWidgetInternal._kSummonsTop * scale,
                 child:
                     CharacterSummonsButton(scale: scale, character: character),
               ),
-            //make left side of character widget start initiative interaction on tap
-            if (character.characterState.health.value > 0)
+            if (_vm.isAlive)
               InkWell(
                   onTap: () {
-                    if (_gameState.roundState.value ==
-                        RoundState.chooseInitiative) {
-                      //if in choose mode - focus the input or open the soft numpad if that option is on
-                      if (getIt<Settings>().softNumpadInput.value) {
+                    if (_vm.isChooseInitiative) {
+                      if (_vm.softNumpadInput) {
                         openDialog(
                             context,
                             NumpadMenu(
                               controller: _initTextFieldController,
-                              maxLength: 2,
+                              maxLength:
+                                  CharacterWidgetInternal._kInitMaxLength,
                             ));
                       } else {
-                        //focus on
                         _focusNode.requestFocus();
                       }
                     } else {
-                      getIt<GameState>().action(TurnDoneCommand(character.id));
+                      _vm.endTurn();
                     }
-                    //if in choose mode - focus the input or open the soft numpad if that option is on
-                    //else: mark as done
                   },
                   child: SizedBox(
-                    height: 60 * scale,
-                    width: 70 * scale,
+                    height: CharacterWidgetInternal._kScaledHeight * scale,
+                    width: CharacterWidgetInternal._kInkwellWidth * scale,
                   )),
           ],
         ));

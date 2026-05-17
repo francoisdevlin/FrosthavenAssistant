@@ -1,3 +1,5 @@
+// ignore_for_file: no-magic-number, avoid-late-keyword, avoid-top-level-members-in-tests
+
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -21,14 +23,14 @@ Future<void> setUpGame() async {
   //initialize game
   gameState.init();
   await getIt<GameData>().loadData("assets/testData/");
-  await gameState.load();
+  gameState.load();
 }
 
-void checkSaveState() async {
+void checkSaveState() {
   String state = gameState.toString();
   int nrStates = gameState.gameSaveStates.length;
   gameState.save();
-  await gameState.load();
+  gameState.load();
   String newState = gameState.toString();
   assert(gameState.gameSaveStates.length ==
       nrStates + 2); //for some reason a null state is added on load.

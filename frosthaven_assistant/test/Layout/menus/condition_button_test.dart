@@ -1,5 +1,8 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frosthaven_assistant/Layout/condition_icon.dart';
 import 'package:frosthaven_assistant/Layout/menus/condition_button.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_condition_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
@@ -20,10 +23,13 @@ void main() {
 
   setUp(() {
     getIt<GameState>().clearList();
-    AddMonsterCommand("Zealot", 1, false).execute();
+    AddMonsterCommand("Zealot", 1, false, gameState: getIt<GameState>())
+        .execute();
     monster = getIt<GameState>().currentList.firstWhere((e) => e is Monster)
         as Monster;
-    AddStandeeCommand(1, null, monster.id, MonsterType.normal, false).execute();
+    AddStandeeCommand(1, null, monster.id, MonsterType.normal, false,
+            gameState: getIt<GameState>())
+        .execute();
     monster = getIt<GameState>().currentList.firstWhere((e) => e is Monster)
         as Monster;
     standee = monster.monsterInstances.first;
@@ -110,8 +116,9 @@ void main() {
       final figureId = standee.getId();
 
       // Add the condition first
-      getIt<GameState>()
-          .action(AddConditionCommand(Condition.muddle, figureId, monster.id));
+      getIt<GameState>().action(AddConditionCommand(
+          Condition.muddle, figureId, monster.id,
+          gameState: getIt<GameState>()));
       expect(standee.conditions.value, contains(Condition.muddle));
 
       await tester.pumpWidget(buildConditionButton(
@@ -126,7 +133,8 @@ void main() {
       expect(standee.conditions.value, isNot(contains(Condition.muddle)));
     });
 
-    testWidgets('button is disabled and shows immunity overlay for immune condition',
+    testWidgets(
+        'button is disabled and shows immunity overlay for immune condition',
         (WidgetTester tester) async {
       final originalOnError = FlutterError.onError;
       addTearDown(() => FlutterError.onError = originalOnError);
@@ -178,6 +186,32 @@ void main() {
 
       final iconButton = tester.widget<IconButton>(find.byType(IconButton));
       expect(iconButton.onPressed, isNull);
+    });
+
+    testWidgets('button updates reactively when condition is added via command',
+        (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      addTearDown(() => FlutterError.onError = originalOnError);
+      FlutterError.onError = ignoreOverflowErrors;
+      final figureId = standee.getId();
+
+      await tester.pumpWidget(buildConditionButton(
+        condition: Condition.stun,
+        figureId: figureId,
+        ownerId: monster.id,
+      ));
+
+      // No ConditionIcon initially — condition is inactive
+      expect(find.byType(ConditionIcon), findsNothing);
+
+      // Add condition via command (fires figure.conditions notifier)
+      getIt<GameState>().action(AddConditionCommand(
+          Condition.stun, figureId, monster.id,
+          gameState: getIt<GameState>()));
+      await tester.pump();
+
+      // Active condition renders a ConditionIcon
+      expect(find.byType(ConditionIcon), findsOneWidget);
     });
   });
 }

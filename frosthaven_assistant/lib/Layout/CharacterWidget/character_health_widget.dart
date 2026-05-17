@@ -5,51 +5,65 @@ import '../../Resource/enums.dart';
 import '../../Resource/game_methods.dart';
 import '../../Resource/settings.dart';
 import '../../Resource/state/game_state.dart';
-import '../../services/service_locator.dart';
+import '../../Resource/ui_utils.dart';
 import '../condition_icon.dart';
 import '../health_wheel_controller.dart';
+import '../view_models/character_health_widget_view_model.dart';
 
 class CharacterHealthWidget extends StatelessWidget {
+  static const double _kMarginTop = 10.0;
+  static const double _kMarginLeft = 10.0;
+  static const double _kFontSizeFH = 15.0;
+  static const double _kFontSizeOrig = 16.0;
+  static const double _kConditionIconSize = 16.0;
+  static const double _kBloodHeightRatio = 0.2;
+
   const CharacterHealthWidget(
       {super.key,
       required this.character,
       required this.scale,
       required this.shadow,
-      required this.scaledHeight});
+      required this.scaledHeight,
+      this.settings});
   final Character character;
   final double scale;
   final double scaledHeight;
   final Shadow shadow;
+  final Settings? settings;
 
   @override
   Widget build(BuildContext context) {
-    final frosthavenStyle = GameMethods.isFrosthavenStyle(null);
+    final vm = CharacterHealthWidgetViewModel(settings: settings);
 
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         //align children to the left
         children: [
           Container(
-            margin: EdgeInsets.only(top: 10 * scale, left: 10 * scale),
+            margin: EdgeInsets.only(
+                top: CharacterHealthWidget._kMarginTop * scale,
+                left: CharacterHealthWidget._kMarginLeft * scale),
             child: ValueListenableBuilder<String>(
                 valueListenable: character.characterState.display,
                 builder: (context, value, child) {
                   return Text(
                     character.characterState.display.value,
-                    style: TextStyle(
-                        fontFamily: frosthavenStyle ? 'GermaniaOne' : 'Pirata',
-                        color: Colors.white,
-                        fontSize: frosthavenStyle ? 15 * scale : 16 * scale,
-                        shadows: [shadow]),
+                    style: getCardTitleStyle(
+                        vm.frosthavenStyle
+                            ? CharacterHealthWidget._kFontSizeFH * scale
+                            : CharacterHealthWidget._kFontSizeOrig * scale,
+                        shadow,
+                        vm.frosthavenStyle),
                   );
                 }),
           ),
-          ValueListenableBuilder<int>(
-              valueListenable: getIt<GameState>().commandIndex,
+          ValueListenableBuilder<bool>(
+              valueListenable: vm.enableHealthWheel,
               builder: (context, value, child) {
                 return Container(
-                    margin: EdgeInsets.only(left: 10 * scale),
-                    child: getIt<Settings>().enableHeathWheel.value
+                    margin: EdgeInsets.only(
+                        left: CharacterHealthWidget._kMarginLeft * scale),
+                    child: value
                         ? HealthWheelController(
                             figureId: character.id,
                             ownerId: character.id,
@@ -86,7 +100,7 @@ class CharacterHealthInnerWidget extends StatelessWidget {
     for (int i = conditions.length; i < characterConditions.length; i++) {
       conditions.add(ConditionIcon(
         characterConditions[i],
-        16,
+        CharacterHealthWidget._kConditionIconSize,
         character,
         character.characterState,
         scale: scale,
@@ -103,16 +117,12 @@ class CharacterHealthInnerWidget extends StatelessWidget {
     return Row(children: [
       Image(
         fit: BoxFit.contain,
-        height: scaledHeight * 0.2,
+        height: scaledHeight * CharacterHealthWidget._kBloodHeightRatio,
         image: const AssetImage("assets/images/blood.png"),
       ),
       Text(
         frosthavenStyle ? '$health/$maxHealth' : '$health / $maxHealth',
-        style: TextStyle(
-            fontFamily: frosthavenStyle ? 'GermaniaOne' : 'Pirata',
-            color: Colors.white,
-            fontSize: kFontSizeBody * scale,
-            shadows: [shadow]),
+        style: getCardTitleStyle(kFontSizeBody * scale, shadow, frosthavenStyle),
       ),
       //add conditions here
       ValueListenableBuilder<List<Condition>>(

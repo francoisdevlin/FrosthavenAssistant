@@ -12,6 +12,15 @@ class StandaloneServer extends GameServer {
   final ServerState _state = ServerState();
   final Map<Socket,ConnectionHealth> _connectionHealth = {};
   int pingCount = 0;
+  bool _pinging = false; //to not restart this ping sub process, if one is running
+
+  static const String _noEventJson = '{"type":"none"}';
+
+  String _lastSavedState() {
+    return _state.gameSaveStates.isNotEmpty
+        ? _state.gameSaveStates.last.getState()
+        : "{}";
+  }
 
 
   @override
@@ -23,11 +32,12 @@ class StandaloneServer extends GameServer {
 
   @override
   String currentStateMessage(String commandDescription) {
-    String state = "{}";
-    if (_state.gameSaveStates.isNotEmpty){
-      state = _state.gameSaveStates.last!.getState();
-    }
-    return "Index:${_state.commandIndex}Description:${commandDescription}GameState:$state";
+    return GameServer.encodeStateEnvelope(
+      index: _state.commandIndex,
+      description: commandDescription,
+      eventJson: _noEventJson,
+      state: _lastSavedState(),
+    );
   }
 
   @override
@@ -83,6 +93,7 @@ class StandaloneServer extends GameServer {
       _state.gameSaveStates
           .removeRange(0, _state.gameSaveStates.length - 1);
     }
+    _pinging = false;
   }
 
   @override
@@ -97,7 +108,12 @@ class StandaloneServer extends GameServer {
     print(
         'Server sends init response: "S3nD:Index:${_state.commandIndex}Description:$commandDescription');
     sendToOnly(
-        "Index:${_state.commandIndex}Description:${commandDescription}GameState:${_state.gameSaveStates.last!.getState()}",
+        GameServer.encodeStateEnvelope(
+          index: _state.commandIndex,
+          description: commandDescription,
+          eventJson: _noEventJson,
+          state: _lastSavedState(),
+        ),
         client);
   }
 
@@ -161,8 +177,12 @@ class StandaloneServer extends GameServer {
       if (_state.commandDescriptions.isNotEmpty) {
         commandDescription = _state.commandDescriptions.last;
       }
-      send(
-          "Index:${_state.commandIndex}Description:${commandDescription}GameState:${_state.gameSaveStates.last!.getState()}");
+      send(GameServer.encodeStateEnvelope(
+        index: _state.commandIndex,
+        description: commandDescription,
+        eventJson: _noEventJson,
+        state: _lastSavedState(),
+      ));
     } else if (message.index > _state.commandIndex) {
       _state.commandIndex = message.index;
       if (message.index >= 0) {
@@ -171,15 +191,29 @@ class StandaloneServer extends GameServer {
       }
       _state.save(message.data);
       sendToOthers(
-          "Index:${_state.commandIndex}Description:${_state.commandDescriptions.last}GameState:${_state.gameSaveStates.last!.getState()}",
+          GameServer.encodeStateEnvelope(
+            index: _state.commandIndex,
+            description: _state.commandDescriptions.last,
+            eventJson: message.eventJson,
+            state: _lastSavedState(),
+          ),
           client);
     } else {
       print(
           'Got same or lower index. ignoring: received index: ${message.indexString} current index ${_state.commandIndex}');
 
       //overwrite client state with current server state.
+      final idx = _state.commandIndex;
+      final mismatchDesc = (idx >= 0 && idx < _state.commandDescriptions.length)
+          ? _state.commandDescriptions[idx]
+          : '';
       sendToOnly(
-          "Mismatch:Index:${_state.commandIndex}Description:${_state.commandDescriptions[_state.commandIndex]}GameState:${_state.gameSaveStates.last!.getState()}",
+          "Mismatch:${GameServer.encodeStateEnvelope(
+            index: idx,
+            description: mismatchDesc,
+            eventJson: _noEventJson,
+            state: _lastSavedState(),
+          )}",
           client);
       //ignore if same index from server
     }
@@ -187,16 +221,22 @@ class StandaloneServer extends GameServer {
 
   @override
   void sendPing() {
-    if (serverSocket != null && serverEnabled) {
+    if (serverSocket != null && serverEnabled && !_pinging) {
+      _pinging = true;
       Future.delayed(const Duration(seconds: 5), () {
+        if (serverSocket == null || !serverEnabled) {
+          _pinging = false;
+          return;
+        }
         send("ping");
         for(Socket client in _clientConnections){
           _connectionHealth[client]?.logPing();
         }
-        pingCount ++;
+        pingCount++;
         if (pingCount % 30 == 0){
           printHealthReport();
         }
+        _pinging = false;
         sendPing();
       });
     }
@@ -209,9 +249,9 @@ class StandaloneServer extends GameServer {
   }
 
   @override
-  void processMessages(String socketMessages, Socket client){
+  void processMessages(String message, Socket client){
     _connectionHealth[client]?.logMessageReceived();
-    super.processMessages(socketMessages, client);
+    super.processMessages(message, client);
   }
 
   String _createMessage(String data){

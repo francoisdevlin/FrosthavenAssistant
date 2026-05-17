@@ -1,25 +1,30 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/remove_character_command.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
+import 'package:frosthaven_assistant/services/service_locator.dart';
 
 import 'test_helpers.dart';
 
-void tests() {
+void _tests() {
   String oldState = gameState.toString();
   AddCharacterCommand("Hatchet", "Jaws of the Lion", "Arnold", 9).execute();
-  RemoveCharacterCommand(List.of([gameState.currentList.last as Character]))
-      .execute();
+  RemoveCharacterCommand(
+    List.of([gameState.currentList.last as Character]),
+    gameState: getIt<GameState>(),
+  ).execute();
   test("removed ok", () {
-    assert(gameState.currentList.isEmpty);
-    assert(gameState.unlockedClasses.first == "Hatchet");
+    expect(gameState.currentList.isEmpty, true);
+    expect(gameState.unlockedClasses.first, "Hatchet");
 
     checkNoSideEffects(["unlockedClasses"], oldState);
     checkSaveState();
   });
 }
 
-main() async {
+Future<void> main() async {
   await setUpGame();
-  tests();
+  _tests();
 }

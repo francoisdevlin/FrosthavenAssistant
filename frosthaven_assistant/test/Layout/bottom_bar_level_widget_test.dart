@@ -1,7 +1,9 @@
+// ignore_for_file: no-magic-number
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Layout/bottom_bar_level_widget.dart';
-import 'package:frosthaven_assistant/Layout/menus/set_level_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/SetLevelMenu/set_level_menu.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
 
@@ -102,6 +104,18 @@ void main() {
         (WidgetTester tester) async {
       await pumpWidget(tester);
       expect(find.byType(Material), findsAtLeast(1));
+    });
+
+    testWidgets('level value updates when level changes after render',
+        (WidgetTester tester) async {
+      (getIt<GameState>().level as ValueNotifier<int>).value = 2;
+      await pumpWidget(tester);
+      expect(find.textContaining(': 2 '), findsOneWidget);
+
+      (getIt<GameState>().level as ValueNotifier<int>).value = 5;
+      await tester.pump();
+
+      expect(find.textContaining(': 5 '), findsOneWidget);
     });
   });
 }

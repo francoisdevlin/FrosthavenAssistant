@@ -1,4 +1,3 @@
-import '../../services/service_locator.dart';
 import '../enums.dart';
 import '../game_methods.dart';
 import '../state/game_state.dart';
@@ -7,8 +6,12 @@ class RemoveConditionCommand extends Command {
   final Condition condition;
   final String figureId;
   final String? ownerId;
+  final GameState _gameState;
 
-  RemoveConditionCommand(this.condition, this.figureId, this.ownerId);
+  RemoveConditionCommand(this.condition, this.figureId, this.ownerId,
+      {required GameState gameState})
+      : _gameState = gameState;
+
   @override
   void execute() {
     FigureState? figure = GameMethods.getFigure(ownerId, figureId);
@@ -29,14 +32,10 @@ class RemoveConditionCommand extends Command {
       }
 
       figure.removeFromConditionsPreviousTurn(stateAccess, condition);
-      getIt<GameState>().updateList.value++;
+      _gameState.updateList.notify();
     }
   }
 
-  @override
-  void undo() {
-    getIt<GameState>().updateList.value++;
-  }
 
   @override
   String describe() {

@@ -1,6 +1,8 @@
+// ignore_for_file: avoid-late-keyword
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frosthaven_assistant/Layout/menus/ability_cards_menu.dart';
+import 'package:frosthaven_assistant/Layout/menus/AbilityCardsMenu/ability_cards_menu.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_monster_command.dart';
 import 'package:frosthaven_assistant/Resource/state/game_state.dart';
 import 'package:frosthaven_assistant/services/service_locator.dart';
@@ -17,7 +19,8 @@ void main() {
 
   setUp(() {
     getIt<GameState>().clearList();
-    AddMonsterCommand('Zealot', 1, false).execute();
+    AddMonsterCommand('Zealot', 1, false, gameState: getIt<GameState>())
+        .execute();
     monster = getIt<GameState>().currentList.firstWhere((e) => e is Monster)
         as Monster;
     abilityState = getIt<GameState>().currentAbilityDecks.first;

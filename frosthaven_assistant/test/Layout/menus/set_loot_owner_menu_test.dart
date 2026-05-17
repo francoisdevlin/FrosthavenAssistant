@@ -49,15 +49,17 @@ void main() {
       expect(find.text('Set Loot Owner:'), findsOneWidget);
     });
 
-    testWidgets('renders a button for the current character',
-        (WidgetTester tester) async {
+    testWidgets('renders a button for the current character', (
+      WidgetTester tester,
+    ) async {
       await pumpMenu(tester);
       // The button shows the character display name
       expect(find.textContaining('Blinkblade'), findsOneWidget);
     });
 
-    testWidgets('tapping a character button assigns loot and closes dialog',
-        (WidgetTester tester) async {
+    testWidgets('tapping a character button assigns loot and closes dialog', (
+      WidgetTester tester,
+    ) async {
       final gameState = getIt<GameState>();
       final card = gameState.lootDeck.hidePool.first;
       await pumpMenu(tester);

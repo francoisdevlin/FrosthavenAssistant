@@ -1,5 +1,45 @@
 import 'package:flutter/foundation.dart';
 
+/// A monster stat that is either a plain integer or a formula string.
+///
+/// Formulas may contain `C` (number of characters) and `L` (scenario level)
+/// and are evaluated by [StatCalculator.calculateFormula]. Named formulas such
+/// as `"Hollowpact"` or `"Incarnate"` have special handling in [MonsterInstance].
+///
+/// Use [StatValue.fromJson] when parsing JSON — it throws [FormatException] for
+/// values that are neither int nor String, catching data errors at load time
+/// instead of silently producing wrong results at runtime.
+sealed class StatValue {
+  // ignore: prefer-match-file-name, file contains multiple monster model types
+  const StatValue();
+
+  static StatValue fromJson(Object? value) {
+    if (value is int) return IntStatValue(value);
+    if (value is String) return FormulaStatValue(value);
+    throw FormatException(
+        'Stat value must be int or String, got ${value?.runtimeType}: $value');
+  }
+
+  /// Returns a constant representing zero.
+  static const StatValue zero = IntStatValue(0);
+}
+
+/// A stat whose value is a fixed integer (e.g. `"health": 3`).
+final class IntStatValue extends StatValue {
+  const IntStatValue(this.value);
+  final int value;
+  @override
+  String toString() => value.toString();
+}
+
+/// A stat whose value is a formula string (e.g. `"health": "C+1"`).
+final class FormulaStatValue extends StatValue {
+  const FormulaStatValue(this.formula);
+  final String formula;
+  @override
+  String toString() => formula;
+}
+
 @immutable
 class MonsterModel {
   const MonsterModel(
@@ -54,9 +94,10 @@ class MonsterModel {
     final deck = data['deck'] as String;
     final count = data['count'] as int;
 
-    final levels = data['levels'] as List<dynamic>;
+    final levels =
+        (data['levels'] as List<Object?>).cast<Map<String, dynamic>>();
     List<MonsterLevelModel> monsterLevelDataList = [];
-    for (var item in levels) {
+    for (final item in levels) {
       monsterLevelDataList.add(MonsterLevelModel.fromJson(item));
     }
     return MonsterModel(name, display, gfx, hidden, flying, deck, count,
@@ -91,9 +132,9 @@ class MonsterLevelModel {
 class MonsterStatsModel {
   const MonsterStatsModel(this.health, this.move, this.attack, this.range,
       this.attributes, this.immunities, this.special1, this.special2);
-  final dynamic health;
-  final dynamic move;
-  final dynamic attack;
+  final StatValue health;
+  final StatValue move;
+  final StatValue attack;
   final int range;
   final List<String> attributes;
   final List<String> immunities;
@@ -101,14 +142,14 @@ class MonsterStatsModel {
   final List<String> special2;
 
   factory MonsterStatsModel.fromJson(Map<String, dynamic> data) {
-    final health = data['health'];
-    dynamic move = 0;
+    final health = StatValue.fromJson(data['health']);
+    StatValue move = StatValue.zero;
     if (data.containsKey('move')) {
-      move = data['move'];
+      move = StatValue.fromJson(data['move']);
     }
-    dynamic attack = 0;
+    StatValue attack = StatValue.zero;
     if (data.containsKey('attack')) {
-      attack = data['attack'];
+      attack = StatValue.fromJson(data['attack']);
     }
     int range = 0;
     if (data.containsKey('range')) {
@@ -116,19 +157,19 @@ class MonsterStatsModel {
     }
     List<String> attributes = [];
     if (data.containsKey('attributes')) {
-      attributes = (data['attributes'] as List<dynamic>).cast<String>();
+      attributes = (data['attributes'] as List<Object?>).cast<String>();
     }
     List<String> immunities = [];
     if (data.containsKey('immunities')) {
-      immunities = (data['immunities'] as List<dynamic>).cast<String>();
+      immunities = (data['immunities'] as List<Object?>).cast<String>();
     }
     List<String> special1 = [];
     if (data.containsKey('special1')) {
-      special1 = (data['special1'] as List<dynamic>).cast<String>();
+      special1 = (data['special1'] as List<Object?>).cast<String>();
     }
     List<String> special2 = [];
     if (data.containsKey('special2')) {
-      special2 = (data['special2'] as List<dynamic>).cast<String>();
+      special2 = (data['special2'] as List<Object?>).cast<String>();
     }
     return MonsterStatsModel(health, move, attack, range, attributes,
         immunities, special1, special2);

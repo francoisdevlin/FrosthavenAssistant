@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../../Resource/app_constants.dart';
 import '../../Resource/game_methods.dart';
 import '../../Resource/state/game_state.dart';
+import '../../Resource/ui_utils.dart';
 
 class CharacterLevelWidget extends StatelessWidget {
+  static const double _kImageHeight = 12.0;
+
   const CharacterLevelWidget(
       {super.key,
       required this.character,
@@ -19,7 +22,7 @@ class CharacterLevelWidget extends StatelessWidget {
     return Row(
       children: [
         Image(
-          height: 12.0 * scale,
+          height: CharacterLevelWidget._kImageHeight * scale,
           image: const AssetImage("assets/images/psd/level.png"),
         ),
         ValueListenableBuilder<int>(
@@ -27,13 +30,7 @@ class CharacterLevelWidget extends StatelessWidget {
             builder: (context, value, child) {
               return Text(
                 character.characterState.level.value.toString(),
-                style: TextStyle(
-                    fontFamily: GameMethods.isFrosthavenStyle(null)
-                        ? 'GermaniaOne'
-                        : 'Pirata',
-                    color: Colors.white,
-                    fontSize: kFontSizeSmall * scale,
-                    shadows: [shadow]),
+                style: getCardTitleStyle(kFontSizeSmall * scale, shadow, GameMethods.isFrosthavenStyle(null)),
               );
             }),
       ],

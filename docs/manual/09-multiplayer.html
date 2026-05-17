@@ -43,6 +43,7 @@
       <li><a href="#s9-4"><span class="num">§9.4</span> Disconnect behavior</a></li>
       <li><a href="#s9-5"><span class="num">§9.5</span> Conflict resolution</a></li>
       <li><a href="#s9-6"><span class="num">§9.6</span> Initiative secrecy</a></li>
+      <li><a href="#s9-7"><span class="num">§9.7</span> The "synchronizing" pause on the Draw / Next Round button</a></li>
     </ol>
   </li>
   <li>
@@ -75,6 +76,7 @@
     <li><a href="#s9-4"><span class="num">§9.4</span> Disconnect behavior</a></li>
     <li><a href="#s9-5"><span class="num">§9.5</span> Conflict resolution</a></li>
     <li><a href="#s9-6"><span class="num">§9.6</span> Initiative secrecy</a></li>
+    <li><a href="#s9-7"><span class="num">§9.7</span> The "synchronizing" pause on the Draw / Next Round button</a></li>
   </ol>
 </nav>
 <!-- END GENERATED SUBTOC -->
@@ -134,6 +136,13 @@
 <p><strong>Edge case: modifying an entered value.</strong> While the round is still in <code>chooseInitiative</code>, the entering client can re-type their value. The new value broadcasts immediately as a fresh <code>SetInitCommand</code> — but it remains masked as <em>??</em> on other clients, just like the original entry was. The reveal still happens at the <code>playTurns</code> transition, not on modify. (The cheating vector this guards against — peeking at others' inits before committing your own — isn't possible in the first place because the masks are uniform during <code>chooseInitiative</code>.)</p>
 <p><strong>Items that change initiative (Gloomhaven boots, etc.).</strong> The app does not model items, so an item-driven initiative change looks identical to a manual edit: the player retypes their initiative into the same input field, and the same <code>SetInitCommand</code> path runs. The same secrecy applies — the new value broadcasts and stays masked on other clients until the next <code>playTurns</code> transition. There is no special "item used" notification; from the app's perspective, a Hide Armor reveal and a fat-fingered correction are the same event.</p>
 <p>Initiative secrecy is configurable per-table; if your group plays open initiative, the setting in <a href="11-settings.html#s11">§11</a> exposes values immediately on entry.</p>
+
+<h3 id="s9-7"><span class="secnum">§9.7</span>The "synchronizing" pause on the Draw / Next Round button</h3>
+<p>The single button at the bottom of the screen does double duty: while the round is in <code>chooseInitiative</code> it reads <strong>Draw</strong>, and once the host (or any client) advances the round it relabels to <strong>Next Round</strong>. The label flips whenever the underlying <code>roundState</code> changes — including when <em>another</em> player triggers the action from their device and the new state arrives over the wire.</p>
+<p>That morph creates a stale-intent hazard. If you tap right as a remote client advances the round, the button under your finger relabels mid-tap and your touch can fire the <em>new</em> action even though you formed your intent against the <em>old</em> one. The same hazard exists locally: a double-tap on Draw, with the first tap advancing the round, can land the second tap on the freshly-rendered Next Round.</p>
+<p><strong>The guard.</strong> Whenever the button's <code>roundState</code> changes, the button disables itself for roughly 300ms and dims briefly while a short fade plays. Any tap that lands inside the window is dropped on the floor — no command issued, no toast surfaced. Once the timer expires the button re-enables and the next tap is honoured normally. This is per-device UI state, not synced over the network; each client runs its own lockout against its own observed state changes.</p>
+<p><strong>Why 300ms.</strong> Typical LAN latency in the host/client topology is ~100ms; a 300ms window is ~3× that, generous enough to catch in-flight taps under realistic conditions without making the button feel laggy. The duration is a single named constant in <code>frosthaven_assistant/lib/Layout/draw_button.dart</code> (<code>_kSyncLockoutDuration</code>) if a table with much higher latency wants to extend it.</p>
+<p><strong>What this is not.</strong> The guard lives entirely in the local widget's <code>State</code> — nothing about the lockout is sent to peers, and the game state is unaffected. The server-side <em>command index</em> dedup (<a href="#s9-5">§9.5</a>) is the actual cross-client conflict resolver; this UI lockout exists to prevent the user-experience artifact where a moving button relabels under a tap. Both layers are needed: the server dedup prevents two clients from both advancing the round simultaneously, the UI lockout prevents one user's finger from firing the wrong action when their button morphs.</p>
 </section>
 <nav class="chapter-nav">
   <a href="08-edition-differences.html">← §8</a> &middot; <a href="index.html">Contents</a> &middot; <a href="10-mistakes-undo.html">§10 →</a>

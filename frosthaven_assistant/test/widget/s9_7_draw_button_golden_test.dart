@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show FontLoader;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frosthaven_assistant/Layout/draw_button.dart';
 import 'package:frosthaven_assistant/Layout/theme.dart';
+import 'package:frosthaven_assistant/Resource/app_constants.dart';
 import 'package:frosthaven_assistant/Resource/commands/add_character_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/draw_command.dart';
 import 'package:frosthaven_assistant/Resource/commands/set_init_command.dart';
@@ -26,6 +27,24 @@ Future<void> _loadAppFonts() async {
         ),
   );
   await loader.load();
+}
+
+// Walk the widget tree and force-decode any DecorationImage / Image so the
+// golden capture doesn't race the async image-stream resolution.
+Future<void> _precacheAllImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final element in find.byType(Image).evaluate()) {
+      final image = (element.widget as Image).image;
+      await precacheImage(image, element);
+    }
+    for (final element in find.byType(DecoratedBox).evaluate()) {
+      final decoration = (element.widget as DecoratedBox).decoration;
+      if (decoration is BoxDecoration && decoration.image != null) {
+        await precacheImage(decoration.image!.image, element);
+      }
+    }
+  });
+  await tester.pumpAndSettle();
 }
 
 // Manual §9.7 figure: DrawButton mid-lockout (synchronizing pause).
@@ -61,14 +80,47 @@ void main() {
     // is comfortably legible at the size the manual embeds. Tight surface
     // crops to just the round-counter + button strip, which is what §9.7
     // illustrates — the morphing-button artifact.
-    getIt<Settings>().userScalingBars.value = 4.0;
+    const double barScale = 4.0;
+    getIt<Settings>().userScalingBars.value = barScale;
 
-    await tester.binding.setSurfaceSize(const Size(420, 200));
+    const double barHeight = kBarHeight * barScale;
+    const Size surfaceSize = Size(420, 200);
+
+    await tester.binding.setSurfaceSize(surfaceSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final gs = getIt<GameState>();
     AddCharacterCommand('Blinkblade', 'Frosthaven', null, 1).execute();
     SetInitCommand('Blinkblade', 25, gameState: gs).execute();
+
+    // Match the real bar's container — DecorationImage of the metallic
+    // frosthaven-bar texture, repeating horizontally, with the same drop
+    // shadow above. Mirrors bottom_bar.dart so the button is shown in
+    // its actual visual context, not on a flat color.
+    final barBackground = Container(
+      height: barHeight,
+      width: surfaceSize.width,
+      decoration: BoxDecoration(
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, -4),
+          )
+        ],
+        image: DecorationImage(
+          image: ResizeImage(
+              const AssetImage('assets/images/psd/frosthaven-bar.png'),
+              height: barHeight.toInt()),
+          fit: BoxFit.cover,
+          repeat: ImageRepeat.repeatX,
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: DrawButton(gameState: gs),
+      ),
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -76,10 +128,16 @@ void main() {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: const Color(0xFF1B1B1B),
-          body: Center(child: DrawButton(gameState: gs)),
+          body: Stack(
+            children: [
+              Positioned(bottom: 0, left: 0, right: 0, child: barBackground),
+            ],
+          ),
         ),
       ),
     );
+
+    await _precacheAllImages(tester);
 
     // Fire a roundState change to enter the sync lockout. The button
     // disables (onPressed: null) and AnimatedOpacity targets 0.5 over a
@@ -90,7 +148,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 150));
 
     await expectLater(
-      find.byType(DrawButton),
+      find.byType(MaterialApp),
       matchesGoldenFile('$_goldenDir/s9-7-draw-button-sync.png'),
     );
 

@@ -15,8 +15,8 @@ import 'package:flutter/material.dart';
 /// are proportional to `size` (≈6.67% — the tuning that survived visual
 /// iteration on the loot-card owner icon).
 class ClassIcon extends StatelessWidget {
-  static const double _kShadowOffsetRatio = 1.0 / 15.0;
-  static const double _kShadowBlurRatio = 1.0 / 15.0;
+  static const double defaultShadowOffsetRatio = 1.0 / 15.0;
+  static const double defaultShadowBlurRatio = 1.0 / 15.0;
   static const Color _kDefaultShadowColor = Colors.black54;
 
   /// Asset basename, resolved as `assets/images/class-icons/$name.png`.
@@ -40,11 +40,22 @@ class ClassIcon extends StatelessWidget {
 
   /// Override the default shadow offset (proportional to `size`). When
   /// non-null, used directly in logical pixels regardless of `size`.
+  /// Takes precedence over `shadowOffsetRatio` if both are supplied.
   final double? shadowOffset;
 
   /// Override the default shadow blur sigma. Same escape-hatch semantics
-  /// as `shadowOffset`.
+  /// as `shadowOffset`. Takes precedence over `shadowBlurRatio`.
   final double? shadowBlur;
+
+  /// Per-instance override of the size-proportional shadow offset ratio.
+  /// Defaults to `defaultShadowOffsetRatio` (≈6.67%). Ignored when
+  /// `shadowOffset` is non-null.
+  final double shadowOffsetRatio;
+
+  /// Per-instance override of the size-proportional shadow blur ratio.
+  /// Defaults to `defaultShadowBlurRatio` (≈6.67%). Ignored when
+  /// `shadowBlur` is non-null.
+  final double shadowBlurRatio;
 
   /// How the image is fit into its bounds. Defaults to `BoxFit.scaleDown`
   /// (matches most existing callsites).
@@ -63,6 +74,8 @@ class ClassIcon extends StatelessWidget {
     this.shadowColor,
     this.shadowOffset,
     this.shadowBlur,
+    this.shadowOffsetRatio = defaultShadowOffsetRatio,
+    this.shadowBlurRatio = defaultShadowBlurRatio,
     this.fit = BoxFit.scaleDown,
     this.filterQuality = FilterQuality.medium,
   });
@@ -85,9 +98,9 @@ class ClassIcon extends StatelessWidget {
     if (!dropShadow) return primary;
 
     final effectiveOffset = shadowOffset ??
-        (size != null ? size! * _kShadowOffsetRatio : 0.0);
+        (size != null ? size! * shadowOffsetRatio : 0.0);
     final effectiveBlur = shadowBlur ??
-        (size != null ? size! * _kShadowBlurRatio : 0.0);
+        (size != null ? size! * shadowBlurRatio : 0.0);
     final effectiveShadowColor = shadowColor ?? _kDefaultShadowColor;
 
     return Stack(

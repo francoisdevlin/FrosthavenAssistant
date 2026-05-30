@@ -157,7 +157,7 @@ void main() {
       expect(filtered.imageFilter.toString(), contains('5.5'));
     });
 
-    testWidgets('size-proportional offset matches _kShadowOffsetRatio',
+    testWidgets('size-proportional offset matches defaultShadowOffsetRatio',
         (WidgetTester tester) async {
       // 1/15 * 15 = 1.0 (the loot card owner-icon tuning).
       await pumpIcon(
@@ -174,6 +174,62 @@ void main() {
             .first,
       );
       expect(transform.transform.getTranslation().x, closeTo(1.0, 0.001));
+    });
+
+    testWidgets('shadowOffsetRatio overrides default ratio',
+        (WidgetTester tester) async {
+      // 0.2 * 50 = 10.0
+      await pumpIcon(
+        tester,
+        const ClassIcon(
+          name: 'Brute',
+          size: 50,
+          dropShadow: true,
+          shadowOffsetRatio: 0.2,
+        ),
+      );
+      final transform = tester.widget<Transform>(
+        find
+            .ancestor(of: find.byType(ImageFiltered), matching: find.byType(Transform))
+            .first,
+      );
+      expect(transform.transform.getTranslation().x, closeTo(10.0, 0.001));
+    });
+
+    testWidgets('shadowBlurRatio overrides default ratio',
+        (WidgetTester tester) async {
+      await pumpIcon(
+        tester,
+        const ClassIcon(
+          name: 'Brute',
+          size: 50,
+          dropShadow: true,
+          shadowBlurRatio: 0.2,
+        ),
+      );
+      final filtered = tester.widget<ImageFiltered>(find.byType(ImageFiltered));
+      // 0.2 * 50 = 10.0
+      expect(filtered.imageFilter.toString(), contains('10'));
+    });
+
+    testWidgets('absolute shadowOffset takes precedence over shadowOffsetRatio',
+        (WidgetTester tester) async {
+      await pumpIcon(
+        tester,
+        const ClassIcon(
+          name: 'Brute',
+          size: 50,
+          dropShadow: true,
+          shadowOffsetRatio: 0.2, // would give 10.0
+          shadowOffset: 3.0,      // wins
+        ),
+      );
+      final transform = tester.widget<Transform>(
+        find
+            .ancestor(of: find.byType(ImageFiltered), matching: find.byType(Transform))
+            .first,
+      );
+      expect(transform.transform.getTranslation().x, 3.0);
     });
 
     testWidgets(
